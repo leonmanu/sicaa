@@ -1,0 +1,5 @@
+// Credenciales (REEMPLAZAR CON TUS DATOS REALES)
+const USERNAME = 'ciie06901'; 
+const PASSWORD = 'lopezMay3250'; // 🚨 ¡IMPORTANTE! Reemplazar con tu contraseña correcta 🚨
+const USERNAME = process.env.USERNAME || 'ciie06901';
+const PASSWORD = process.env.PASSWORD || 'lopezMay3250';

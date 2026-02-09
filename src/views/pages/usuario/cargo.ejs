@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <title>Nodo CIIE - Seleccionar Cargo</title>
+    <%- include('../../partials/head') %>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>💼 Mis Cargos <%= asignaciones.length  %></h2>
+                <p class="text-muted">Seleccioná el cargo con el que vas a operar hoy</p>
+            </div>
+            <a href="/usuario/solicitar-cargo" class="btn btn-success">
+                ➕ Solicitar Nueva Asignación
+            </a>
+        </div>
+
+        <div class="table-responsive shadow-sm rounded">
+            <table id="tablaCargos" class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>CIIE / Región</th>
+                        <th>Cargo</th>
+                        <th>Área</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (asignaciones && asignaciones.length > 0) { %>
+                        <% asignaciones.forEach(asig => { %>
+                            <tr>
+                                <td>
+                                    <strong><%= asig.cargoId.ciieId.nombre %></strong><br>
+                                    <small class="text-muted">Región <%= asig.cargoId.ciieId.region %></small>
+                                </td>
+                                <td><%= asig.cargoId.rolId.nombre %></td>
+                                <td><%= asig.cargoId?.areaId?.nombre || '' %></td>
+                                <td>
+                                    <% if (asig.estado === 'Activo') { %>
+                                        <span class="badge bg-success">Activo</span>
+                                    <% } else if (asig.estado === 'Licencia') { %>
+                                        <span class="badge bg-warning text-dark">En Licencia</span>
+                                    <% } else { %>
+                                        <span class="badge bg-warning text-dark">Pendiente de ón</span>
+                                    <% } %>
+                                </td>
+                                <td class="text-center">
+                                    <% if (asig.estado === 'Activo') { %>
+                                        <a href="curso/<%= asig.cargoId?.clave %>/<%= asig.cargoId?.ciieId?.clave %>" class="btn btn-primary">
+                                            Acceder ➔
+                                        </a>
+                                    <% } else { %>
+                                        <button class="btn btn-secondary btn-sm" disabled>Esperando aprobación</button>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <p class="mb-3">No tenés cargos asignados en este momento.</p>
+                                <a href="/usuario/solicitar-cargo" class="btn btn-outline-primary">
+                                    Hacé clic acá para solicitar tu primer cargo
+                                </a>
+                            </td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+
+    <script>
+        $(document).ready(function() {
+            $('#tablaCargos').DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                responsive: true,
+                dom: 't' // Solo muestra la tabla si son pocos registros
+            });
+        });
+    </script>
+</body>
+</html>

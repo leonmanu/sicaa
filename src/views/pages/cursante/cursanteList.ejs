@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <title>Panel CIIE - Listado de Cursos</title>
+    <%- include('../../partials/head') %>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>👥 Cursantes</h2>
+            <span class="text-muted">CIIE ID: 65 | Cohorte: 65</span>
+        </div>
+        <div class="mb-3">
+    <button id="btnGuardarMasivo" class="btn btn-success d-none" onclick="guardarTodo()">
+        💾 Guardar Cambios (<span id="contadorCambios">0</span>)
+    </button>
+</div>
+        <div class="table-responsive shadow-sm rounded">
+            <table id="tablaCursantes" class="table table-dark table-hover align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Apellido y Nombre</th>
+            <th>Email</th>
+            <th>Distrito</th>
+            <th class="text-center">Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% if (cursantes && cursantes.length > 0) { %>
+            <% cursantes.forEach(cursante => { %>
+                <tr>
+                    <td class="small"><%= cursante[0] %></td>
+                    
+                    <td><%= cursante[1] %></td>
+                    
+                    <td class="text-info"><%= cursante[3] %></td>
+                    
+                    <td><small><%= cursante[2] %></small></td>
+                    
+                    <td class="text-center">
+                        <%- cursante[4] %> </td>
+                </tr>
+            <% }); %>
+        <% } else { %>
+            <tr>
+                <td colspan="5" class="text-center py-4">No se encontraron cursantes inscritos.</td>
+            </tr>
+        <% } %>
+    </tbody>
+</table>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+
+<script>
+    $(document).ready(function() {
+        $('#tablaCursos').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            order: [[0, 'desc']],
+            responsive: true
+        });
+    });
+</script>
+
+<script>
+    // Objeto para rastrear solo los que cambiaron
+    let cambiosPendientes = {};
+
+    function cambiacal(id) {
+        const select = document.getElementById('cal' + id);
+        cambiosPendientes[id] = select.value;
+
+        // Feedback visual: resaltamos la fila y mostramos el botón
+        select.closest('tr').classList.add('table-active');
+        select.style.border = "1px solid #198754";
+        alert(
+        Object.entries(cambiosPendientes)
+            .map(([dni, idcal]) => `dni: ${dni}, idcal: ${idcal}`)
+            .join('\n')
+        );
+
+        const btn = document.getElementById('btnGuardarMasivo');
+        btn.classList.remove('d-none');
+        document.getElementById('contadorCambios').innerText = Object.keys(cambiosPendientes).length;
+    }
+
+async function guardarTodo() {
+    // 1. Definimos las referencias
+    const btn = document.getElementById('btnGuardarMasivo');
+    const ids = Object.keys(cambiosPendientes);
+    const urlParams = new URLSearchParams(window.location.search);
+    const idCurso = urlParams.get('idcurso');
+
+    // Debug para ver en consola (F12) si la función arranca
+    console.log("Iniciando guardado masivo...");
+    console.log("IDs a guardar:", ids);
+    console.log("ID del Curso detectado:", idCurso);
+
+    if (ids.length === 0) {
+        alert("No hay cambios pendientes para guardar.");
+        return;
+    }
+
+    // 2. Estado visual de carga
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Guardando...`;
+
+    // 3. Bucle de envío
+    for (const id of ids) {
+        try {
+            const response = await fetch('/cursante/calificar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: id, 
+                    nota: cambiosPendientes[id],
+                    idCurso: idCurso 
+                })
+            });
+
+            if (!response.ok) throw new Error("Error en el servidor");
+            
+            console.log(`✅ ID ${id} guardado correctamente`);
+        } catch (err) {
+            console.error(`❌ Error al guardar ID ${id}:`, err);
+        }
+    }
+
+    //alert("¡Sincronización con el ABC finalizada!");
+    //location.reload(); 
+}
+</script>
+
+</body>
+</html>

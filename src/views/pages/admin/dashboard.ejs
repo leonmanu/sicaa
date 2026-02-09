@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <title>Nodo CIIE - Panel de Gestión</title>
+    <%- include('../../partials/head') %> </head>
+<body>
+    <%- include('../../partials/navbar') %>
+    
+    <div class="container py-5">
+        <div class="mb-4">
+            <h2>⚙️ Panel de Control</h2>
+            <p class="text-muted">Bienvenido, <%= user.nombre %>. Gestioná las solicitudes pendientes.</p>
+        </div>
+
+        <div class="row g-4 mt-2">
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm bg-dark text-white">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-bank fs-1 mb-3 text-warning"></i>
+                        <h5 class="card-title">Gestión de CIIEs</h5>
+                        <p class="card-text text-secondary">Aprobación de sedes institucionales.</p>
+                        <a href="/admin/ciies" class="btn btn-outline-warning position-relative">
+                            Ver Instituciones
+                            <% if (typeof ciies !== 'undefined' && ciies.length > 0) { %>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    <%= ciies.length %>
+                                </span>
+                            <% } %>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm bg-dark text-white">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-people fs-1 mb-3 text-info"></i>
+                        <h5 class="card-title">Gestión de Usuarios</h5>
+                        <p class="card-text text-secondary">Administración de docentes y personal.</p>
+                        <a href="/admin/usuarios" class="btn btn-outline-warning position-relative">
+                            Ver Usuarios
+                            <% if (typeof personas !== 'undefined' && personas.length > 0) { %>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    <%= personas.length %>
+                                </span>
+                            <% } %>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+</body>
+</html>

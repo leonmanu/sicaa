@@ -1,0 +1,100 @@
+<%- include('../../partials/head') %>
+    <%- include('../../partials/navbar') %>
+
+        <div class="container py-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>🏛️ Gestión de Instituciones (CIIE)</h2>
+                <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm">Volver al Panel</a>
+            </div>
+
+            <div class="card bg-dark border-0 shadow">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle mb-0">
+                        <thead class="table-secondary text-dark">
+                            <tr>
+                                <th>Institución</th>
+                                <th>Email</th>
+                                <th>Región / Distrito</th>
+                                <th>Estado</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% ciies.forEach(c=> { %>
+                                <tr>
+                                    <td>
+                                        <strong>
+                                            <%= c.referenciaId?.nombre || 'Sede sin nombre' %>
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <%= c.email %>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">R <%= c.referenciaId?.region %></span>
+                                        <small class="text-muted">
+                                            <%= c.referenciaId?.distrito %>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <% if(c.estado==='pendiente' ) { %>
+                                            <span class="badge rounded-pill bg-warning text-dark">Pendiente</span>
+                                            <% } else if(c.estado==='aprobado' ) { %>
+                                                <span class="badge rounded-pill bg-success">Aprobado</span>
+                                                <% } else { %>
+                                                    <span class="badge rounded-pill bg-danger">Rechazado</span>
+                                                    <% } %>
+                                    </td>
+                                    <td class="text-center">
+                                        <% const idHtml=c.email.replace(/[@.]/g, '-' ); %>
+
+                                            <div id="acciones-<%= idHtml %>"
+                                                class="<%= c.estado === 'pendiente' ? '' : 'd-none' %>">
+                                                <form action="/admin/usuario/cambiar-estado/<%= c.referenciaId.clave %>"
+                                                    method="POST" class="d-inline">
+                                                    <input type="hidden" name="estado" value="aprobado">
+                                                    <button class="btn btn-sm btn-success" title="Aprobar"><i
+                                                            class="bi bi-check-lg"></i></button>
+                                                </form>
+
+                                                <form action="/admin/usuario/cambiar-estado/<%= c.referenciaId.clave %>"
+                                                    method="POST" class="d-inline ms-1">
+                                                    <input type="hidden" name="estado" value="rechazado">
+                                                    <button class="btn btn-sm btn-danger" title="Rechazar"><i class="bi bi-x-lg"></i></button>
+                                                </form>
+
+                                                <% if(c.estado !=='pendiente' ) { %>
+                                                    <button type="button" class="btn btn-sm btn-link text-secondary"
+                                                        onclick="toggleEdicion('<%= idHtml %>')">Cancelar</button>
+                                                    <% } %>
+                                            </div>
+
+                                            <% if(c.estado !=='pendiente' ) { %>
+                                                <div id="btn-editar-<%= idHtml %>">
+                                                    <button class="btn btn-sm btn-outline-info"
+                                                        onclick="toggleEdicion('<%= idHtml %>')">
+                                                        <i class="bi bi-pencil"></i> Cambiar estado
+                                                    </button>
+                                                </div>
+                                                <% } %>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function toggleEdicion(idSanitizado) {
+                const divAcciones = document.getElementById('acciones-' + idSanitizado);
+                const divEditar = document.getElementById('btn-editar-' + idSanitizado);
+
+                if (divAcciones && divEditar) {
+                    divAcciones.classList.toggle('d-none');
+                    divEditar.classList.toggle('d-none');
+                }
+            }
+        </script>
+        <%- include('../../partials/scripts') %>

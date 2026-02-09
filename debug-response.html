@@ -1,0 +1,79 @@
+	<html>
+	<head>
+		<title>Inicio de Sesión</title>
+		<link rel='icon' type='image/png' href='../logobhe.png' >
+		<link href="../lib/css/bootstrap.min.css" rel="stylesheet">
+		<link href="../lib/css/bootstrap-theme.css" rel="stylesheet">
+		<link rel="stylesheet" type="text/css" href="../lib/css/estilos.css?v=146945285">
+		<script type="text/javascript" src="../lib/js/jquery-3.1.1.min.js"></script>
+		<script src="../lib/js/bootstrap.min.js"></script>
+<!-- 
+		<link rel="stylesheet" href="../lib/css/bootstrap.min.css" >
+		<link rel="stylesheet" href="../lib/css/bootstrap-theme.min.css" >
+		<script src="../lib/js/bootstrap.min.js" ></script>
+		<script type="text/javascript" src="../lib/js/jquery-3.1.1.min.js"></script>		
+		<script src="../lib/alertify/src/alertify.js"></script>
+	 -->	
+	<script>
+	  function mostrarContrasena(){
+	      var tipo = document.getElementById("password");
+	      var boton = document.getElementById('mostrarocultar');
+	      if(tipo.type == "password"){
+	          tipo.type = "text";
+	          boton.innerHTML="Ocultar Contraseña";
+	          boton.style.backgroundColor= '#1FE2F3';
+	      }else{
+	          tipo.type = "password";
+	          boton.innerHTML="Mostrar Contraseña";
+	          boton.style.backgroundColor= '#F73636';
+	      }
+	  }
+	</script>			
+	</head>
+	
+	<body>
+		
+		<div class="container">    
+			<div id="loginbox" style="margin-top:50px;" class="mainbox col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">                    
+				<div class="panel panel-info" >
+					<div class="panel-heading">
+						<div class="panel-title">Iniciar Sesión</div>
+						<!-- 
+						<div style="float:right; font-size: 80%; position: relative; top:-10px"><a href="recupera.php">¿Se te olvid&oacute; tu contraseña?</a></div>
+						 -->
+					</div>     
+
+					<div style="padding-top:30px" class="panel-body" >
+
+						<div style="display:none" id="login-alert" class="alert alert-danger col-sm-12"></div>
+
+						<form id="loginform" class="form-horizontal" role="form" action="" method="POST" autocomplete="off">
+							<p align="center">
+
+								<img src="../imagenes/banner.png" width="60%" alt="">
+							</p>
+
+							<div style="margin-bottom: 25px" class="input-group">
+								<span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+								<input id="usuario" type="text" class="form-control" name="usuario" value="" placeholder="usuario" required>                                        
+							</div>
+
+							<div style="margin-bottom: 25px" class="input-group">
+								<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+								<input id="password" type="password" class="form-control" name="password" placeholder="password" required>
+							</div>
+
+
+							<div style="margin-top:10px" class="form-group">
+								<div class="col-sm-12 controls">
+									<button id="btn-login" type="submit" class="btn btn-success">Iniciar Sesión</button>
+									<button class="btn" style="background-color: #F73636;float: right; " type="button" id="mostrarocultar" onclick="mostrarContrasena()">Mostrar Contraseña</button>																	
+								</div>
+							</div>
+						</form>
+					</div>
+							</div>                     
+		</div>  
+	</div>
+</body>
+</html>						

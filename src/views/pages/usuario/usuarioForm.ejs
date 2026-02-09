@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+
+<head>
+    <title>Panel CIIE - Listado de Cursos</title>
+    <%- include('../../partials/head') %>
+</head>
+
+<body>
+    <%- include('../../partials/navbar') %>
+        <div class="container py-5">
+
+            <div class="w3-container w3-white w3-padding-16">
+                <h2 class="mb-4">
+                    <%= usuario.autorizado ? 'Mi Perfil' : 'Registro de usuario' %>
+                </h2>
+
+                <% if (!usuario.autorizado) { %>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Detectamos que es tu primera vez con la cuenta <strong>
+                            <%= usuario.email %>
+                        </strong>. Por favor, completa tu CUIL y Fecha de Nacimiento para continuar.
+                    </div>
+                    <% } %>
+
+                        <form action="/usuario/alta" method="post">
+                            <hr>
+
+                            <% if (usuario.tipo==='institucion' ) { %>
+                                <h5> Datos Institucionales (CIIE) </h5>
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <label for="inputSede" class="form-label">Nombre</label>
+                                        <div class="input-group">
+                                            <input id="inputSede" value="<%= usuario.nombre %>" class="form-control"
+                                                type="text" name="nombreSede" disabled readonly required>
+                                            <span class="input-group-text "><i
+                                                    class="bi bi-lock-fill text-muted"></i></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="<%= usuario.sede !== '00' ? 'col-sm-2' : 'col-sm-3' %>">
+                                        <label for="inputRegion" class="form-label">Región</label>
+                                        <div class="input-group">
+                                            <input id="inputRegion" value="<%= usuario.region %>" class="form-control "
+                                                type="text" name="region" disabled readonly required>
+                                            <span class="input-group-text "><i
+                                                    class="bi bi-lock-fill text-muted"></i></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="<%= usuario.sede !== '00' ? 'col-sm-2' : 'col-sm-3' %>">
+                                        <label for="inputDistrito" class="form-label">Distrito</label>
+                                        <div class="input-group">
+                                            <input id="inputDistrito" value="<%= usuario.distrito %>"
+                                                class="form-control" type="text" name="distrito" disabled readonly
+                                                required>
+                                            <span class="input-group-text "><i
+                                                    class="bi bi-lock-fill text-muted"></i></span>
+                                        </div>
+                                    </div>
+
+                                    <% if (usuario.sede !=='00' ) { %>
+                                        <div class="col-sm-2">
+                                            <label for="inputNumSede" class="form-label">Sede Nº</label>
+                                            <div class="input-group">
+                                                <input id="inputNumSede" value="<%= usuario.sede %>"
+                                                    class="form-control " type="text" name="sede" disabled readonly
+                                                    required>
+                                                <span class="input-group-text "><i
+                                                        class="bi bi-lock-fill text-muted"></i></span>
+                                            </div>
+                                        </div>
+                                        <% } %>
+                                </div>
+                                <br>
+                                <div>
+                                    <h5 class="mb-4"><i class="bi bi-shield-lock me-2"></i>Credenciales de sitios externos</h5>
+                                    <p class="small mt-0">Esta información es necesaria para sincronizar los datos con otros sitios oficiales.</p>
+                                </div>
+                                <div class="container-fluid p-0">
+                                    <div class="mb-4 p-3 border rounded bg-light bg-opacity-10">
+                                        <h6 class="text-primary border-bottom pb-2">
+                                            <i class="bi bi-mortarboard-fill me-2"></i>Sitio de Formación Permanente (DFDP)
+                                        </h6>
+                                        <input type="hidden" name="externo[0][sitio]" value="DFDP">
+                                        
+                                        <div class="row g-3 mt-1">
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-bold">Usuario Portal Cursos</label>
+                                                <input type="text" name="externo[0][u]" class="form-control" autocomplete="off" placeholder="DNI o Usuario">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-bold">Clave Portal Cursos</label>
+                                                <input type="password" name="externo[0][p]" class="form-control" autocomplete="new-password" placeholder="********">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4 p-3 border rounded bg-light bg-opacity-10">
+                                        <h6 class="text-info border-bottom pb-2">
+                                            <i class="bi bi-pencil-fill me-2"></i>Sitio CIIE (Portal ABC)
+                                        </h6>
+                                        <input type="hidden" name="externo[1][sitio]" value="ABC">
+                                        
+                                        <div class="row g-3 mt-1">
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-bold">Usuario Portal ABC</label>
+                                                <input type="text" name="externo[1][u]" class="form-control" autocomplete="off" placeholder="Ej: ciie06901">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-bold">Clave Portal ABC</label>
+                                                <input type="password" name="externo[1][p]" class="form-control" autocomplete="new-password" placeholder="********">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <% } else { %>
+                                    <h5> Datos personales </h5>
+
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <label for="inputNombre" class="form-label">Nombre/s</label>
+                                            <input id="inputNombre" value="<%= usuario.nombre %>"
+                                                class="form-control text-secondary" type="text" disabled readonly>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <label for="inputApellido" class="form-label">Apellido/s</label>
+                                            <input id="inputApellido" value="<%= usuario.apellido %>"
+                                                class="form-control text-secondary" type="text" disabled readonly>
+                                        </div>
+                                    </div>
+
+                                    <br>
+
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <label for="displayCuil" class="form-label">CUIL</label>
+                                            <input id="displayCuil" class="form-control" type="text"
+                                                placeholder="00-00000000-0" maxlength="13" required>
+
+                                            <input type="hidden" id="inputCuil" name="cuil"
+                                                value="<%= usuario.cuil || '' %>">
+                                        </div>
+
+                                        <div class="col-sm-6">
+                                            <label for="inputDni" class="form-label">DNI</label>
+                                            <input id="inputDni" class="form-control" type="text" name="dni"
+                                                placeholder="DNI" value="<%= usuario.dni || '' %>" required>
+                                            <div class="form-text">Se sugiere desde el CUIL, pero puedes editarlo.</div>
+                                        </div>
+                                    </div>
+
+                                    <br>
+
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <label for="inputFechnac" class="form-label">Fecha de Nacimiento</label>
+                                            <input id="inputFechnac" class="form-control" type="date" name="fechanac"
+                                                value="<%= usuario.fechanac || '' %>" required>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <label for="inputGenero" class="form-label">Género</label>
+                                            <select id="inputGenero" class="form-select" name="genero" required>
+                                                <option value="" selected disabled>Seleccione...</option>
+                                                <option value="femenino">Femenino</option>
+                                                <option value="masculino">Masculino</option>
+                                                <option value="otro">Otro</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <% } %>
+
+                                        <br>
+                                        <hr>
+
+                                        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                                            <button class="btn btn-primary btn-lg" type="submit">
+                                                <i class="bi bi-save me-1"></i>
+                                                <%= usuario.autorizado ? 'Actualizar Datos' : 'Solicitar Alta' %>
+                                            </button>
+
+                                            <% if (usuario.autorizado) { %>
+                                                <a href="/curso/lista"
+                                                    class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                                                <% } %>
+                                        </div>
+                        </form>
+            </div>
+
+            <script>
+                const displayCuil = document.getElementById('displayCuil');
+                const inputCuil = document.getElementById('inputCuil');
+                const inputDni = document.getElementById('inputDni');
+
+                // Al hacer click o foco en DNI, seleccionar todo para facilitar el borrado
+                inputDni.addEventListener('focus', () => inputDni.select());
+
+                displayCuil.addEventListener('input', (e) => {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length > 12) value = value.slice(0, 11);
+
+                    inputCuil.value = value;
+
+                    // Máscara visual
+                    let masked = value;
+                    if (value.length >= 2) masked = value.slice(0, 2) + '-' + value.slice(2);
+                    if (value.length >= 10) masked = masked.slice(0, 11) + '-' + value.slice(10);
+                    e.target.value = masked;
+
+                    // Lógica de PROPUESTA
+                    // Cuando llega a 10 dígitos (el bloque central está completo)
+                    if (value.length >= 10) {
+                        const dniSugerido = value.substring(2, 10);
+
+                        // Solo lo cambiamos si el DNI está vacío o si el usuario no lo editó manualmente todavía
+                        if (inputDni.value === "" || inputDni.dataset.editado !== "true") {
+                            inputDni.value = dniSugerido;
+                            inputDni.focus();  // Salta al campo DNI
+                            inputDni.select(); // Selecciona el texto (lo "pinta" de azul)
+                        }
+                    }
+                });
+
+                // Si el usuario escribe manualmente en DNI, marcamos que ya no queremos sugerencias
+                inputDni.addEventListener('keydown', () => {
+                    inputDni.dataset.editado = "true";
+                });
+            </script>
+
+</html>

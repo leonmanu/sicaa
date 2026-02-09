@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>CIIE - Panel de Gestión</title>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    
+    <div class="container py-5">
+        <div class="mb-5">
+            <h2>🏛️ Panel de Gestión CIIE</h2>
+            <p class="text-muted small">Nodo: <span class="text-info"><%= user.referenciaId.nombre %></span></p>
+            <hr class="opacity-25">
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-lg bg-dark">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-info">
+                            <i class="bi bi-person-badge fs-1"></i>
+                        </div>
+                        <h5 class="card-title">Agentes</h5>
+                        <p class="card-text text-secondary small">Aprobación de nuevos registros y validación de perfiles.</p>
+                        
+                        <a href="/ciie/agentes" class="btn btn-outline-info position-relative mt-2">
+                            Gestionar
+                            <% if (typeof personasPendientes !== 'undefined' && personasPendientes.length > 0) { %>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    <%= personasPendientes.length %>
+                                </span>
+                            <% } %>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-lg bg-dark border-start border-warning border-opacity-25">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-warning">
+                            <i class="bi bi-briefcase fs-1"></i>
+                        </div>
+                        <h5 class="card-title">Cargos</h5>
+                        <p class="card-text text-secondary small">Asignación de roles: Formadores, ETR y funciones de sede.</p>
+                        
+                        <a href="/ciie/cargos" class="btn btn-outline-warning mt-2">
+                            Administrar Cargos
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-lg bg-dark">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-success">
+                            <i class="bi bi-journal-bookmark-fill fs-1"></i>
+                        </div>
+                        <h5 class="card-title">Cursos</h5>
+                        <p class="card-text text-secondary small">Sincronización de ofertas formativas con el ABC.</p>
+                        
+                        <a href="/ciie/cursos" class="btn btn-outline-success mt-2">
+                            Ver Catálogo
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-lg bg-dark">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-danger">
+                            <i class="bi bi-mortarboard fs-1"></i>
+                        </div>
+                        <h5 class="card-title">Cursantes</h5>
+                        <p class="card-text text-secondary small">Seguimiento de asistencias y certificaciones finales.</p>
+                        
+                        <a href="/ciie/cursantes" class="btn btn-outline-danger mt-2">
+                            Gestionar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5 p-4 bg-secondary bg-opacity-10 rounded-3 border border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="text-uppercase fw-bold small text-info mb-1">💡 Integración</h6>
+                <p class="mb-0 small text-muted">Sincronización con Sitios Oficiales: <span class="text-success fw-bold">Activa</span></p>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-dark text-secondary border border-secondary">SICAA v1.0</span>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+</body>
+</html>

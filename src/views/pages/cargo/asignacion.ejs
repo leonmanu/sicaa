@@ -1,0 +1,153 @@
+<%- include('../../partials/head') %>
+<%- include('../../partials/navbar') %>
+<%- include('../../partials/msj') %>
+
+<div class="container py-5">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-dark"><i class="bi bi-person-badge me-2"></i>Gestión de Planta</h2>
+            <p class="text-secondary mb-0">CIIE Laferrere: Administrá la asignación de formadores y personal de soporte.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <a href="/ciie/dashboard" class="btn btn-outline-primary shadow-sm border-2">
+                <i class="bi bi-arrow-left me-1"></i> Volver al Panel
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-muted small text-uppercase fw-bold">
+                        <tr>
+                            <th class="ps-4 py-3">Cargo</th>
+                            <th>Área / Nivel</th>
+                            <th>Docente</th>
+                            <th class="text-end pe-4">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% cargos.forEach(cargo => { %>
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark"><%= cargo.rolId?.nombre || 'Sin Rol' %></div>
+                                    <small class="text-muted"><%= cargo.clave || 'Cód: '+ cargo._id.toString().slice(-4) %></small>
+                                </td>
+                                <td>
+                                    <span class="text-dark"><%= cargo.areaId ? cargo.areaId.nombreCorto : 'Institucional' %></span>
+                                    <% if(cargo.areaId) { %>
+                                        <div class="small text-muted"><%= cargo.areaId.nivel %></div>
+                                    <% } %>
+                                    <% if(cargo.comision > 1) { %>
+                                        <span class="badge rounded-pill bg-light text-dark border">Com. <%= cargo.comision %></span>
+                                    <% } %>
+                                </td>
+                                
+                                <td>
+                                    <% if(cargo.ocupante) { %>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="fw-semibold"><%= cargo.ocupante.usuarioId.email %></div>
+                                                <small class="text-muted"><%= cargo.ocupante.situacionRevista %></small>
+                                            </div>
+                                        </div>
+                                    <% } else { %>
+                                        <% 
+                                        let badgeClass = 'bg-success';
+                                        let estadoLabel = 'Vacante';
+                                        if(cargo.ocupante) {
+                                            badgeClass = (cargo.ocupante.estado === 'Licencia') ? 'bg-warning text-dark' : 'bg-danger';
+                                            estadoLabel = cargo.ocupante.estado;
+                                        }
+                                    %>
+                                    <span class="badge rounded-pill <%= badgeClass %> px-3 py-2">
+                                        <%= estadoLabel %>
+                                    </span>
+                                    <% } %>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <% if(!cargo.ocupante || cargo.ocupante.estado === 'Licencia') { %>
+                                        <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" onclick="abrirModalAsignar('<%= cargo.clave %>')">
+                                            <i class="bi bi-plus-circle me-1"></i> Asignar
+                                        </button>
+                                    <% } else { %>
+                                        <button class="btn btn-outline-warning btn-sm rounded-pill px-3" onclick="abrirModalLicencia('<%= cargo.ocupante._id %>')">
+                                            <i class="bi bi-clock-history me-1"></i> Licencia
+                                        </button>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="modalAsignar" tabindex="-1" aria-labelledby="modalAsignarLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalAsignarLabel fw-bold">Asignar Agente al Cargo</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="/asignaciones" method="POST">
+        <div class="modal-body p-4">
+          <input type="hidden" name="cargoClave" id="inputCargoClave">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-secondary">Seleccionar Agente</label>
+            <select name="dni" class="form-select form-select-lg border-2" required>
+              <option value="" disabled selected>Buscar agente...</option>
+              <% agentes.forEach(agente => { %>
+                <option value="<%= agente.referenciaId.dni %>">
+                  <%= agente.referenciaId.apellido %>, <%= agente.referenciaId.nombre %> (<%= agente.referenciaId.dni %>)
+                </option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-secondary">Situación de Revista</label>
+            <select name="situacionRevista" class="form-select border-2" required>
+              <option value="Provisional">Provisional</option>
+              <option value="Suplente">Suplente</option>
+            </select>
+          </div>
+
+          <div class="alert alert-info py-2 small">
+            <i class="bi bi-info-circle me-1"></i> Al confirmar, el cargo dejará de figurar como Vacante en la POF.
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary px-4">Confirmar Asignación</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.03);
+        transition: background-color 0.2s ease;
+    }
+    .badge { font-weight: 500; }
+    .card { overflow: hidden; }
+</style>
+
+<script>
+    function abrirModalAsignar(cargoClave) {
+        // 1. Inyectamos el ID del cargo en el input oculto
+        document.getElementById('inputCargoClave').value = cargoClave;
+        
+        // 2. Disparamos el Modal de Bootstrap
+        const modalElement = document.getElementById('modalAsignar');
+        const modalInstance = new bootstrap.Modal(modalElement);
+        modalInstance.show();
+    }
+</script>
+
+<%- include('../../partials/scripts') %>

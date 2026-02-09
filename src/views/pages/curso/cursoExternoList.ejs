@@ -1,0 +1,242 @@
+<%- include('../../partials/head') %>
+<%- include('../../partials/navbar') %>
+<%- include('../../partials/msj') %>
+
+<div class="container py-5">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-dark">
+                <i class="bi bi-cloud-arrow-down-fill me-2 text-primary"></i>Sincronización ABC
+            </h2>
+            <p class="text-secondary mb-0">
+                Cursos detectados en el sitio oficial. Vincúlalos a un cargo local para gestionar la planta.
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="/ciie/cursos" class="btn btn-outline-secondary shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Ver Mis Cursos
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="tablaCursosExternos" class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-muted small text-uppercase fw-bold">
+                        <tr>
+                            <th class="ps-4 py-3">ID ABC</th>
+                            <th>Inicio</th>
+                            <th>Propuesta / Nombre</th>
+                            <th>Formador (ABC)</th>
+                            <th>Estado SICAA</th>
+                            <th class="text-end pe-4">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% cursosExternos.forEach(curso=> { 
+                            const vinculado = cursosLocales.find(cl => cl.idOfertaOficial === curso[0]);
+                        %>
+                        <tr class="<%= vinculado ? 'table-light opacity-75' : '' %>">
+                            <td class="ps-4">
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border">
+                                    <%= curso[0] %>
+                                </span>
+                            </td>
+                            <td class="small text-muted"><%= curso[5] %></td>
+                            <td>
+                                <div class="fw-bold text-dark text-truncate" style="max-width: 300px;">
+                                    <%= curso[9] %>
+                                </div>
+                                <small class="text-primary"><%= curso[10] %></small>
+                            </td>
+                            <td>
+                                <i class="bi bi-person text-muted me-1"></i><%= curso[17] %>
+                            </td>
+                            <td>
+                                <% if(vinculado) { %>
+                                    <span class="badge rounded-pill bg-success px-3">
+                                        <i class="bi bi-check-all me-1"></i> Vinculado
+                                    </span>
+                                    <div class="small text-muted mt-1">
+                                        Cargo: <%= vinculado.cargoId?.areaId?.nombreCorto || 'Asignado' %>
+                                    </div>
+                                <% } else { %>
+                                    <span class="badge rounded-pill bg-warning text-dark px-3">
+                                        <i class="bi bi-exclamation-triangle me-1"></i> Sin Vincular
+                                    </span>
+                                <% } %>
+                            </td>
+                            <td class="text-end pe-4">
+                                <% if(!vinculado) { %>
+                                    <button class="btn btn-primary btn-sm rounded-pill px-3 btn-vincular"
+                                        data-id="<%= curso[0] %>"
+                                        data-nombre="<%= curso[9] %>"
+                                        data-full='<%= JSON.stringify(curso).replace(/'/g, "&#39;") %>'>
+                                        <i class="bi bi-link-45deg me-1"></i> Vincular Cargo
+                                    </button>
+                                <% } else { %>
+                                    <button class="btn btn-outline-info btn-sm rounded-pill px-3" disabled>
+                                        <i class="bi bi-eye"></i> Gestionar
+                                    </button>
+                                <% } %>
+                            </td>
+                        </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalVincular" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold">Vincular Curso a Estructura Local</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="inputOfertaId">
+
+                <div class="mb-3">
+                    <label class="form-label small text-uppercase fw-bold text-muted">Curso Seleccionado</label>
+                    <div id="nombreCursoDisplay" class="p-3 bg-light rounded border small fw-bold text-dark"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Asignar al Cargo / Área</label>
+                    <select name="cargoId" class="form-select form-select-lg border-2" required>
+                        <option value="" disabled selected>Seleccione el cargo responsable...</option>
+                        <% cargos.forEach(cargo=> { 
+                            const areaInfo = cargo.areaId ? `${cargo.areaId.nombre} (${cargo.areaId.nivel})` : 'Estructura Institucional';
+                            const comisionStr = cargo.comision > 1 ? ` [Com. ${cargo.comision}]` : '';
+                            
+                            let ocupanteInfo = '🪑 VACANTE';
+                            if (cargo.ocupante?.usuarioId?.referenciaId) {
+                                const { apellido, nombre } = cargo.ocupante.usuarioId.referenciaId;
+                                ocupanteInfo = `👤 ${apellido}, ${nombre}`;
+                            }
+                        %>
+                        <option value="<%= cargo.clave %>">
+                            <%= areaInfo %><%= comisionStr %> — <%= ocupanteInfo %>
+                        </option>
+                        <% }) %>
+                    </select>
+                    <div class="form-text mt-2">
+                        Esto asociará el curso del ABC con la carga horaria y el área técnica de este cargo.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarVinculo" class="btn btn-dark px-4 shadow">
+                    <span id="btnText">Confirmar Réplica</span>
+                    <span id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../../partials/scripts') %>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    $(document).ready(function () {
+        const table = $('#tablaCursosExternos').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            pageLength: 10,
+            order: [[4, 'asc']]
+        });
+
+        // Al abrir el modal
+        $(document).on('click', '.btn-vincular', function() {
+            // 1. Intentamos obtener el objeto data-full
+            let cursoRaw = $(this).data('full');
+            
+            // 2. Si por algún motivo es string (a veces pasa con jQuery), lo parseamos
+            if (typeof cursoRaw === 'string') {
+                cursoRaw = JSON.parse(cursoRaw);
+            }
+
+            console.log("DEBUG - Datos capturados del botón:", cursoRaw);
+
+            $('#inputOfertaId').val(cursoRaw[0]);
+            $('#nombreCursoDisplay').text(cursoRaw[9]); 
+            
+            // Guardamos el objeto REAL en el botón de confirmar
+            $('#btnConfirmarVinculo').data('cursoRaw', cursoRaw);
+
+            const modalInst = new bootstrap.Modal(document.getElementById('modalVincular'));
+            modalInst.show();
+        });             
+        // Al confirmar la vinculación
+        $('#btnConfirmarVinculo').on('click', async function() {
+            const cargoClave = $('select[name="cargoId"]').val();
+            const cursoRaw = $(this).data('cursoRaw'); 
+
+            if (!cargoClave) {
+                return Swal.fire('Atención', 'Seleccioná un cargo responsable', 'warning');
+            }
+
+            // UI Loading state
+            const $btn = $(this);
+            $btn.prop('disabled', true);
+            $('#btnSpinner').removeClass('d-none');
+            $('#btnText').text('Vinculando...');
+
+            try {
+                const response = await fetch('/curso/vincularLocal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cursoRaw, cargoClave }) 
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Vinculado!',
+                        text: 'Curso asociado correctamente con datos oficiales.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+
+                    // Actualización dinámica de la fila
+                    const idOficial = cursoRaw[0];
+                    const fila = $(`.btn-vincular[data-id="${idOficial}"]`).closest('tr');
+                    
+                    fila.find('td').eq(4).html(`
+                        <span class="badge rounded-pill bg-success px-3">
+                            <i class="bi bi-check-all me-1"></i> Vinculado
+                        </span>
+                        <div class="small text-muted mt-1">Cargo: ${result.areaNombre || 'Asignado'}</div>
+                    `);
+
+                    fila.find('td').eq(5).html(`
+                        <button class="btn btn-outline-info btn-sm rounded-pill px-3" disabled>
+                            <i class="bi bi-eye"></i> Gestionar
+                        </button>
+                    `);
+
+                    fila.addClass('table-light opacity-75');
+                    bootstrap.Modal.getInstance(document.getElementById('modalVincular')).hide();
+                    
+                    // Reset de formulario
+                    $('select[name="cargoId"]').val("");
+                } else {
+                    throw new Error(result.message || 'Error en el servidor');
+                }
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            } finally {
+                $btn.prop('disabled', false);
+                $('#btnSpinner').addClass('d-none');
+                $('#btnText').text('Confirmar Réplica');
+            }
+        });
+    });
+</script>
