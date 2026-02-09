@@ -34,7 +34,7 @@
                     <i class="bi bi-envelope-fill me-1"></i> abc
                 </button>
                 
-                <button id="btnCopiarEmailsAlternativos" class="btn btn-outline-info" title="Copiar emails alternativos (personales)">
+                <button id="btnCopiarEmailsAlternativos" class="btn btn-outline-light" title="Copiar emails alternativos (personales)">
                     <i class="bi bi-envelope me-1"></i> Alt
                 </button>
                 
@@ -87,11 +87,9 @@
                                         <td><%= il.dni %></td>
                                         <td>
                                             <div class="small">
-                                                <i class="bi bi-envelope-fill text-primary"></i> 
-                                                <span class="email-principal"><%= il.emailAlternativo %></span>
+                                                <span class="email-principal text-info"><%= il.emailAlternativo %></span>
                                             </div>
                                             <div class="small text-muted">
-                                                <i class="bi bi-envelope"></i> 
                                                 <span class="email-alternativo"><%= il.email %></span>
                                             </div>
                                         </td>

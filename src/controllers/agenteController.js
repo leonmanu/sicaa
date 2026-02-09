@@ -31,7 +31,7 @@ const getCargosPorAgenteEmail = async (req, res) => {
     }   catch (error) {
         console.error('Error al obtener los cargos del agente:', error);
         req.flash('error', 'No se pudo obtener la información de los cargos del agente.');
-        res.redirect('/agente/cargo1');
+        res.redirect('/agente/cargo');
     }   
 }
 

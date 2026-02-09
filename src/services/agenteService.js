@@ -43,7 +43,7 @@ class AgenteService {
 
     async getAgentePorDni(dni) {
         try {
-            return await agenteRepo.getAgentePorDni(dni);
+            return await agenteRepo.getPorDni(dni);
         } catch (error) {
             throw error;
         }
