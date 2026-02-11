@@ -48,8 +48,8 @@
                                     <% if(cargo.ocupante) { %>
                                         <div class="d-flex align-items-center">
                                             <div>
-                                                <div class="fw-semibold"><%= cargo.ocupante.usuarioId.email %></div>
-                                                <small class="text-muted"><%= cargo.ocupante.situacionRevista %></small>
+                                                <div class="fw-semibold"><%= cargo?.ocupante.usuarioId.email %></div>
+                                                <small class="text-muted"><%= cargo?.ocupante.situacionRevista %></small>
                                             </div>
                                         </div>
                                     <% } else { %>
