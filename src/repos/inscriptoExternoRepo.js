@@ -14,7 +14,7 @@ class inscriptoExternoRepo {
     // Pide el aaData de los alumnos
     async getRawCursantes(idInscripcion, idCurso) {
         const urlReferer = `${URLS.INSCRIPTOS.LISTA}?id=${idInscripcion}&volver=misofertas.php&idcurso=${idCurso}&qi=65`;
-        
+        console.log("urlReferer: ", urlReferer)
         return await client.get(URLS.INSCRIPTOS.DATOS, {
             params: { 
                 id: idInscripcion,
