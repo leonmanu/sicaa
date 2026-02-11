@@ -1,5 +1,6 @@
 const cargoRepo = require('../repos/cargoRepo');
 const cursoLocalRepo = require('../repos/cursoLocalRepo');
+const inscriptoLocalRepo = require('../repos/inscriptoLocalRepo');
 const cargoService = require('./cargoService');
 const { getCargoPorClave } = require('./cargoService');
 const ciieService = require('./ciieService');
@@ -61,14 +62,42 @@ class CursoLocalService {
         }
     }
 
-    async getCursosPorCiieId(ciieId) {
-        try {
-            return await cursoLocalRepo.getPorCiieId(ciieId);
-        } catch (error) {
-            console.error('Error obteniendo curso por ID oficial:', error.message);
-            throw error;
-        }
-    }
+    // En cursoLocalService.js
+async getCursosPorCiieId(ciieId) {
+    // 1. Traemos los cursos con tu repo actual (el del populate gigante)
+    const cursos = await cursoLocalRepo.getPorCiieId(ciieId);
+
+    if (!cursos || cursos.length === 0) return [];
+
+    // 2. Extraemos todos los IDs de los cursos para buscar sus inscriptos de una sola vez
+    const cursoIds = cursos.map(c => c._id);
+
+    // 3. Buscamos TODOS los inscriptos que pertenezcan a estos cursos
+    // (Query: { cursoId: { $in: cursoIds } })
+    const inscriptosDeEstosCursos = await inscriptoLocalRepo.getPorListaDeCursos(cursoIds);
+
+    // 4. Cruzamos los datos en memoria
+    return cursos.map(curso => {
+        const total = inscriptosDeEstosCursos.filter(ins => 
+            ins.cursoId.toString() === curso._id.toString()
+        ).length;
+
+        return {
+            ...curso,
+            cantidadInscriptos: total
+        };
+    });
+}
+
+    // async getCursosPorCiieId(ciieId) {
+    //     try {
+    //         const cursosLocales = await cursoLocalRepo.getPorCiieId(ciieId)
+            
+    //     } catch (error) {
+    //         console.error('Error obteniendo curso por ID oficial:', error.message);
+    //         throw error;
+    //     }
+    // }
 
     async getPorCursoClaveCiieId(cargoClave, ciieId) {
         try {

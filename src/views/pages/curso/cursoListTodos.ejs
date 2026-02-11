@@ -25,12 +25,13 @@
                     <table id="tablaGeneralCursos" class="table table-dark table-hover align-middle mb-0">
                         <thead class="bg-black text-muted small text-uppercase">
                             <tr>
-                                <th>Año</th>
+                                <th>Inicio</th>
                                 <th>Área / Nivel</th>
                                 <th>Formador (ETR)</th>
                                 <th>Propuesta</th>
-                                <th>Inicio</th>
-                                <th>Dispositivo</th>
+                                <th>Disp</th>
+                                <th><i class="bi bi-people-fill"></i></th>
+                                
                                 <th class="text-center pe-4">Acciones</th>
                             </tr>
                         </thead>
@@ -38,7 +39,9 @@
                             <% if (cursosLocales && cursosLocales.length > 0) { %>
                                 <% cursosLocales.forEach(c => { %>
                                     <tr>
-                                        <td class="fw-bold text-info"><%= c.anio %></td>
+                                        <td class="small">
+                                            <%= c.fechaInicioCurso ? new Date(c.fechaInicioCurso).toLocaleDateString('es-AR') : 'A definir' %>
+                                        </td>
                                         
                                         <td>
                                             <div class="fw-bold" style="font-size: 0.85rem;">
@@ -71,28 +74,50 @@
                                             </div>
                                         </td>
                                         
-                                        <td class="small">
-                                            <%= c.fechaInicioCurso ? new Date(c.fechaInicioCurso).toLocaleDateString('es-AR') : 'A definir' %>
-                                        </td>
+                                        <td>
+    <% 
+        // Definimos las siglas rápido
+        let sigla = 'S/D';
+        let color = '#6c757d'; // Gris por defecto
+
+        if (c.dispositivo === 'Taller en Servicio') { sigla = 'TES'; color = '#198754'; }
+        else if (c.dispositivo === 'Seminario') { sigla = 'SEM'; color = '#d63384'; }
+        else if (c.dispositivo === 'Extensión CIIE') { sigla = 'EXT'; color = '#fd7e14'; }
+        else if (c.dispositivo === 'Curso Distancia') { sigla = 'CDI'; color = '#0d6efd'; }
+        else if (c.dispositivo === 'Ateneo Distancia') { sigla = 'ATD'; color = '#6f42c1'; }
+        else if (c.dispositivo === 'MADP + Ateneo') { sigla = 'MADP'; color = '#20c997'; }
+        else if (c.dispositivo === 'Seminario Distancia') { sigla = 'SED'; color = '#e83e8c'; }
+        else if (c.dispositivo === 'Taller Fuera de Servicio') { sigla = 'TFS'; color = '#adb5bd'; }
+    %>
+    
+    <span class="badge border" 
+          style=" color: <%= color %>; border-color: <%= color %>; background-color: <%= color %>15;" 
+          title="<%= c.dispositivo %>">
+        <%= sigla %>
+    </span>
+</td>
                                         
                                         <td>
-                                            <span class="badge bg-outline-secondary border border-secondary text-secondary" style="font-size: 0.7rem;">
-                                                <%= c.dispositivo %>
-                                            </span>
+                                            <%= c.cantidadInscriptos %>
                                         </td>
 
-                                        <td class="text-center pe-4">
-                                            <div class="btn-group">
-                                                <a href="/ciie/inscriptos/curso/<%= c.idOfertaOficial %>" class="btn btn-sm btn-outline-primary" title="Ver alumnos">
-                                                    <i class="bi bi-people-fill"></i>
-                                                </a>
-                                                <button class="btn btn-sm btn-outline-secondary" 
-                                                        onclick="copyToClipboard('<%= c.enlaceInscripcion %>')"
-                                                        title="Copiar link">
-                                                    <i class="bi bi-link-45deg"></i>
-                                                </button>
-                                            </div>
-                                        </td>
+                                        <td class="text-center">
+    <div class="d-flex justify-content-center gap-2">
+        <a href="/ciie/inscriptos/curso/<%= c.idOfertaOficial %>" 
+           class="btn btn-outline-primary d-flex align-items-center justify-content-center" 
+           style="width: 40px; height: 40px; border-radius: 10px;" 
+           title="Ver alumnos">
+            <i class="bi bi-people-fill fs-5"></i>
+        </a>
+
+        <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center" 
+                style="width: 40px; height: 40px; border-radius: 10px;"
+                onclick="copyToClipboard('<%= c.enlaceInscripcion %>')"
+                title="Copiar link">
+            <i class="bi bi-link-45deg fs-5"></i>
+        </button>
+    </div>
+</td>
                                     </tr>
                                 <% }); %>
                             <% } else { %>

@@ -39,6 +39,18 @@ class InscriptoLocalRepo {
         }
     }
 
+        async getPorListaDeCursos(cursoIds) {
+        try {
+            // Buscamos todos los inscriptos cuyo cursoId esté en nuestro array
+            return await InscriptoLocal.find({ 
+                cursoId: { $in: cursoIds } 
+            }).lean();
+        } catch (error) {
+            console.error('Error en inscriptoRepo:', error.message);
+            throw error;
+        }
+    }
+
     async getPorCursoId(cursoId) {
         try {
             const inscripciones = await InscriptoLocal.find({ cursoId }).lean();

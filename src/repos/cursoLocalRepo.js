@@ -90,6 +90,7 @@ class CursoLocalRepo {
     }
 }
 
+
     async getPorCursoClaveCiieId(cargoClave, ciieId) {
         try {
             return await CursoLocal.find({
