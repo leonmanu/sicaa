@@ -14,7 +14,7 @@ const cursoSchema = new mongoose.Schema({
     
     // Tiempos (Guardar como Date para poder filtrar/ordenar)
     anio: Number,                                    // Índice [1]
-    cohorte: String,                                 // Índice [2]
+    cohorte: Number,                                 // Índice [2]
     fechaInicioInscripcion: Date,                    // Índice [3]
     fechaFinInscripcion: Date,                       // Índice [4]
     fechaInicioCurso: Date,                          // Índice [5]

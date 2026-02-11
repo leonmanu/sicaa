@@ -6,7 +6,6 @@ const cursoSchema = new mongoose.Schema({
     fechaInicioCurso: Date,
     fechaFinCurso: Date,
     cupo: Number,
-    cohorte: String,
     //datos para sitio ciie en el abc
     formatoDictado: String, // Presencial, Virtual, Mixto
     nivel: String, // Primario, Secundario, etc.
