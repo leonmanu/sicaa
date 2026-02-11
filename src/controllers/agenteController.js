@@ -40,6 +40,7 @@ const getPorCursoClaveCiieClave = async (req, res) => {
     try {
         const { cargoClave, ciieClave } = req.params;
         const ciie = await ciieService.getPorClave(ciieClave)
+        console.log("CIIE: ", ciie)
         const cargo = await cargoService.getPorCargoClaveCiieId(cargoClave, ciie._id)
         const cursosLocales = await cursoLocalService.getPorCargoId(cargo._id)
 

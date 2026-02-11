@@ -50,6 +50,7 @@ class CargoService {
 
     async getPorCargoClaveCiieId(clave, ciieId) {
         try {
+            console.log('cargoClave: ', clave, ' || ciieId: ',ciieId)
             return await cargoRepo.getPorCargoClaveCiieId(clave, ciieId);
         } catch (error) {
             console.error('Error en getCargoPorClave:', error);

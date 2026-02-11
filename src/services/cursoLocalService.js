@@ -1,5 +1,7 @@
 const cargoRepo = require('../repos/cargoRepo');
 const cursoLocalRepo = require('../repos/cursoLocalRepo');
+const cargoService = require('./cargoService');
+const { getCargoPorClave } = require('./cargoService');
 const ciieService = require('./ciieService');
 
 class CursoLocalService {
@@ -59,9 +61,9 @@ class CursoLocalService {
         }
     }
 
-    async getCursosPorCiiId(ciiId) {
+    async getCursosPorCiieId(ciieId) {
         try {
-            return await cursoLocalRepo.getPorCiiId(ciiId);
+            return await cursoLocalRepo.getPorCiieId(ciieId);
         } catch (error) {
             console.error('Error obteniendo curso por ID oficial:', error.message);
             throw error;
@@ -71,12 +73,25 @@ class CursoLocalService {
     async getPorCursoClaveCiieId(cargoClave, ciieId) {
         try {
             console.log("getPorCursoClaveCiieId - service", cargoClave, ciieId)
+            const cargo = cargoService.getPorCargoClaveCiieId(cargoClave, ciieId)
             return await cursoLocalRepo.getPorCursoClaveCiieId(cargoClave, ciieId);
         } catch (error) {
             console.error('Error obteniendo cursos por clave de cargo y CIIE:', error.message)
             throw error;
         }
     }
+
+    async getPorCursoIdCiieId(cargoId, ciieId) {
+        try {
+            console.log("getPorCursoClaveCiieId - service", cargoId, ciieId)
+            const cargo = cargoService.getPorCargoClaveCiieId(cargoClave, ciieId)
+            return await cursoLocalRepo.getPorCursoClaveCiieId(cargoId, ciieId);
+        } catch (error) {
+            console.error('Error obteniendo cursos por clave de cargo y CIIE:', error.message)
+            throw error;
+        }
+    }
+
 
     async getPorCargoId(cargoId) {
         try {

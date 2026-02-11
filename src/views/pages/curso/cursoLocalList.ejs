@@ -22,7 +22,7 @@
                     <%= cargo.areaId?.nombre || 'Área General' %>
                 </h2>
                 <p class="text-muted mb-0">
-                    <span class="badge bg-secondary me-2">CIIE <%= cargo.ciieId.nombre %></span>
+                    <span class="badge bg-secondary me-2">CIIE <%= cargo.ciieId?.nombre || '' %></span>
                     <span class="badge bg-outline-info border border-info text-info">Clave Cargo: <%= cargo.clave %></span>
                 </p>
             </div>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <title>CIIE - Todos los Cursos</title>
+    <%- include('../../partials/head') %>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container-fluid py-5 px-4">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-collection-play-fill me-2 text-primary"></i>
+                    Catálogo General de Cursos
+                </h2>
+                <p class="text-muted mb-0">Listado completo de ofertas vinculadas al CIIE</p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 bg-dark text-white">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="tablaGeneralCursos" class="table table-dark table-hover align-middle mb-0">
+                        <thead class="bg-black text-muted small text-uppercase">
+                            <tr>
+                                <th>Año</th>
+                                <th>Área / Nivel</th>
+                                <th>Formador (ETR)</th>
+                                <th>Propuesta</th>
+                                <th>Inicio</th>
+                                <th>Dispositivo</th>
+                                <th class="text-center pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (cursosLocales && cursosLocales.length > 0) { %>
+                                <% cursosLocales.forEach(c => { %>
+                                    <tr>
+                                        <td class="fw-bold text-info"><%= c.anio %></td>
+                                        
+                                        <td>
+                                            <div class="fw-bold" style="font-size: 0.85rem;">
+                                                <%= c.cargoId?.areaId?.nombre || 'S/A' %>
+                                            </div>
+                                            <small class="text-muted"><%= c.cargoId?.areaId?.nivel || '' %></small>
+                                        </td>
+
+                                        <td>
+                                            <% 
+                                                // Ruta: Curso -> Cargo -> Ocupante -> Usuario -> Persona (referenciaId)
+                                                const docente = c.cargoId?.ocupante?.usuarioId?.referenciaId;
+                                            %>
+                                            <% if (docente) { %>
+                                                <div style="font-size: 0.85rem;">
+                                                    <i class="bi bi-person-check-fill text-success me-1"></i>
+                                                    <%= docente.apellido %>, <%= docente.nombre %>
+                                                </div>
+                                                <small class="text-muted" style="font-size: 0.7rem;">
+                                                    <%= c.cargoId.ocupante.situacionRevista %>
+                                                </small>
+                                            <% } else { %>
+                                                <span class="badge bg-danger-subtle text-danger" style="font-size: 0.65rem;">VACANTE / S.D.</span>
+                                            <% } %>
+                                        </td>
+
+                                        <td>
+                                            <div class="text-wrap" style="max-width: 300px; font-size: 0.85rem;">
+                                                <%= c.nombrePropuesta %>
+                                            </div>
+                                        </td>
+                                        
+                                        <td class="small">
+                                            <%= c.fechaInicioCurso ? new Date(c.fechaInicioCurso).toLocaleDateString('es-AR') : 'A definir' %>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge bg-outline-secondary border border-secondary text-secondary" style="font-size: 0.7rem;">
+                                                <%= c.dispositivo %>
+                                            </span>
+                                        </td>
+
+                                        <td class="text-center pe-4">
+                                            <div class="btn-group">
+                                                <a href="/ciie/inscriptos/curso/<%= c.idOfertaOficial %>" class="btn btn-sm btn-outline-primary" title="Ver alumnos">
+                                                    <i class="bi bi-people-fill"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-secondary" 
+                                                        onclick="copyToClipboard('<%= c.enlaceInscripcion %>')"
+                                                        title="Copiar link">
+                                                    <i class="bi bi-link-45deg"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="7" class="text-center py-5 text-muted">No hay cursos registrados.</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+
+    <script>
+        $(document).ready(function() {
+            $('#tablaGeneralCursos').DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                responsive: true,
+                order: [[0, 'desc'], [1, 'asc']],
+                // --- CONFIGURACIÓN PARA MOSTRAR TODO SIN LÍMITE ---
+                paging: false,          // Desactiva la paginación (muestra todo de una vez)
+                info: true,            // Muestra "Mostrando X de X registros"
+                lengthChange: false,   // Quita el selector de "Mostrar 10, 25..."
+                scrollCollapse: true,
+                dom: '<"d-flex justify-content-between align-items-center mb-3"f>t<"p-3"i>', // Solo buscador arriba (f) y tabla (t)
+            });
+        });
+
+        function copyToClipboard(text) {
+            if(!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Enlace copiado');
+            });
+        }
+    </script>
+</body>
+</html>

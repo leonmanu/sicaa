@@ -77,6 +77,7 @@ class CargoRepo {
             throw error;
         }
     }
+    
 
     async getByAgente(usuarioId) {
         try {

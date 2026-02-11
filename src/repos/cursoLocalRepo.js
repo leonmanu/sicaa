@@ -66,20 +66,47 @@ class CursoLocalRepo {
         }
     }
 
-    async getPorCiiId(ciiId) {
-        try {
-            return await CursoLocal.find({ idOfertaOficial: ciiId });
-        } catch (error) {
-            console.error('Error buscando curso por ID oficial:', error.message);
-            throw error;
-        }
+    async getPorCiieId(ciieId) {
+    try {
+        return await CursoLocal.find({ ciieId: new mongoose.Types.ObjectId(ciieId) })
+        .populate({
+            path: 'cargoId',
+            populate: [
+                { path: 'areaId' }, // Trae nombre del Área
+                { 
+                    path: 'ocupante', // Trae la Designación (asegúrate que en el modelo Cargo este campo exista o se llame así)
+                    match: { estado: 'Activo' }, // Solo nos interesa el docente actual
+                    populate: { 
+                        path: 'usuarioId', 
+                        populate: { path: 'referenciaId' } // Aquí llega a "Persona" (Muriel Gerace)
+                    }
+                }
+            ]
+        })
+        .sort({ anio: -1 })
+        .lean();
+    } catch (error) {
+        throw error;
     }
+}
 
     async getPorCursoClaveCiieId(cargoClave, ciieId) {
         try {
             return await CursoLocal.find({
                 ciieId: new mongoose.Types.ObjectId(ciieId),
                 clave: cargoClave
+            });
+        } catch (error) {
+            console.error('Error buscando curso por clave de cargo y CIIE:', error.message);
+            throw error;
+        }
+    }
+
+    async getPorCursoIdCiieId(cargoId, ciieId) {
+        try {
+            return await CursoLocal.find({
+                ciieId: new mongoose.Types.ObjectId(ciieId),
+                cargoId
             });
         } catch (error) {
             console.error('Error buscando curso por clave de cargo y CIIE:', error.message);

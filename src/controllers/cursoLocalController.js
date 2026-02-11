@@ -1,3 +1,4 @@
+const cargoService = require('../services/cargoService');
 const cursoLocalService = require('../services/cursoLocalService');
 
 const vincularCurso = async (req, res) => {
@@ -32,13 +33,34 @@ const getCursosLocales = async (req, res) => {
     }
 }
 
-const getCursosPorCiiId = async (req, res) => {
+const getCursosPorCiieId = async (req, res) => {
     try {
-        const { ciiId } = req.params;
-        const cursos = await cursoLocalService.getCursosPorCiiId(ciiId);
-        res.render('pages/curso/cursoLocalList', { 
-            cursos, 
-            title: `Cursos Locales Vinculados al ID Oficial ${ciiId}` 
+        const ciieId = req.user._id;
+        const cursosLocales = await cursoLocalService.getCursosPorCiieId(ciieId);
+        
+        res.render('pages/curso/cursoListTodos', { //vista pendiente
+            cursosLocales, 
+            user: req.user,
+            title: `Cursos Locales Vinculados al ID Oficial ${ciieId}` 
+        });
+    } catch (error) {
+        console.error('Error al obtener cursos por ID oficial:', error.message);
+        res.status(500).send("Error en el servidor: " + error.message);
+    }
+}
+
+const getCursosPorCargoClaveCiieId = async (req, res) => {
+    try {
+        const ciieId = req.user.referenciaId;
+        const {cargoClave} = req.params
+        const cargo = await cargoService.getPorCargoClaveCiieId(cargoClave, ciieId)
+        console.log('CARGO: ',cargo)
+        const cursosLocales = await cursoLocalService.getPorCargoId(cargo._id)
+        
+        res.render('pages/curso/cursoLocalList', {
+            cargo,         // Objeto único
+            cursosLocales, // Array para el forEach
+            user: req.user
         });
     } catch (error) {
         console.error('Error al obtener cursos por ID oficial:', error.message);
@@ -50,5 +72,6 @@ const getCursosPorCiiId = async (req, res) => {
 module.exports = {
     vincularCurso,
     getCursosLocales,
-    getCursosPorCiiId
+    getCursosPorCiieId,
+    getCursosPorCargoClaveCiieId
 }

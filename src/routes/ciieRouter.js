@@ -4,10 +4,10 @@ const router = express.Router();
 
 
 const { getDashboard,  getUsuarioPorModelo, putAgenteEstado, getAgentesPendientes} = require('../controllers/ciieController');
-const {vistaAsignacionCiie} = require('../controllers/cargoController');
+const {vistaAsignacionCiie, vistaCargosEtr} = require('../controllers/cargoController');
 const {getCursos} = require('../controllers/cursoExternoController');
-const {  } = require('../controllers/asignacionController');
-
+const {getCursosPorCiieId, getCursosPorCargoClaveCiieId} = require('../controllers/cursoLocalController')
+const { viewInscripto, getExternosPorIdOfertaOficial, vincularCursantes } = require('../controllers/inscriptoController')
 
 router
     // url cii
@@ -17,7 +17,13 @@ router
     .get('/estados-pendientes', getAgentesPendientes)
     // URL cargo
     .get('/cargo/asignar', vistaAsignacionCiie)
+    .get('/cargos/etr', vistaCargosEtr)
+    // URL curso
     .get('/curso/externo', getCursos)
+    .get('/cursos', getCursosPorCiieId) //vista pendiente
+    .get('/cursos/cargo/:cargoClave', getCursosPorCargoClaveCiieId)
+
+    .get('/inscriptos/curso/:idOfertaOficial', viewInscripto)
 
 
 module.exports = router;
