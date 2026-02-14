@@ -48,6 +48,13 @@ class CursoLocalRepo {
                     idOfertaOficial: ofertaId
                 }
             )
+            .populate({
+                        path: 'cargoId',
+                        populate: [
+                            { path: 'ciieId' },
+                            { path: 'areaId' }
+                        ]
+                    })
             .lean();
             //console.log("cursoLocalRepo - getPorCargoId - cargoId: ", cargo)
             return curso;

@@ -16,12 +16,16 @@ const cursoSchema = new mongoose.Schema({
     anio: Number,                                    // Índice [1]
     cohorte: { 
         type: Number, 
-        default: 1 
+        default: 0 
     },                             // Índice [2]
     fechaInicioInscripcion: Date,                    // Índice [3]
     fechaFinInscripcion: Date,                       // Índice [4]
     fechaInicioCurso: Date,                          // Índice [5]
     fechaFinCurso: Date,                             // Índice [6]
+    cantidadEncuentros: { 
+        type: Number, 
+        default: 1 
+    },
     
     // Estado y Cupos
     disponible: String,                              // Índice [7] ('S' o 'N')

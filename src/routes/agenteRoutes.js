@@ -3,7 +3,7 @@ const router = express.Router();
 const cursanteExternoController = require('../controllers/cursanteExternoController');
 
 const {getCargosPorAgenteEmail, getPorCursoClaveCiieClave } = require('../controllers/agenteController');
-const { viewInscripto, getExternosPorIdOfertaOficial, vincularCursantes } = require('../controllers/inscriptoController')
+const { viewInscripto, getExternosPorIdOfertaOficial, vincularCursantes, viewListaAsistencia } = require('../controllers/inscriptoController')
 
 //http://localhost:3000/agente/curso/cdi-1/ciie06901
 router
@@ -17,6 +17,8 @@ router
     .post('/cursante/calificar', cursanteExternoController.calificar)
     .get('/inscriptos/:idInscripcion', cursanteExternoController.getCursantes)
     .get('/inscriptos/curso/:idOfertaOficial', viewInscripto)
+    .get('/inscriptos/curso/:idOfertaOficial/listaAsistencia', viewListaAsistencia)
+
 
     //ajax inscripto
     .get('/inscriptosExternos/curso/:idOfertaOficial/consultar', getExternosPorIdOfertaOficial)

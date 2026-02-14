@@ -1,273 +1,332 @@
 <!DOCTYPE html>
 <html lang="es" data-bs-theme="dark">
+
 <head>
     <title>Nodo CIIE - Inscriptos</title>
     <%- include('../../partials/head') %>
-    <!-- SweetAlert2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+        <!-- SweetAlert2 CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 </head>
+
 <body>
     <%- include('../../partials/navbar') %>
-    <%- include('../../partials/msj') %>
+        <%- include('../../partials/msj') %>
 
-    <div class="container py-5">
-        <div class="row mb-4">
-            <div class="col-md-8">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-2">
-                        <li class="breadcrumb-item"><a href="/usuario/mis-cargos" class="text-decoration-none">Cargos</a></li>
-                        <li class="breadcrumb-item"><a href="/agente/curso/---" class="text-decoration-none">Cursos</a></li>
-                        <li class="breadcrumb-item active">Inscriptos</li>
-                    </ol>
-                </nav>
-                <h4 class="mb-1">
-                    <i class="bi bi-people-fill me-2 text-primary"></i><%= inscriptoLocal.length %>
-                    <div><%= cursoLocal.nombrePropuesta %></div> 
-                </h4>
-                <p class="text-muted mb-0">
-                    <span class="badge bg-secondary me-2">ID ABC: <%= cursoLocal.idOfertaOficial %></span>
-                    <span class="badge bg-outline-info border border-info text-info">Formador: <%= cursoLocal.formadorAbc %></span>
-                </p>
-            </div>
-            <div class="col-md-4 text-md-end d-flex align-items-center justify-content-md-end gap-2 mt-3 mt-md-0">
-                <button id="btnCopiarEmailsPrincipales" class="btn btn-outline-primary" title="Copiar emails principales (ABC)">
-                    <i class="bi bi-envelope-fill me-1"></i> abc
-                </button>
-                
-                <button id="btnCopiarEmailsAlternativos" class="btn btn-outline-light" title="Copiar emails alternativos (personales)">
-                    <i class="bi bi-envelope me-1"></i> Alt
-                </button>
-                
-                <button id="btnConsultarAbc" class="btn btn-warning shadow-sm ms-3">
-                    <i class="bi bi-cloud-download me-1"></i> Consultar ABC
-                </button>
-            </div>
-        </div>
+            <div class="container ">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-3 small">
+                                <li class="breadcrumb-item"><a href="/usuario/mis-cargos"
+                                        class="text-secondary text-decoration-none">Cargos</a></li>
+                                <li class="breadcrumb-item"><a href="/agente/curso/---"
+                                        class="text-secondary text-decoration-none">Cursos</a></li>
+                                <li class="breadcrumb-item active text-warning fw-bold">Listado de Inscriptos</li>
+                            </ol>
+                        </nav>
 
-        <div id="seccionPendientes" class="card border-warning bg-dark mb-4 d-none">
-            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-exclamation-triangle-fill me-2"></i> Nuevos inscriptos detectados en ABC</span>
-                <button id="btnVincularAhora" class="btn btn-sm btn-dark">Vincular a Base Local</button>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-dark table-sm mb-0 small">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Apellido y Nombre</th>
-                                <th>Email</th>
-                            </tr>
-                        </thead>
-                        <tbody id="listaPendientes"></tbody>
-                    </table>
+                        <h2 class="h3 mb-3 d-flex align-items-start">
+                            <i class="bi bi-journal-bookmark-fill text-warning me-3 mt-1"></i>
+                            <span class="lh-sm">
+                                <%= cursoLocal.nombrePropuesta %>
+                            </span>
+                        </h2>
+
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <span class="badge bg-dark border border-secondary text-secondary py-2 px-3">
+                                <i class="bi bi-hash me-1"></i>
+                                <%= cursoLocal.idOfertaOficial %>
+                            </span>
+                            <% if(cursoLocal.cohorte> 0) { %>
+                                <span class="badge bg-warning text-dark py-2 px-3 fw-bold">
+                                    <%= cursoLocal.anio %> • C<%= cursoLocal.cohorte %>
+                                </span>
+                                <% } %>
+                                    <span class="badge bg-primary py-2 px-3">
+                                        <i class="bi bi-people-fill me-1"></i>
+                                        <%= inscriptoLocal.length %> Inscriptos
+                                    </span>
+                        </div>
+
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <div class="text-info small">
+                                <i class="bi bi-briefcase me-1"></i>
+                                <strong>Cargo:</strong>
+                                <%= cursoLocal.cargoId.areaId.nombre %>
+                            </div>
+                            <div class="text-light small border-start ps-3 border-secondary">
+                                <i class="bi bi-person-badge me-1"></i>
+                                <strong>Formador:</strong>
+                                <%= cursoLocal.formadorAbc %>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="card shadow-sm border-0 bg-dark text-white">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table id="tablaInscriptos" class="table table-dark table-hover align-middle mb-0">
-                        <thead class="bg-black text-muted small text-uppercase">
-                            <tr>
-                                <th>Apellido y Nombre</th>
-                                <th>DNI</th>
-                                <th>Emails</th>
-                                <th>Teléfono</th>
-                                <th>Calificación</th>
-                                <th class="text-center pe-4">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% if (inscriptoLocal && inscriptoLocal.length > 0) { %>
-                                <% inscriptoLocal.forEach(il => { %>
+                <div
+                    class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 p-3 bg-dark border border-secondary rounded-3 shadow-sm">
+
+                    <div
+                        class="d-flex gap-2 align-items-center bg-black bg-opacity-25 p-2 rounded-2 border border-secondary border-opacity-25">
+                        <span class="small text-muted me-2 ms-1"><i class="bi bi-copy me-1"></i>Copiar Mails:</span>
+                        <button id="btnCopiarEmailsPrincipales" class="btn btn-sm btn-outline-primary fw-bold"
+                            title="Emails @abc.gob.ar">
+                            ABC
+                        </button>
+                        <button id="btnCopiarEmailsAlternativos" class="btn btn-sm btn-outline-light"
+                            title="Emails Personales">
+                            Alt
+                        </button>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="/agente/inscriptos/curso/<%= cursoLocal.idOfertaOficial %>/listaAsistencia" target="_blank"
+                            class="btn btn-outline-danger px-3" title="Abrir planilla para imprimir">
+                            <i class="bi bi-printer-fill me-2"></i>Lista Impresa
+                        </a>
+                        <button id="btnConsultarAbc" class="btn btn-warning fw-bold px-3">
+                            <i class="bi bi-cloud-download-fill me-2"></i>Sincronizar con ABC
+                        </button>
+                    </div>
+                </div>
+
+                <div id="seccionPendientes" class="card border-warning bg-dark mb-4 d-none">
+                    <div
+                        class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-exclamation-triangle-fill me-2"></i> Nuevos inscriptos detectados en
+                            ABC</span>
+                        <button id="btnVincularAhora" class="btn btn-sm btn-dark">Vincular a Base Local</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-sm mb-0 small">
+                                <thead>
                                     <tr>
-                                        <td class="fw-bold"><%= il.apellido %>, <%= il.nombres %></td>
-                                        <td><%= il.dni %></td>
-                                        <td>
-                                            <div class="small">
-                                                <span class="email-principal text-info"><%= il.emailAlternativo %></span>
-                                            </div>
-                                            <div class="small text-muted">
-                                                <span class="email-alternativo"><%= il.email %></span>
-                                            </div>
-                                        </td>
-                                        <td><small class="text-muted"><%= il.telefono %></small></td>
-                                        <td>
-                                            <span class="badge <%= il.calificacion === 'Aprobó' ? 'bg-success' : 'bg-secondary' %>">
-                                                <%= il.calificacion %>
-                                            </span>
-                                        </td>
-                                        <td class="text-center pe-4">
-                                            <a href="/agente/cursante/editar/<%= il._id %>" class="btn btn-sm btn-outline-light">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                        </td>
+                                        <th>ID</th>
+                                        <th>Apellido y Nombre</th>
+                                        <th>Email</th>
                                     </tr>
-                                <% }); %>
-                            <% } %>
-                        </tbody>
-                    </table>
+                                </thead>
+                                <tbody id="listaPendientes"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 bg-dark text-white">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table id="tablaInscriptos" class="table table-dark table-hover align-middle mb-0">
+                                <thead class="bg-black text-muted small text-uppercase">
+                                    <tr>
+                                        <th>Apellido y Nombre</th>
+                                        <th>DNI</th>
+                                        <th>Emails</th>
+                                        <th>Teléfono</th>
+                                        <th>Calificación</th>
+                                        <th class="text-center pe-4">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (inscriptoLocal && inscriptoLocal.length> 0) { %>
+                                        <% inscriptoLocal.forEach(il=> { %>
+                                            <tr>
+                                                <td class="fw-bold">
+                                                    <%= il.apellido %>, <%= il.nombres %>
+                                                </td>
+                                                <td>
+                                                    <%= il.dni %>
+                                                </td>
+                                                <td>
+                                                    <div class="small">
+                                                        <span class="email-principal text-info">
+                                                            <%= il.emailAlternativo %>
+                                                        </span>
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        <span class="email-alternativo">
+                                                            <%= il.email %>
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td><small class="text-muted">
+                                                        <%= il.telefono %>
+                                                    </small></td>
+                                                <td>
+                                                    <span
+                                                        class="badge <%= il.calificacion === 'Aprobó' ? 'bg-success' : 'bg-secondary' %>">
+                                                        <%= il.calificacion %>
+                                                    </span>
+                                                </td>
+                                                <td class="text-center pe-4">
+                                                    <a href="/agente/cursante/editar/<%= il._id %>"
+                                                        class="btn btn-sm btn-outline-light">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            <% }); %>
+                                                <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <%- include('../../partials/scripts') %>
-    <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-    let temporalNuevos = [];
+            <%- include('../../partials/scripts') %>
+                <!-- SweetAlert2 JS -->
+                <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                <script>
+                    let temporalNuevos = [];
 
-    $(document).ready(function() {
-        $('#tablaInscriptos').DataTable({
-            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
-            pageLength: 100
-        });
+                    $(document).ready(function () {
+                        $('#tablaInscriptos').DataTable({
+                            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                            pageLength: 100
+                        });
 
-        // ===== COPIAR EMAILS =====
-        
-        // Copiar emails principales (ABC - emailAlternativo)
-        $('#btnCopiarEmailsPrincipales').click(function() {
-            const emails = [];
-            $('.email-principal').each(function() {
-                const email = $(this).text().trim();
-                if (email && email !== '') {
-                    emails.push(email);
-                }
-            });
-            
-            copiarAlPortapapeles(emails, 'Emails ABC');
-        });
+                        // ===== COPIAR EMAILS =====
 
-        // Copiar emails alternativos (personales - email)
-        $('#btnCopiarEmailsAlternativos').click(function() {
-            const emails = [];
-            $('.email-alternativo').each(function() {
-                const email = $(this).text().trim();
-                if (email && email !== '') {
-                    emails.push(email);
-                }
-            });
-            
-            copiarAlPortapapeles(emails, 'Emails Personales');
-        });
+                        // Copiar emails principales (ABC - emailAlternativo)
+                        $('#btnCopiarEmailsPrincipales').click(function () {
+                            const emails = [];
+                            $('.email-principal').each(function () {
+                                const email = $(this).text().trim();
+                                if (email && email !== '') {
+                                    emails.push(email);
+                                }
+                            });
 
-        // Función helper para copiar
-        function copiarAlPortapapeles(emails, tipo) {
-            if (emails.length === 0) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Sin emails',
-                    text: `No hay ${tipo.toLowerCase()} para copiar`,
-                    confirmButtonColor: '#ffc107'
-                });
-                return;
-            }
+                            copiarAlPortapapeles(emails, 'Emails ABC');
+                        });
 
-            // Unir emails con punto y coma (formato para Gmail, Outlook)
-            const textoParaCopiar = emails.join('; ');
-            
-            // Copiar al portapapeles
-            navigator.clipboard.writeText(textoParaCopiar)
-                .then(() => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Copiado!',
-                        html: `
+                        // Copiar emails alternativos (personales - email)
+                        $('#btnCopiarEmailsAlternativos').click(function () {
+                            const emails = [];
+                            $('.email-alternativo').each(function () {
+                                const email = $(this).text().trim();
+                                if (email && email !== '') {
+                                    emails.push(email);
+                                }
+                            });
+
+                            copiarAlPortapapeles(emails, 'Emails Personales');
+                        });
+
+                        // Función helper para copiar
+                        function copiarAlPortapapeles(emails, tipo) {
+                            if (emails.length === 0) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Sin emails',
+                                    text: `No hay ${tipo.toLowerCase()} para copiar`,
+                                    confirmButtonColor: '#ffc107'
+                                });
+                                return;
+                            }
+
+                            // Unir emails con punto y coma (formato para Gmail, Outlook)
+                            const textoParaCopiar = emails.join('; ');
+
+                            // Copiar al portapapeles
+                            navigator.clipboard.writeText(textoParaCopiar)
+                                .then(() => {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: '¡Copiado!',
+                                        html: `
                             <p class="mb-2"><strong>${emails.length}</strong> ${tipo} copiados al portapapeles</p>
                             <p class="text-muted small">Podés pegarlos directamente en el campo "Para:" de tu correo</p>
                         `,
-                        timer: 3000,
-                        timerProgressBar: true,
-                        confirmButtonColor: '#198754'
-                    });
-                })
-                .catch(err => {
-                    // Fallback para navegadores viejos
-                    const textarea = document.createElement('textarea');
-                    textarea.value = textoParaCopiar;
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textarea);
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Copiado!',
-                        text: `${emails.length} ${tipo} copiados`,
-                        timer: 2000,
-                        confirmButtonColor: '#198754'
-                    });
-                });
-        }
+                                        timer: 3000,
+                                        timerProgressBar: true,
+                                        confirmButtonColor: '#198754'
+                                    });
+                                })
+                                .catch(err => {
+                                    // Fallback para navegadores viejos
+                                    const textarea = document.createElement('textarea');
+                                    textarea.value = textoParaCopiar;
+                                    document.body.appendChild(textarea);
+                                    textarea.select();
+                                    document.execCommand('copy');
+                                    document.body.removeChild(textarea);
 
-        // ===== CONSULTAR ABC =====
-        
-        $('#btnConsultarAbc').click(function() {
-            const btn = $(this);
-            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Consultando...');
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: '¡Copiado!',
+                                        text: `${emails.length} ${tipo} copiados`,
+                                        timer: 2000,
+                                        confirmButtonColor: '#198754'
+                                    });
+                                });
+                        }
 
-            $.get(`/agente/inscriptosExternos/curso/<%= cursoLocal.idOfertaOficial %>/consultar`, function(res) {
-                if (res.nuevos && res.nuevos.length > 0) {
-                    temporalNuevos = res.nuevos;
-                    $('#listaPendientes').empty();
-                    res.nuevos.forEach(n => {
-                        $('#listaPendientes').append(`<tr><td>${n[0]}</td><td>${n[1]}</td><td>${n[3]}</td></tr>`);
-                    });
-                    $('#seccionPendientes').removeClass('d-none');
-                } else {
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Sin novedades',
-                        text: 'No se encontraron nuevos inscriptos en ABC',
-                        confirmButtonColor: '#0d6efd'
-                    });
-                }
-            }).fail(function() {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No se pudo consultar el ABC. Intente nuevamente.',
-                    confirmButtonColor: '#dc3545'
-                });
-            }).always(() => {
-                btn.prop('disabled', false).html('<i class="bi bi-cloud-download me-1"></i> Consultar ABC');
-            });
-        });
+                        // ===== CONSULTAR ABC =====
 
-        // ===== VINCULAR INSCRIPTOS =====
-        
-        $('#btnVincularAhora').click(function() {
-            const cantidadInscriptos = temporalNuevos.length;
-            const tiempoEstimado = Math.ceil(cantidadInscriptos * 2.5 / 60);
-            
-            Swal.fire({
-                title: '¿Vincular inscriptos?',
-                html: `
+                        $('#btnConsultarAbc').click(function () {
+                            const btn = $(this);
+                            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Consultando...');
+
+                            $.get(`/agente/inscriptosExternos/curso/<%= cursoLocal.idOfertaOficial %>/consultar`, function (res) {
+                                if (res.nuevos && res.nuevos.length > 0) {
+                                    temporalNuevos = res.nuevos;
+                                    $('#listaPendientes').empty();
+                                    res.nuevos.forEach(n => {
+                                        $('#listaPendientes').append(`<tr><td>${n[0]}</td><td>${n[1]}</td><td>${n[3]}</td></tr>`);
+                                    });
+                                    $('#seccionPendientes').removeClass('d-none');
+                                } else {
+                                    Swal.fire({
+                                        icon: 'info',
+                                        title: 'Sin novedades',
+                                        text: 'No se encontraron nuevos inscriptos en ABC',
+                                        confirmButtonColor: '#0d6efd'
+                                    });
+                                }
+                            }).fail(function () {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'No se pudo consultar el ABC. Intente nuevamente.',
+                                    confirmButtonColor: '#dc3545'
+                                });
+                            }).always(() => {
+                                btn.prop('disabled', false).html('<i class="bi bi-cloud-download me-1"></i> Consultar ABC');
+                            });
+                        });
+
+                        // ===== VINCULAR INSCRIPTOS =====
+
+                        $('#btnVincularAhora').click(function () {
+                            const cantidadInscriptos = temporalNuevos.length;
+                            const tiempoEstimado = Math.ceil(cantidadInscriptos * 2.5 / 60);
+
+                            Swal.fire({
+                                title: '¿Vincular inscriptos?',
+                                html: `
                     <p class="mb-2">Se procesarán <strong>${cantidadInscriptos} inscriptos</strong></p>
                     <p class="text-muted small">⏱️ Tiempo estimado: <strong>${tiempoEstimado} minutos</strong></p>
                     <p class="text-warning small">⚠️ No cierre esta ventana durante el proceso</p>
                 `,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, vincular',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#ffc107',
-                cancelButtonColor: '#6c757d'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    iniciarVinculacion();
-                }
-            });
-        });
-    });
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonText: 'Sí, vincular',
+                                cancelButtonText: 'Cancelar',
+                                confirmButtonColor: '#ffc107',
+                                cancelButtonColor: '#6c757d'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    iniciarVinculacion();
+                                }
+                            });
+                        });
+                    });
 
-    function iniciarVinculacion() {
-        Swal.fire({
-            title: 'Sincronizando inscriptos',
-            html: `
+                    function iniciarVinculacion() {
+                        Swal.fire({
+                            title: 'Sincronizando inscriptos',
+                            html: `
                 <div class="mb-3">
                     <div class="spinner-border text-warning" role="status">
                         <span class="visually-hidden">Cargando...</span>
@@ -281,41 +340,42 @@
                 </div>
                 <p id="statusText" class="mt-2 small text-muted">Iniciando...</p>
             `,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            allowEnterKey: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            allowEnterKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
 
-        $.post(`/agente/inscriptos/guardar`, { 
-            idOfertaOficial: '<%= cursoLocal.idOfertaOficial %>',
-            data: temporalNuevos 
-        })
-        .done(function(res) {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Vinculación exitosa!',
-                html: `
+                        $.post(`/agente/inscriptos/guardar`, {
+                            idOfertaOficial: '<%= cursoLocal.idOfertaOficial %>',
+                            data: temporalNuevos
+                        })
+                            .done(function (res) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '¡Vinculación exitosa!',
+                                    html: `
                     <p class="mb-0">Se sincronizaron <strong>${res.count || temporalNuevos.length}</strong> inscriptos correctamente</p>
                 `,
-                confirmButtonColor: '#198754',
-                confirmButtonText: 'Ver lista actualizada'
-            }).then(() => {
-                location.reload();
-            });
-        })
-        .fail(function(xhr) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error en la sincronización',
-                text: xhr.responseJSON?.error || 'Ocurrió un error. Intente nuevamente.',
-                confirmButtonColor: '#dc3545'
-            });
-        });
-    }
-    </script>
+                                    confirmButtonColor: '#198754',
+                                    confirmButtonText: 'Ver lista actualizada'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            })
+                            .fail(function (xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error en la sincronización',
+                                    text: xhr.responseJSON?.error || 'Ocurrió un error. Intente nuevamente.',
+                                    confirmButtonColor: '#dc3545'
+                                });
+                            });
+                    }
+                </script>
 </body>
+
 </html>

@@ -27,6 +27,31 @@ const viewInscripto = async (req, res) => {
     }
 }
 
+const viewListaAsistencia = async (req, res) => {
+    try{
+        const { idOfertaOficial } = req.params
+
+        const cursoLocal = await cursoLocalService.getPorIdOfertaOficial(idOfertaOficial)
+       
+        
+        const inscriptosLocales = await inscriptoLocalService.getPorCursoId(cursoLocal._id)
+
+        res.render('pages/cursante/listaAsistencia', { 
+            inscriptoExterno: [], // El array raw del ABC
+            inscriptosLocales,          // Para comparar quién ya tiene pareja
+            cursoLocal,                 // Para llenar el <select> del modal
+            title: "Sincronización de Inscripto",
+            user: req.user
+        });
+
+    } catch (error) {
+        console.error('Error en listar inscriptos:', error.message);
+        req.flash('error', 'Error asignar cargo.');
+        // 5. Manejo de errores (400 para errores de validación/negocio)
+        res.redirect(`/pages/error`);
+    }
+}
+
 const getExternosPorIdOfertaOficial = async (req, res) => {
     try {
         const { idOfertaOficial } = req.params;
@@ -98,5 +123,6 @@ const vincularCursantes = async (req, res) => {
 module.exports = { 
     viewInscripto,
     getExternosPorIdOfertaOficial,
-    vincularCursantes
+    vincularCursantes,
+    viewListaAsistencia
 }
