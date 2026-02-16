@@ -1,23 +1,69 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <title>Asistencia - <%= cursoLocal.idOfertaOficial %></title>
+    <title>Asistencia - <%= cursoLocal.idOfertaOficial %>
+    </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Configuración General */
-        body { background-color: white; color: black; font-family: Arial, sans-serif; }
-        .font-small { font-size: 0.85rem; }
+        /* Configuración de Impresión Horizontal */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0.5cm 0.8cm;
+            }
 
-        /* Tabla Estilo Técnico para Impresión */
-        .tabla-print { border-collapse: collapse; width: 100%; }
-        .tabla-print th, .tabla-print td { 
-            border: 1px solid #000 !important; 
-            padding: 4px 6px; 
-            vertical-align: middle;
+            .no-print {
+                display: none;
+            }
+
+            .page-break {
+                page-break-after: always;
+            }
         }
 
-        /* Contenedor de Título con Recorte Inteligente */
+        body {
+            background-color: white;
+            color: black;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+
+        /* Contenedor para forzar el pie de página al final */
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            min-height: 94vh;
+            /* Ajuste para que el pie quede al final de la hoja A4 */
+        }
+
+        .font-small {
+            font-size: 0.8rem;
+        }
+
+        .font-xsmall {
+            font-size: 0.55rem;
+            color: #777;
+        }
+
+        .tabla-print {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .tabla-print th,
+        .tabla-print td {
+            border: 1px solid #000 !important;
+            padding: 2px 6px;
+            vertical-align: middle;
+            height: 32px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
         .header-titulo-container {
             display: flex;
             align-items: baseline;
@@ -33,92 +79,135 @@
             margin-bottom: 0;
         }
 
-        /* Configuración de Impresión */
-        /* @media print {
-            .no-print { display: none; }
-            @page { 
-                size: <%= cursoLocal.cantidadEncuentros > 6 ? 'landscape' : 'portrait' %>; 
-                margin: 1cm; 
-            }
-            body { margin: 0; }
-            thead { display: table-header-group; }
-        } */
+                /* Style the footer */
+        footer {
+    background-color: #777;
+    padding: 10px;
+    text-align: center;
+    color: white;
+}
     </style>
 </head>
+
 <body onload="window.print()">
 
-    <div class="container-fluid py-2">
-        
-        <div class="header-wrapper">
-            <div class="d-flex justify-content-between align-items-end gap-3 mb-1">
-                <div class="header-titulo-container">
-                    <h5 class="titulo-recortado">
-                        <strong>
-                            <%= cursoLocal.cargoId.areaId.nombreCorto%>
-                            <span class="text-muted fw-normal small"><%= cursoLocal.anio %>CH<%= cursoLocal.cohorte %></span>
-                        </strong> 
-                        <span class="text-muted small"><%= cursoLocal.cargoId.comision>1?(cursoLocal.cargoId.comision):'' %></span>: 
-                        <span class="text-muted fw-normal small"><%= cursoLocal.nombrePropuesta %></span>
-                    </h5>
-                </div>
-                
-                <div class="text-end flex-shrink-0">
-                    <div class="text-uppercase fw-bold text-muted" style="font-size: 9px; margin-top: 2px;">
-                        Sistema SICAA
+    <% let limit=18; let inscriptosTotal=inscriptosLocales.length; let hojas=Math.ceil(inscriptosTotal / limit) || 1; %>
+
+        <% for (let x=1; x <=hojas; x++) { %>
+            <div class="container-fluid py-2 page-wrapper <%= x < hojas ? 'page-break' : '' %>">
+
+                <div class="header-section">
+                    <div class="d-flex justify-content-between align-items-end gap-3">
+                        <div class="font-small pb-1">
+                            <%= cursoLocal.cargoId.clave %> | <%= cursoLocal.anio %> • C<%= cursoLocal.cohorte %> |
+                            idabc: <%= cursoLocal.idOfertaOficial %> |
+                            ciie: <%= cursoLocal.cargoId?.ciieId?.nombre || 'Distrital' %> |
+                            <strong>Formador:</strong> <%= cursoLocal.formadorAbc %>
+                        </div>
+                        <div class="text-end flex-shrink-0">
+                            <div class="text-uppercase fw-bold text-muted" style="font-size: 9px; margin-top: 2px;">
+                                Hoja <%= x %> / <%= hojas %>
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="header-titulo-container">
+                        <h5 class="titulo-recortado">
+                            <strong>
+                                <%= cursoLocal.cargoId.areaId.nombre %>
+                            </strong>
+                            <span class="text-muted small"><%= cursoLocal.cargoId.comision>1?cursoLocal.cargoId.comision:'' %></span>:
+                            <span class="text-muted fw-normal small">
+                                <%= cursoLocal.nombrePropuesta %>
+                            </span>
+                        </h5>
+                    </div>
+
+
+
+
+                    <hr class="mt-0 mb-2" style="border-top: 2px solid #000; opacity: 1;">
+                </div>
+
+                <div style="flex-grow: 1;">
+                    <table class="tabla-print">
+                        <thead>
+                            <% if (x===1) { %>
+                                <tr class="bg-light text-center">
+                                    <th rowspan="2" style="width: 25%;">Apellido y Nombre</th>
+                                    <th rowspan="2" style="width: 8%;">DNI</th>
+                                    <th colspan="<%= cursoLocal.cantidadEncuentros %>">Encuentros / Fechas</th>
+                                    <th rowspan="2" style="width: 15%;">Observaciones</th>
+                                </tr>
+                                <tr class="bg-light text-center">
+                                    <% for(let j=1; j <=cursoLocal.cantidadEncuentros; j++) { %>
+                                        <th style="width: 50px;"><small>
+                                                <%= j %>°
+                                            </small></th>
+                                        <% } %>
+                                </tr>
+                                <% } %>
+                        </thead>
+                        <tbody>
+                            <% for (let y=limit * (x - 1); y < limit * x; y++) { %>
+                                <% let nro=y + 1; %>
+                                    <tr>
+                                        <% if (y < inscriptosTotal) { %>
+                                            <td class="text-uppercase font-small" style="width: 25%;">
+                                                <strong>
+                                                    <%= nro %>)
+                                                </strong>
+                                                <%= inscriptosLocales[y].apellido %>, <%= inscriptosLocales[y].nombres
+                                                        %>
+                                            </td>
+                                            <td class="text-center font-small" style="width: 8%;">
+                                                <%= inscriptosLocales[y].dni %>
+                                            </td>
+                                            <% } else { %>
+                                                <td class="font-small text-muted"><strong>
+                                                        <%= nro %>)
+                                                    </strong></td>
+                                                <td></td>
+                                                <% } %>
+
+                                                    <% for(let j=1; j <=cursoLocal.cantidadEncuentros; j++) { %>
+                                                        <td class="position-relative">
+                                                            <span
+                                                                class="font-xsmall position-absolute top-0 start-0 ps-1">
+                                                                <%= nro %>
+                                                            </span>
+                                                        </td>
+                                                        <% } %>
+                                                            <td class="position-relative">
+                                                                <span
+                                                                    class="font-xsmall position-absolute top-0 start-0 ps-1">
+                                                                    <%= nro %>
+                                                                </span>
+                                                            </td>
+                                    </tr>
+                                    <% } %>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-
-            <div class="font-small pb-1">
-                <strong>ID ABC:</strong> <%= cursoLocal.idOfertaOficial %> | 
-                <strong>Formador:</strong> <%= cursoLocal.formadorAbc %> |
-                <strong>CIIE:</strong> <%= cursoLocal.cargoId?.ciieId?.nombre || 'Distrital' %> 
+            <% } %>
+<div class="mt-auto mb-2">
+    <div class="d-flex justify-content-between text-center font-small">
+        <div style="width: 300px;">
+            <div style="border-top: 1px solid #000; padding-top: 5px;">
+                <strong>Firma del Formador</strong>
+                <br>
             </div>
-
-            <hr class="mt-0 mb-3" style="border-top: 2px solid #000; opacity: 1;">
         </div>
 
-        <table class="tabla-print">
-            <thead>
-                <tr class="bg-light">
-                    <th rowspan="2" style="width: 30%;">Apellido y Nombre</th>
-                    <th rowspan="2" class="text-center" style="width: 12%;">DNI</th>
-                    <th colspan="<%= cursoLocal.cantidadEncuentros %>" class="text-center">Encuentros / Fechas</th>
-                    <th rowspan="2" class="text-center" style="width: 15%;">Observaciones</th>
-                </tr>
-                <tr class="bg-light">
-                    <% for(let j=1; j <= cursoLocal.cantidadEncuentros; j++) { %>
-                        <th class="text-center" style="width: 45px;"><small><%= j %>°</small></th>
-                    <% } %>
-                </tr>
-            </thead>
-            <tbody>
-                <% inscriptosLocales.forEach((ins, index) => { %>
-                    <tr>
-                        <td class="text-uppercase font-small">
-                            <strong><%= index + 1 %>)</strong> <%= ins.apellido %>, <%= ins.nombres %>
-                        </td>
-                        <td class="text-center font-small"><%= ins.dni %></td>
-                        
-                        <% for(let j=1; j <= cursoLocal.cantidadEncuentros; j++) { %>
-                            <td></td>
-                        <% } %>
-                        
-                        <td class="font-small text-muted"><small><%= index + 1 %>)</small></td>
-                    </tr>
-                <% }) %>
-            </tbody>
-        </table>
-
-        <div class="mt-5 d-flex justify-content-between text-center font-small">
-            <div style="width: 200px;">
-                <div style="border-top: 1px solid #000; padding-top: 5px;">Firma del Formador</div>
-            </div>
-            <div style="width: 200px;">
-                <div style="border-top: 1px solid #000; padding-top: 5px;">Sello del CIIE</div>
+        <div style="width: 300px;">
+            <div style="border-top: 1px solid #000; padding-top: 5px;">
+                <strong>Firma del Receptor</strong>
+                <br>
             </div>
         </div>
     </div>
-
+</div>
 </body>
+
 </html>

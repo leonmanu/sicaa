@@ -197,13 +197,42 @@ class InscriptoLocalService {
         }
     
     async getPorCursoId(cursoId) {
-            try {
-                return await inscriptoLocalRepo.getPorCursoId(cursoId)
-            } catch (error) {
-                console.error('Error obteniendo cursos por clave de cargo y CIIE:', error.message)
-                throw error;
+    try {
+        const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(cursoId);
+
+        // Configuramos el comparador para español
+        // 'es' indica español, sensitivity: 'base' compararía a=á, 
+        // pero por defecto (sin sensitivity base) diferencia acentos correctamente según la RAE.
+        const collator = new Intl.Collator('es', { 
+            numeric: true, 
+            sensitivity: 'accent' 
+        });
+
+        inscriptosLocales.sort((a, b) => {
+            // 1. Comparar por Apellido
+            let comparacion = collator.compare(a.apellido || '', b.apellido || '');
+            
+            // 2. Si los apellidos son iguales, comparar por Nombres
+            if (comparacion === 0) {
+                comparacion = collator.compare(a.nombres || '', b.nombres || '');
             }
-        }
+
+            // 3. Si nombres y apellidos son iguales, comparar por DNI
+            if (comparacion === 0) {
+                comparacion = collator.compare(a.dni || '', b.dni || '');
+            }
+
+            return comparacion;
+        });
+
+        console.log("Primer inscripto ordenado: ", inscriptosLocales[0]);
+        return inscriptosLocales;
+
+    } catch (error) {
+        console.error('Error obteniendo inscriptos ordenados:', error.message);
+        throw error;
+    }
+}
 }
 
 module.exports = new InscriptoLocalService();
