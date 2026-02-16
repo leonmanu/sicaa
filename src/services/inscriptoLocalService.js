@@ -225,7 +225,6 @@ class InscriptoLocalService {
             return comparacion;
         });
 
-        console.log("Primer inscripto ordenado: ", inscriptosLocales[0]);
         return inscriptosLocales;
 
     } catch (error) {

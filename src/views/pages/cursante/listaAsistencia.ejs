@@ -136,13 +136,13 @@
                                 <tr class="bg-light text-center">
                                     <th rowspan="2" style="width: 25%;">Apellido y Nombre</th>
                                     <th rowspan="2" style="width: 8%;">DNI</th>
-                                    <th colspan="<%= cursoLocal.cantidadEncuentros %>">Encuentros / Fechas</th>
+                                    <th colspan="<%= cursoLocal.cantidadEncuentros %>">Encuentros : Fechas</th>
                                     <th rowspan="2" style="width: 10%;">Observaciones</th>
                                 </tr>
-                                <tr class="bg-light text-center">
+                                <tr class="bg-light">
                                     <% for(let j=1; j <=cursoLocal.cantidadEncuentros; j++) { %>
                                         <th style="width: 50px;"><small>
-                                                <%= j %>°
+                                                <%= j %>° :
                                             </small></th>
                                         <% } %>
                                 </tr>
