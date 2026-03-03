@@ -51,8 +51,9 @@ app.use('/usuario', require('./routes/usuarioRoutes'));
 app.use('/admin', require('./routes/adminRoutes'));
 app.use('/ciie', require('./routes/ciieRouter'));
 app.use('/agente', require('./routes/agenteRoutes')); 
-//app.use('/cargos', require('./routes/cargoRoutes')); está fallando
+app.use('/cargo', require('./routes/cargoRoutes'));
 app.use('/asignaciones', require('./routes/asignacionRoutes'));
+app.use('/inscripto', require('./routes/inscriptoRouter'));
 
 app.get('/', (req, res) => res.render('pages/index'));
 

@@ -20,11 +20,39 @@ const vincularCurso = async (req, res) => {
     }
 }
 
+// const getCursosLocales = async (req, res) => {
+//     try {
+//         const cursos = await cursoLocalService.getCursosLocales();  
+//         res.render('pages/curso/cursoLocalList', { 
+//             cursos, 
+//             title: "Cursos Locales Vinculados" 
+//         });
+//     } catch (error) {
+//         console.error('Error al obtener cursos locales:', error.message);
+//         res.status(500).send("Error en el servidor: " + error.message);
+//     }
+// }
+
 const getCursosLocales = async (req, res) => {
     try {
         const cursos = await cursoLocalService.getCursosLocales();  
         res.render('pages/curso/cursoLocalList', { 
             cursos, 
+            title: "Cursos Locales Vinculados" 
+        });
+    } catch (error) {
+        console.error('Error al obtener cursos locales:', error.message);
+        res.status(500).send("Error en el servidor: " + error.message);
+    }
+}
+
+const getPorCiie = async (req, res) => {
+    try {
+        const ciieId = req.user._id;
+        const cursosLocales = await cursoLocalService.getCursosPorCiieId(ciieId); 
+        res.render('pages/curso/cursoLocalList', { 
+            cursosLocales, 
+            user: req.user,
             title: "Cursos Locales Vinculados" 
         });
     } catch (error) {
@@ -49,13 +77,11 @@ const getCursosPorCiieId = async (req, res) => {
     }
 }
 
-const getCursosPorCargoClaveCiieId = async (req, res) => {
+const getCursosPorCargoClaveCiieClave = async (req, res) => {
     try {
-        const ciieId = req.user.referenciaId;
-        const {cargoClave} = req.params
-        const cargo = await cargoService.getPorCargoClaveCiieId(cargoClave, ciieId)
-        console.log('CARGO: ',cargo)
-        const cursosLocales = await cursoLocalService.getPorCargoId(cargo._id)
+        //const ciieId = req.user.referenciaId;
+        const {cargoClave, ciieClave} = req.params
+        const {cursosLocales, cargo} = await cursoLocalService.getPorCursoClaveCiieClave(cargoClave, ciieClave);
         
         res.render('pages/curso/cursoLocalList', {
             cargo,         // Objeto único
@@ -73,5 +99,6 @@ module.exports = {
     vincularCurso,
     getCursosLocales,
     getCursosPorCiieId,
-    getCursosPorCargoClaveCiieId
+    getCursosPorCargoClaveCiieClave,
+    getPorCiie
 }

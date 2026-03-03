@@ -1,3 +1,5 @@
+//ciieRouter.js
+
 const express = require('express');
 const router = express.Router();
 
@@ -6,7 +8,7 @@ const router = express.Router();
 const { getDashboard,  getUsuarioPorModelo, putAgenteEstado, getAgentesPendientes} = require('../controllers/ciieController');
 const {vistaAsignacionCiie, vistaCargosEtr} = require('../controllers/cargoController');
 const {getCursos} = require('../controllers/cursoExternoController');
-const {getCursosPorCiieId, getCursosPorCargoClaveCiieId} = require('../controllers/cursoLocalController')
+const {getCursosPorCiieId} = require('../controllers/cursoLocalController')
 const { viewInscripto, getExternosPorIdOfertaOficial, vincularCursantes } = require('../controllers/inscriptoController')
 
 router
@@ -21,7 +23,6 @@ router
     // URL curso
     .get('/curso/externo', getCursos)
     .get('/cursos', getCursosPorCiieId) //vista pendiente
-    .get('/cursos/cargo/:cargoClave', getCursosPorCargoClaveCiieId)
 
     .get('/inscriptos/curso/:idOfertaOficial', viewInscripto)
 

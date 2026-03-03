@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Matriz de Asistencia</title>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        .table-responsive { 
+            max-height: 75vh; 
+            overflow-y: auto;
+        }
+        .table-responsive::-webkit-scrollbar { width: 8px; }
+        .table-responsive::-webkit-scrollbar-track { background: var(--bs-dark); }
+        .table-responsive::-webkit-scrollbar-thumb { background: var(--bs-warning); border-radius: 4px; }
+
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            background-color: var(--bs-dark) !important;
+            z-index: 2;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+        }
+
+        .switch-asistencia {
+            display: inline-flex;
+            background: var(--bs-dark);
+            border-radius: 50px;
+            padding: 4px;
+            position: relative;
+            width: 180px;
+            height: 44px;
+            cursor: pointer;
+            user-select: none;
+            border: 2px solid var(--bs-secondary);
+            transition: all 0.3s;
+        }
+
+        .switch-option {
+            flex: 1;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--bs-secondary);
+        }
+
+        .switch-slider {
+            position: absolute;
+            width: calc(50% - 8px);
+            height: calc(100% - 8px);
+            border-radius: 50px;
+            transition: all 0.3s ease-out;
+            background: var(--bs-secondary);
+        }
+
+        .switch-asistencia[data-estado="Presente"] { border-color: var(--bs-success); }
+        .switch-asistencia[data-estado="Presente"] .switch-slider { transform: translateX(0); background: var(--bs-success); }
+        .switch-asistencia[data-estado="Presente"] .opt-p { color: white; }
+
+        .switch-asistencia[data-estado="Ausente"] { border-color: var(--bs-danger); }
+        .switch-asistencia[data-estado="Ausente"] .switch-slider { transform: translateX(100%); background: var(--bs-danger); }
+        .switch-asistencia[data-estado="Ausente"] .opt-a { color: white; }
+
+        .inscripto-card:hover {
+            border-color: var(--bs-warning) !important;
+            transform: translateY(-2px);
+            transition: all 0.2s;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container-fluid px-4 mt-4">
+        
+        <div class="row mb-4 g-3">
+            <div class="col-md-8">
+                <h2 class="h3 mb-2 fw-bold text-uppercase">
+                    <i class="bi bi-grid-3x3-gap-fill text-warning me-2"></i>
+                    <%= cursoLocal.nombrePropuesta %>
+                </h2>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <span class="badge bg-dark border border-secondary px-3 py-2">
+                        <i class="bi bi-hash"></i> <%= cursoLocal.idOfertaOficial %>
+                    </span>
+                    <span class="badge bg-dark border border-info px-3 py-2">
+                        <i class="bi bi-person-badge me-1"></i> <%= cursoLocal.formadorAbc %>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-secondary shadow">
+            <div class="card-body p-0">
+                <div class="">
+                    <table class="table table-dark table-hover table-bordered align-middle mb-0 text-center">
+                        <thead class="table-dark">
+                            <%
+                                const encOrdenados = encuentros.sort((a,b) => a.numero - b.numero);
+                                const colspanEncuentros = encOrdenados.length || 1;
+                            %>
+                            <!-- FILA 1: encabezados de grupo -->
+                            <tr>
+                                <th class="sticky-col border-end border-warning" rowspan="2" style="min-width: 300px; vertical-align: middle;">
+                                    <i class="bi bi-people-fill me-2 text-warning"></i>Cursante
+                                </th>
+                                <th colspan="<%= colspanEncuentros  %>" class="border-end border-warning bg-warning bg-opacity-10 py-2">
+                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                        <span class="text-warning fw-bold">
+                                            <i class="bi bi-calendar3 me-1"></i>Encuentros
+                                            <small class="text-muted ms-1">(<%= encOrdenados.length %>/<%= cursoLocal.cantidadEncuentros %>)</small>
+                                        </span>
+                                        <button class="btn btn-warning btn-sm text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalGestionarEncuentros">
+                                            <i class="bi bi-gear-fill me-1"></i>Gestionar
+                                        </button>
+                                    </div>
+                                </th>
+                                <th class="border-end border-info" rowspan="2" style="min-width: 50px; vertical-align: middle;">
+                                    <i class="bi bi-percent me-1 text-info"></i>
+                                    <div class="text-info small">Asist.</div>
+                                </th>
+                                <th class="bg-info bg-opacity-10" rowspan="2" style="min-width: 80px; vertical-align: middle;">
+                                    <button class="btn btn-info btn-sm text-dark fw-bold" id="btnAbrirCalificaciones">
+                                        <i class="bi bi-award-fill me-1"></i>Calificar
+                                    </button>
+                                </th>
+                            </tr>
+                            <!-- FILA 2: columnas de cada encuentro -->
+                            <tr>
+                                <% if (encOrdenados.length === 0) { %>
+                                    <th class="p-3 text-muted small">Sin encuentros</th>
+                                <% } %>
+                                <% encOrdenados.forEach(enc => { 
+                                    const d = new Date(enc.fecha);
+                                    const fechaFmt = String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0');
+                                %>
+                                    <th class="p-2" style="min-width: 100px;">
+                                        <button class="btn btn-outline-warning btn-sm btn-tomar-asistencia w-100"
+                                                data-encuentro-id="<%= enc._id %>"
+                                                data-encuentro-numero="<%= enc.numero %>"
+                                                data-encuentro-fecha="<%= fechaFmt %>">
+                                            <div>
+                                                <b>
+                                                    E<%= enc.numero %> · 
+                                                </b>
+                                                <small><%= enc.modalidad %></small>
+                                            </div>
+                                            <span class="text-light bg-dark"><%= fechaFmt %></span>
+                                        </button>
+                                    </th>
+                                <% }) %>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% inscriptosLocales.forEach(il => { 
+                                const registrosValidos = (il.asistencia || []).filter(a => a.estado === 'Presente' || a.estado === 'Ausente');
+                                const presentes = registrosValidos.filter(a => a.estado === 'Presente').length;
+                                const totalProcesados = registrosValidos.length;
+                                const porcentaje = totalProcesados > 0 ? Math.round((presentes / totalProcesados) * 100) : 0;
+
+                                let calBadge = 'bg-secondary';
+                                const cal = il.calificacion || 'Sin Calificar';
+                                if(cal === 'Aprobó') calBadge = 'bg-success';
+                                if(cal === 'Asistió') calBadge = 'bg-primary';
+                                if(cal === 'No acreditó') calBadge = 'bg-danger';
+                                if(cal === 'Ausente') calBadge = 'bg-warning text-dark';
+                                if(cal === 'Baja de Inscripción') calBadge = 'bg-dark border border-secondary';
+                            %>
+                                <tr>
+                                    <td class="sticky-col p-3 text-start border-end border-warning">
+                                        <div class="fw-bold fs-6"><%= il.apellido %>, <%= il.nombres %></div>
+                                        <small class="text-warning"><i class="bi bi-credit-card me-1"></i><%= il.dni %></small>
+                                    </td>
+                                    <% encOrdenados.forEach(enc => { 
+                                        const reg = (il.asistencia || []).find(e => e.encuentroId.toString() === enc._id.toString());
+                                        const estado = reg ? reg.estado : 'Pendiente';
+                                        let badgeClass = 'bg-secondary';
+                                        let icon = '—';
+                                        if(estado === 'Presente'){ badgeClass = 'bg-success'; icon = '✓'; }
+                                        if(estado === 'Ausente'){ badgeClass = 'bg-danger'; icon = '✗'; }
+                                    %>
+                                        <td class="py-2">
+                                            <span class="badge <%= badgeClass %> px-3 py-2"><%= icon %></span>
+                                        </td>
+                                    <% }) %>
+                                    
+                                    <% if (encOrdenados.length === 0) { %>
+                                        <td class="p-3 text-muted small" style="min-width: 110px;">
+                                            - - - -
+                                        </td>
+                                    <% } %>
+
+                                    <td class="text-info fw-bold fs-5 border-start border-info bg-dark">
+                                        <%= porcentaje %>%
+                                    </td>
+                                    <td class="py-2 border-start border-info">
+                                        <span class="badge <%= calBadge %> px-2 py-2" style="font-size: 0.7rem;"><%= cal %></span>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Gestionar Encuentros -->
+    <div class="modal fade" id="modalGestionarEncuentros" tabindex="-1">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content bg-dark border-warning">
+                <div class="modal-header border-warning bg-warning bg-opacity-10">
+                    <h5 class="modal-title text-warning fw-bold">Gestionar Cronograma</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="list-group list-group-flush">
+                        <% encOrdenados.forEach((enc, index) => { 
+                            const esUltimo = (index === encOrdenados.length - 1);
+                            const d = new Date(enc.fecha);
+                            const f = d.getUTCDate().toString().padStart(2,'0')+'/'+(d.getUTCMonth()+1).toString().padStart(2,'0');
+                        %>
+                            <div class="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center p-3">
+                                <div>
+                                    <span class="badge bg-warning text-dark me-2">E<%= enc.numero %></span>
+                                    <span class="text-white fw-bold"><%= f %></span>
+                                    <small class="text-muted ms-2"><%= enc.modalidad %></small>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <% if (esUltimo) { %>
+                                        <button class="btn btn-sm btn-outline-danger btn-eliminar-encuentro"
+                                                data-oferta="<%= cursoLocal.idOfertaOficial %>"
+                                                data-num="<%= enc.numero %>">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    <% } %>
+                                    <button class="btn btn-sm btn-outline-warning btn-abrir-editor" 
+                                            data-id="<%= enc._id %>"
+                                            data-num="<%= enc.numero %>"
+                                            data-fecha="<%= enc.fecha.toISOString().split('T')[0] %>"
+                                            data-mod="<%= enc.modalidad %>"
+                                            data-oferta="<%= cursoLocal.idOfertaOficial %>">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                    <% if(encuentros.length === 0) { %>
+                        <div class="p-4 text-center text-muted">No hay encuentros registrados.</div>
+                    <% } %>
+                    <div class="p-3 text-center border-top border-secondary">
+                        <button class="btn btn-outline-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoEncuentro">
+                            <i class="bi bi-calendar-plus me-2"></i>Agregar Encuentro
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Editar Encuentro -->
+    <div class="modal fade" id="modalFormEditar" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content bg-dark border-info shadow-lg">
+                <form id="formEditarEncuentro">
+                    <div class="modal-header border-info bg-info bg-opacity-10">
+                        <h6 class="modal-title text-info fw-bold">Editar Encuentro E<span id="editNumSpan"></span></h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editEncuentroId" name="id">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-info">FECHA</label>
+                            <input type="date" class="form-control bg-dark text-white border-secondary" id="editFecha" name="fecha" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-info">MODALIDAD</label>
+                            <select class="form-select bg-dark text-white border-secondary" id="editModalidad" name="modalidad" required>
+                                <option value="Presencial">Presencial</option>
+                                <option value="Virtual">Virtual</option>
+                                <option value="Híbrido">Híbrido</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="submit" class="btn btn-info w-100 fw-bold">GUARDAR CAMBIOS</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Tomar Asistencia -->
+    <div class="modal fade" id="modalTomarAsistencia" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content bg-dark border-warning">
+                <div class="modal-header bg-warning text-dark">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0">ENCUENTRO <span id="modalEncuentroNumero"></span></h5>
+                        <small id="modalEncuentroInfo"></small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="bg-dark border-bottom border-secondary p-3 sticky-top">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-7">
+                                <input type="text" id="buscarInscripto" class="form-control bg-dark border-secondary text-white" placeholder="Buscar por DNI o Apellido...">
+                            </div>
+                            <div class="col-md-5 text-end">
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-success" id="btnMarcarTodosPresentes">Todos P</button>
+                                    <button class="btn btn-sm btn-outline-danger" id="btnMarcarTodosAusentes">Todos A</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="listaInscriptos" class="p-3"></div>
+                </div>
+                <div class="modal-footer bg-dark border-top border-warning">
+                    <div id="resumenAsistencia" class="me-auto"></div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning fw-bold px-4" id="btnGuardarAsistencia">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Calificaciones -->
+    <div class="modal fade" id="modalCalificaciones" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content bg-dark border-info">
+                <div class="modal-header bg-info text-dark">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0">
+                            <i class="bi bi-award me-2"></i>Calificaciones
+                        </h5>
+                        <small>Modificá y guardá las calificaciones del curso</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="bg-dark border-bottom border-secondary p-3 sticky-top">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-7">
+                                <input type="text" id="buscarInscriptoCal" class="form-control bg-dark border-secondary text-white" placeholder="Buscar por DNI o Apellido...">
+                            </div>
+                            <div class="col-md-5">
+                                <select id="selectCalTodos" class="form-select bg-dark text-white border-secondary">
+                                    <option value="">— Aplicar a todos —</option>
+                                    <option value="Asistió">Asistió</option>
+                                    <option value="No acreditó">No acreditó</option>
+                                    <option value="Aprobó">Aprobó</option>
+                                    <option value="Ausente">Ausente</option>
+                                    <option value="Sin Calificar">Sin Calificar</option>
+                                    <option value="Baja de Inscripción">Baja de Inscripción</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="listaCalificaciones" class="p-3"></div>
+                </div>
+                <div class="modal-footer bg-dark border-top border-info">
+                    <div id="resumenCalificaciones" class="me-auto small"></div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-info fw-bold px-4" id="btnGuardarCalificaciones">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Nuevo Encuentro -->
+    <div class="modal fade" id="modalNuevoEncuentro" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content bg-dark border-success">
+                <form id="formNuevoEncuentro">
+                    <div class="modal-header bg-success bg-opacity-10">
+                        <h6 class="modal-title text-success fw-bold">Nuevo Encuentro</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="idOfertaOficial" value="<%= cursoLocal.idOfertaOficial %>">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Número</label>
+                            <input type="number" class="form-control bg-dark border-secondary text-white text-center fw-bold fs-5" name="numero" value="<%= encuentros.length + 1 %>" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Fecha</label>
+                            <input type="date" class="form-control bg-dark border-secondary text-white" name="fecha" value="<%= new Date().toISOString().split('T')[0] %>" required>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small fw-bold">Modalidad</label>
+                            <select class="form-select bg-dark border-secondary text-white" name="modalidad" id="nuevoModalidad" required>
+                                <option value="Presencial" selected>Presencial</option>
+                                <option value="Virtual">Virtual</option>
+                                <option value="Híbrido">Híbrido</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="submit" class="btn btn-success w-100 fw-bold">CREAR ENCUENTRO</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        $(document).ready(function () {
+            let encuentroActual = null;
+            const inscriptosData = JSON.parse('<%- JSON.stringify(inscriptosLocales) %>');
+            let asistenciasTemp = {};
+            let calificacionesTemp = {};
+
+            const OPCIONES_CAL = ['Asistió', 'No acreditó', 'Aprobó', 'Ausente', 'Sin Calificar', 'Baja de Inscripción'];
+
+            // --- 1. GESTIÓN DE ENCUENTROS ---
+
+            $(document).on('click', '.btn-eliminar-encuentro', function(e) {
+                e.preventDefault();
+                const idOfertaOficial = $(this).data('oferta');
+                const nroEncuentro = $(this).data('num');
+                Swal.fire({
+                    title: '¿Eliminar encuentro?',
+                    text: `Se borrará el Encuentro ${nroEncuentro} y todas sus asistencias.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/agente/encuentro/${idOfertaOficial}/${nroEncuentro}`,
+                            method: 'DELETE',
+                            success: () => location.reload(),
+                            error: () => Swal.fire('Error', 'No se pudo eliminar el encuentro', 'error')
+                        });
+                    }
+                });
+            });
+
+            $('.btn-abrir-editor').click(function() {
+                const data = $(this).data();
+                $('#modalGestionarEncuentros').modal('hide');
+                $('#editEncuentroId').val(data.id);
+                $('#editNumSpan').text(data.num);
+                $('#editFecha').val(data.fecha);
+                $('#editModalidad').val(data.mod);
+                $('#formEditarEncuentro').data('oferta', data.oferta).data('num', data.num);
+                setTimeout(() => { $('#modalFormEditar').modal('show'); }, 400);
+            });
+
+            $('#formEditarEncuentro').submit(function(e) {
+                e.preventDefault();
+                const idOfertaOficial = $(this).data('oferta');
+                const nroEncuentro = $(this).data('num');
+                $.ajax({
+                    url: `/agente/encuentro/${idOfertaOficial}/${nroEncuentro}`, 
+                    method: 'PUT',
+                    data: $(this).serialize(),
+                    success: () => {
+                        Swal.fire({ icon: 'success', title: 'Actualizado', showConfirmButton: false, timer: 1500 })
+                        .then(() => location.reload());
+                    },
+                    error: () => Swal.fire('Error', 'No se pudo editar', 'error')
+                });
+            });
+
+            $('#formNuevoEncuentro').submit(function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: '/agente/encuentro',
+                    method: 'POST',
+                    data: $(this).serialize(),
+                    success: () => {
+                        Swal.fire({ icon: 'success', title: 'Encuentro Creado', showConfirmButton: false, timer: 1000 })
+                        .then(() => location.reload());
+                    },
+                    error: (err) => {
+                        const mensaje = err.responseJSON?.error || 'No se pudo crear el encuentro';
+                        Swal.fire('Error', mensaje, 'error');
+                    }
+                });
+            });
+
+            // --- 2. ASISTENCIA ---
+
+            $(document).on('click', '.btn-tomar-asistencia', function() {
+                encuentroActual = {
+                    id: $(this).data('encuentro-id'),
+                    numero: $(this).data('encuentro-numero'),
+                    fecha: $(this).data('encuentro-fecha')
+                };
+                asistenciasTemp = {};
+                inscriptosData.forEach(ins => {
+                    const reg = (ins.asistencia || []).find(e => e.encuentroId.toString() === encuentroActual.id.toString());
+                    asistenciasTemp[ins.idInscripcionOficial] = reg ? reg.estado : 'Ausente';
+                });
+                $('#modalEncuentroNumero').text(encuentroActual.numero);
+                $('#modalEncuentroInfo').text(`📅 ${encuentroActual.fecha}`);
+                renderizarInscriptos();
+                $('#modalTomarAsistencia').modal('show');
+            });
+
+            function renderizarInscriptos(filtro = '') {
+                const lista = $('#listaInscriptos').empty();
+                const busqueda = filtro.toLowerCase();
+                inscriptosData.filter(i => 
+                    i.apellido.toLowerCase().includes(busqueda) || 
+                    i.nombres.toLowerCase().includes(busqueda) || 
+                    i.dni.includes(busqueda)
+                ).forEach(ins => {
+                    const estado = asistenciasTemp[ins.idInscripcionOficial];
+                    lista.append(`
+                        <div class="card bg-dark border-secondary mb-2 inscripto-card" data-idinscripcion="${ins.idInscripcionOficial}">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold">${ins.apellido}, ${ins.nombres}</h6>
+                                        <small class="text-warning"><i class="bi bi-credit-card me-1"></i>${ins.dni}</small>
+                                    </div>
+                                    <div class="switch-asistencia" data-estado="${estado}">
+                                        <div class="switch-slider"></div>
+                                        <div class="switch-option opt-p">Presente</div>
+                                        <div class="switch-option opt-a">Ausente</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                });
+                actualizarResumen();
+            }
+
+            $(document).on('click', '.switch-asistencia', function() {
+                const idInscripcion = $(this).closest('.inscripto-card').data('idinscripcion');
+                const nuevoEstado = $(this).attr('data-estado') === 'Presente' ? 'Ausente' : 'Presente';
+                asistenciasTemp[idInscripcion] = nuevoEstado;
+                $(this).attr('data-estado', nuevoEstado);
+                actualizarResumen();
+            });
+
+            function actualizarResumen() {
+                const vals = Object.values(asistenciasTemp);
+                const p = vals.filter(v => v === 'Presente').length;
+                const a = vals.filter(v => v === 'Ausente').length;
+                $('#resumenAsistencia').html(`<span class="badge bg-success me-2">Presentes: ${p}</span><span class="badge bg-danger">Ausentes: ${a}</span>`);
+            }
+
+            $('#buscarInscripto').on('input', function() { renderizarInscriptos($(this).val()); });
+
+            $('#btnMarcarTodosPresentes').click(() => { 
+                Object.keys(asistenciasTemp).forEach(id => asistenciasTemp[id] = 'Presente'); 
+                renderizarInscriptos($('#buscarInscripto').val()); 
+            });
+
+            $('#btnMarcarTodosAusentes').click(() => { 
+                Object.keys(asistenciasTemp).forEach(id => asistenciasTemp[id] = 'Ausente'); 
+                renderizarInscriptos($('#buscarInscripto').val()); 
+            });
+
+            $('#btnGuardarAsistencia').click(function() {
+                const btn = $(this);
+                const payload = Object.keys(asistenciasTemp).map(idInscripcion => ({ 
+                    idInscripcionOficial: idInscripcion, 
+                    estado: asistenciasTemp[idInscripcion] 
+                }));
+                btn.prop('disabled', true).text('Guardando...');
+                $.ajax({
+                    url: '/inscripto/asistencia',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        encuentroNumero: encuentroActual.numero, 
+                        idOfertaOficial: "<%= cursoLocal.idOfertaOficial %>", 
+                        asistencias: payload
+                    }),
+                    success: () => location.reload(),
+                    error: () => { btn.prop('disabled', false).text('Guardar'); Swal.fire('Error', 'No se pudo guardar', 'error'); }
+                });
+            });
+
+            // --- 3. CALIFICACIONES ---
+
+            $('#btnAbrirCalificaciones').click(function() {
+                calificacionesTemp = {};
+                inscriptosData.forEach(ins => {
+                    calificacionesTemp[ins.idInscripcionOficial] = OPCIONES_CAL.includes(ins.calificacion) 
+                        ? ins.calificacion 
+                        : 'Sin Calificar';
+                });
+                renderizarCalificaciones();
+                $('#modalCalificaciones').modal('show');
+            });
+
+            function renderizarCalificaciones(filtro = '') {
+                const lista = $('#listaCalificaciones').empty();
+                const busqueda = filtro.toLowerCase();
+                inscriptosData.filter(i =>
+                    i.apellido.toLowerCase().includes(busqueda) ||
+                    i.nombres.toLowerCase().includes(busqueda) ||
+                    i.dni.includes(busqueda)
+                ).forEach(ins => {
+                    const calActual = calificacionesTemp[ins.idInscripcionOficial];
+                    const options = OPCIONES_CAL.map(op => 
+                        `<option value="${op}" ${op === calActual ? 'selected' : ''}>${op}</option>`
+                    ).join('');
+                    lista.append(`
+                        <div class="card bg-dark border-secondary mb-2">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold">${ins.apellido}, ${ins.nombres}</h6>
+                                        <small class="text-warning"><i class="bi bi-credit-card me-1"></i>${ins.dni}</small>
+                                    </div>
+                                    <select class="form-select bg-dark text-white border-secondary select-calificacion" 
+                                            style="width: 200px;"
+                                            data-idinscripcion="${ins.idInscripcionOficial}">
+                                        ${options}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                });
+                actualizarResumenCal();
+            }
+
+            $(document).on('change', '.select-calificacion', function() {
+                const idInscripcion = $(this).data('idinscripcion');
+                calificacionesTemp[idInscripcion] = $(this).val();
+                actualizarResumenCal();
+            });
+
+            $('#selectCalTodos').change(function() {
+                const valor = $(this).val();
+                if (!valor) return;
+                Object.keys(calificacionesTemp).forEach(id => calificacionesTemp[id] = valor);
+                renderizarCalificaciones($('#buscarInscriptoCal').val());
+                $(this).val('');
+            });
+
+            function actualizarResumenCal() {
+                const vals = Object.values(calificacionesTemp);
+                const sinCalificar = vals.filter(v => v === 'Sin Calificar').length;
+                const calificados = vals.length - sinCalificar;
+                $('#resumenCalificaciones').html(
+                    `<span class="badge bg-info text-dark me-2">Calificados: ${calificados}</span>` +
+                    `<span class="badge bg-secondary">Sin calificar: ${sinCalificar}</span>`
+                );
+            }
+
+            $('#buscarInscriptoCal').on('input', function() { renderizarCalificaciones($(this).val()); });
+
+            $('#btnGuardarCalificaciones').click(function() {
+                const btn = $(this);
+                const payload = Object.keys(calificacionesTemp).map(idInscripcion => ({ 
+                    idInscripcionOficial: idInscripcion, 
+                    calificacion: calificacionesTemp[idInscripcion] 
+                }));
+                btn.prop('disabled', true).text('Guardando...');
+                $.ajax({
+                    url: '/inscripto/calificacion',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        idOfertaOficial: "<%= cursoLocal.idOfertaOficial %>",
+                        calificaciones: payload
+                    }),
+                    success: () => location.reload(),
+                    error: () => { 
+                        btn.prop('disabled', false).text('Guardar'); 
+                        Swal.fire('Error', 'No se pudo guardar', 'error'); 
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>

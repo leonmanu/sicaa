@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="es" data-bs-theme="dark">
 <head>
-    <title>Nodo CIIE - Seleccionar Cargo</title>
+    <link rel="icon" type="image/png" href="/img/LogoSicaa.png">
     <%- include('../../partials/head') %>
+    <title> SICA - Inscriptos </title>
 </head>
 <body>
     <%- include('../../partials/navbar') %>
@@ -10,7 +11,7 @@
     <div class="container py-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2>💼 Mis Cargos <small>(<%= asignaciones.length  %>)</small></h2>
+                <h2>💼 Mis Cargos <small>(<%= cargos.length  %>)</small></h2>
                 <p class="text-muted">Seleccioná el cargo con el que vas a operar hoy</p>
             </div>
             <a href="#" class="btn btn-success disabled">
@@ -30,31 +31,38 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <% if (asignaciones && asignaciones.length > 0) { %>
-                        <% asignaciones.forEach(asig => { %>
+                    <% if (cargos && cargos.length > 0) { %>
+                        <% cargos.forEach(cargo => { %>
                             <tr>
                                 <td>
-                                    <strong><%= asig.cargoId.ciieId.nombre %></strong><br>
-                                    <small class="text-muted">Región <%= asig.cargoId.ciieId.region %></small>
+                                    <strong><%= cargo.ciieId.nombre %></strong>
+                                    <br>
+                                    <small class="text-muted">Región <%= cargo.ciieId.region %></small>
                                 </td>
-                                <td><%= asig.cargoId.rolId.nombre %></td>
-                                <td><%= asig.cargoId?.areaId?.nombre || '' %></td>
                                 <td>
-                                    <% if (asig.estado === 'Activo') { %>
+                                    <%= cargo.rolId.nombre %>
+                                </td>
+                                <td>
+                                    <%= cargo.areaId?.nombre || '' %>
+                                    <br>
+                                    <small class="text-muted"><%= cargo.areaId?.nivel %></small>
+                                </td>
+                                <td>
+                                    <% if (cargo.ocupante && cargo.ocupante.estado === 'Activo') { %>
                                         <span class="badge bg-success">Activo</span>
-                                    <% } else if (asig.estado === 'Licencia') { %>
+                                    <% } else if (cargo.ocupante && cargo.ocupante.estado === 'Licencia') { %>
                                         <span class="badge bg-warning text-dark">En Licencia</span>
                                     <% } else { %>
-                                        <span class="badge bg-warning text-dark">Pendiente de ón</span>
+                                        <span class="badge bg-secondary">Sin ocupante</span>
                                     <% } %>
                                 </td>
                                 <td class="text-center">
-                                    <% if (asig.estado === 'Activo') { %>
-                                        <a href="curso/<%= asig.cargoId?.clave %>/<%= asig.cargoId?.ciieId?.clave %>" class="btn btn-primary">
+                                    <% if (cargo.ocupante && cargo.ocupante.estado === 'Activo') { %>
+                                        <a href="/curso/<%= cargo.clave %>/<%= cargo.ciieId?.clave %>" class="btn btn-primary">
                                             Acceder ➔
                                         </a>
                                     <% } else { %>
-                                        <button class="btn btn-secondary btn-sm" disabled>Esperando aprobación</button>
+                                        <button class="btn btn-secondary btn-sm" disabled>Sin ocupante</button>
                                     <% } %>
                                 </td>
                             </tr>
@@ -81,7 +89,7 @@
             $('#tablaCargos').DataTable({
                 language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
                 responsive: true,
-                dom: 't' // Solo muestra la tabla si son pocos registros
+                paging: false
             });
         });
     </script>

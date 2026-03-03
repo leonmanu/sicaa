@@ -1,10 +1,32 @@
 const mongoose = require('mongoose');
 const Cargo = require('../models/Cargo');
-// ESTO ES CLAVE: Forzamos el registro de los modelos relacionados
 const Rol = require('../models/Rol'); 
 const Area = require('../models/Area');
 
+const populateBase = [
+    { path: 'ciieId' },
+    { path: 'rolId' },
+    { path: 'areaId' }
+];
+
+const populateOcupanteAgente = {
+    path: 'ocupante',
+    match: { estado: 'Activo' },
+    populate: { path: 'usuarioId' }
+};
+
+const populateOcupanteCiie = {
+    path: 'ocupante',
+    match: { estado: 'Activo' },
+    populate: { 
+        path: 'usuarioId', 
+        select: 'email tipo' 
+    }
+};
+
 class CargoRepo {
+
+    //esta función debería revisarse
     async findAllConDetalles(ciieId) {
         try {
             
@@ -24,6 +46,7 @@ class CargoRepo {
             throw error;
         }
     }
+//esta función debería revisarse
     async getConRolAreaCiie(ciieId) {
     try {
         if (!mongoose.Types.ObjectId.isValid(ciieId)) {
@@ -49,17 +72,6 @@ class CargoRepo {
         throw error;
     }
 }
-    async findByClave(clave) {
-        try {
-            const cargo = await Cargo.findOne({ clave: clave })
-                .populate('areaId')
-                .lean();
-            return cargo;
-        } catch (error) {
-            console.error('Error en CargoRepo.findByClave:', error.message);
-            throw error;
-        }
-    }
 
     async getPorCargoClaveCiieId(clave, ciieId) {
         try {
@@ -77,16 +89,38 @@ class CargoRepo {
             throw error;
         }
     }
-    
 
-    async getByAgente(usuarioId) {
-        try {
-            const cargos = await Cargo.find({ usuarioId: usuarioId }).lean();
-            return cargos;
-        } catch (error) {
-            console.error('Error en CargoRepo.getByAgente:', error.message);
-            throw error;
-        }
+    async getPorAgente(usuarioId) {
+        const cargos = await Cargo.find()
+            .populate(populateBase)
+            .populate({
+                ...populateOcupanteAgente,
+                match: { usuarioId: usuarioId, estado: 'Activo' }
+            })
+            .lean({ virtuals: true });
+
+        return cargos.filter(cargo => cargo.ocupante !== null);
+    }
+
+    async getPorCiieReferenciaId(referenciaId) {
+        const resultado = await Cargo.find({ ciieId:referenciaId })
+            .populate(populateBase)
+            .populate(populateOcupanteCiie)
+            .lean({ virtuals: true });
+
+        return resultado;
+    }
+
+    async getPorClaveCiieId(clave, ciieId) {
+        return await Cargo.findOne({ clave, ciieId })
+            .populate('areaId')
+            .lean();
+    }
+
+    async getPorClave(clave) {
+        return await Cargo.findOne({ clave })
+            .populate('areaId')
+            .lean();
     }
 }
 

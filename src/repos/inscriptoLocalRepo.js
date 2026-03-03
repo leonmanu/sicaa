@@ -1,3 +1,5 @@
+//inscriptoLocalRepo.js
+
 const mongoose = require('mongoose');
 
 const InscriptoLocal = require('../models/InscriptoLocal');
@@ -67,6 +69,21 @@ class InscriptoLocalRepo {
             return await registro.save();
         } catch (error) {
             console.error('Error en InscriptoLocalRepo.post:', error.message);
+            throw error;
+        }
+    }
+
+    async putCalificaciones(calificaciones) {
+        try {
+            const ops = calificaciones.map(cal => ({
+                updateOne: {
+                    filter: { idInscripcionOficial: cal.idInscripcionOficial },
+                    update: { $set: { calificacion: cal.calificacion } }
+                }
+            }));
+            return await InscriptoLocal.bulkWrite(ops);
+        } catch (error) {
+            console.error('Error en InscriptoLocalRepo.putCalificaciones:', error.message);
             throw error;
         }
     }

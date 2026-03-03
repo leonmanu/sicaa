@@ -57,14 +57,13 @@ router.get('/google/callback',
     // CASO 1: YA COMPLETÓ EL REGISTRO
     if (req.user.estado === 'aprobado') {
     req.flash('success', `¡Hola de nuevo, ${req.user.nombre}!`);
-
     // Discriminamos según el tipo de cuenta
     if (req.user.tipo === 'institucion') {
         // Si es un CIIE, quizás va directo a su panel institucional
         return res.redirect('/ciie/dashboard'); 
     } else {
         // Si es una Persona, va a elegir su cargo (docente, director, etc.)
-        return res.redirect('/agente/cargo');
+        return res.redirect('/cargo/todos');
     }
 }
     else if (req.user.estado === 'rechazado') {

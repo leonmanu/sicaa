@@ -1,6 +1,6 @@
 // src/middlewares/auth.js
 
-function asegurarRegistro(req, res, next) {
+const asegurarRegistro = (req, res, next) => {
     if (!req.isAuthenticated()) {
         return res.redirect('/');
     }
@@ -17,7 +17,7 @@ function asegurarRegistro(req, res, next) {
     next();
 }
 
-function esAdmin(req, res, next) {
+const esAdmin = (req, res, next) => {
     // Primero asegurar que esté logueado (por las dudas)
     if (req.isAuthenticated() && req.user.rol === 'admin') {
         return next();
@@ -26,7 +26,7 @@ function esAdmin(req, res, next) {
     res.redirect('/'); 
 }
 
-function puedeConsultar(req, res, next) {
+const puedeConsultar = (req, res, next) => {
     if (req.isAuthenticated() && (req.user.rol === 'admin' || req.user.rol === 'observador')) {
         return next();
     }
@@ -34,8 +34,38 @@ function puedeConsultar(req, res, next) {
     res.redirect('/');
 }
 
+const soloAgente = (req, res, next) => {
+    if (!req.isAuthenticated()) return res.redirect('/');
+    if (req.user.tipo !== 'agente' || req.user.estado !== 'aprobado') {
+        req.flash('error', 'Acceso denegado.');
+        return res.redirect('/');
+    }
+    next();
+};
+
+const soloCiie = (req, res, next) => {
+    if (!req.isAuthenticated()) return res.redirect('/');
+    if (req.user.tipo !== 'institucion' || req.user.estado !== 'aprobado') {
+        req.flash('error', 'Acceso denegado.');
+        return res.redirect('/');
+    }
+    next();
+};
+
+const multiRol = (...roles) => (req, res, next) => {
+    if (!req.isAuthenticated()) return res.redirect('/');
+    if (!roles.includes(req.user.tipo)) {
+        req.flash('error', 'No tenés permisos para acceder a esta sección.');
+        return res.redirect('/');
+    }
+    next();
+};
+
 module.exports = {
     asegurarRegistro,
     esAdmin,
-    puedeConsultar
+    puedeConsultar,
+    soloAgente,
+    soloCiie,
+    multiRol
 };

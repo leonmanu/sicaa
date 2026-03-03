@@ -65,13 +65,13 @@ class InscriptoLocalService {
         // console.log('\n=== RESUMEN ===');
         // console.log(JSON.stringify(todosDatos, null, 2));
         
-        return todosDatos;
+            return todosDatos;
         
-    } catch (error) {
-        console.error(`Error buscando detalle para ${idInscripcionOficial}:`, error.message);
-        return {};
+        } catch (error) {
+            console.error(`Error buscando detalle para ${idInscripcionOficial}:`, error.message);
+            return {};
+        }
     }
-}
 
     async vincularColeccion(dataArray, idOfertaOficial, usuarioEmail) {
         try {
@@ -89,7 +89,7 @@ class InscriptoLocalService {
             }
 
             console.log(`📥 Sincronizando detalles de ${dataParaProcesar.length} nuevos inscriptos...`);
-            console.log(`⚠️  Esto tomará aprox. ${Math.ceil(dataParaProcesar.length * 2.5 / 60)} minutos`);
+            console.log(`⚠️ Esto tomará aprox. ${Math.ceil(dataParaProcesar.length * 2.5 / 60)} minutos`);
 
             const nuevosInscriptos = [];
             
@@ -99,7 +99,6 @@ class InscriptoLocalService {
                 
                 console.log(`[${i + 1}/${dataParaProcesar.length}] Procesando ${raw[1]}...`);
                 
-                // PASAR EL ID DEL CURSO TAMBIÉN
                 const detallesExtra = await this._obtenerDetallesFormulario(
                     idInscripcion,
                     idOfertaOficial
@@ -115,27 +114,32 @@ class InscriptoLocalService {
                 const cuil = detallesExtra.cuil || '';
                 const dni = CuilHelper.extraerDNI(cuil);
 
+                // --- NORMALIZACIÓN DE DATOS (Mayúsculas con tildes) ---
+                // Usamos .toUpperCase() que mantiene Á, É, Í, Ó, Ú y Ñ correctamente.
+                const apellidoNormalizado = (detallesExtra.apelnom || raw[1] || '').trim().toUpperCase();
+                const nombresNormalizados = (detallesExtra.nombres || '').trim().toUpperCase();
+
                 nuevosInscriptos.push({
                     // IDs y referencias
                     idInscripcionOficial: idInscripcion,
                     cursoId: cursoLocal._id,
                     idOfertaOficial: cursoLocal.idOfertaOficial,
                     
-                    // Datos identificatorios
+                    // Datos identificatorios normalizados
                     cuil: cuil,
-                    dni: dni, // ← DNI extraído automáticamente
-                    apellido: detallesExtra.apelnom || raw[1],
-                    nombres: detallesExtra.nombres || '',
+                    dni: dni, 
+                    apellido: apellidoNormalizado,
+                    nombres: nombresNormalizados,
                     fechaNacimiento: fechaNacimiento,
                     
-                    // Datos de contacto
-                    domicilio: detallesExtra.domicilio || '',
+                    // Datos de contacto (normalizamos email a minúscula por estándar)
+                    domicilio: (detallesExtra.domicilio || '').trim().toUpperCase(),
                     telefono: detallesExtra.telefono || '',
-                    email: detallesExtra.email || raw[3],
-                    emailAlternativo: detallesExtra.emailalt || '',
+                    email: (detallesExtra.email || raw[3] || '').trim().toLowerCase(),
+                    emailAlternativo: (detallesExtra.emailalt || '').trim().toLowerCase(),
                     
                     // Datos de ubicación
-                    localidad: raw[2] || '',
+                    localidad: (raw[2] || '').trim().toUpperCase(),
                     codigoCiudad: detallesExtra.cbx_ciudad || '',
                     
                     // Datos académicos
@@ -150,13 +154,13 @@ class InscriptoLocalService {
                     // Gestión del CIIE
                     creadoPor: usuarioEmail,
                     calificacion: 'Sin Calificar',
-                    encuentros: [], // Inicialmente vacío, se llena después
+                    encuentros: [], 
                     totalEncuentros: 0,
                     asistenciasPresentes: 0,
                     porcentajeAsistencia: 0
                 });
 
-                // Pausa entre peticiones
+                // Pausa entre peticiones para no saturar el servidor oficial
                 if (i < dataParaProcesar.length - 1) {
                     await Delay.random(1500, 3500);
                 }
@@ -164,7 +168,7 @@ class InscriptoLocalService {
 
             const resultado = await inscriptoLocalRepo.saveMany(nuevosInscriptos);
             
-            console.log(`✅ ${nuevosInscriptos.length} inscriptos sincronizados correctamente`);
+            console.log(`✅ ${nuevosInscriptos.length} inscriptos sincronizados y normalizados correctamente`);
             
             return {
                 message: "Vinculación y sincronización exitosa",
@@ -197,41 +201,60 @@ class InscriptoLocalService {
         }
     
     async getPorCursoId(cursoId) {
-    try {
-        const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(cursoId);
+        try {
+            const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(cursoId);
 
-        // Configuramos el comparador para español
-        // 'es' indica español, sensitivity: 'base' compararía a=á, 
-        // pero por defecto (sin sensitivity base) diferencia acentos correctamente según la RAE.
-        const collator = new Intl.Collator('es', { 
-            numeric: true, 
-            sensitivity: 'accent' 
-        });
+            // Configuramos el comparador para español
+            // 'es' indica español, sensitivity: 'base' compararía a=á, 
+            // pero por defecto (sin sensitivity base) diferencia acentos correctamente según la RAE.
+            const collator = new Intl.Collator('es', { 
+                numeric: true, 
+                sensitivity: 'accent' 
+            });
 
-        inscriptosLocales.sort((a, b) => {
-            // 1. Comparar por Apellido
-            let comparacion = collator.compare(a.apellido || '', b.apellido || '');
-            
-            // 2. Si los apellidos son iguales, comparar por Nombres
-            if (comparacion === 0) {
-                comparacion = collator.compare(a.nombres || '', b.nombres || '');
-            }
+            inscriptosLocales.sort((a, b) => {
+                // 1. Comparar por Apellido
+                let comparacion = collator.compare(a.apellido || '', b.apellido || '');
+                
+                // 2. Si los apellidos son iguales, comparar por Nombres
+                if (comparacion === 0) {
+                    comparacion = collator.compare(a.nombres || '', b.nombres || '');
+                }
 
-            // 3. Si nombres y apellidos son iguales, comparar por DNI
-            if (comparacion === 0) {
-                comparacion = collator.compare(a.dni || '', b.dni || '');
-            }
+                // 3. Si nombres y apellidos son iguales, comparar por DNI
+                if (comparacion === 0) {
+                    comparacion = collator.compare(a.dni || '', b.dni || '');
+                }
 
-            return comparacion;
-        });
+                return comparacion;
+            });
 
-        return inscriptosLocales;
+            return inscriptosLocales;
 
-    } catch (error) {
-        console.error('Error obteniendo inscriptos ordenados:', error.message);
-        throw error;
+        } catch (error) {
+            console.error('Error obteniendo inscriptos ordenados:', error.message);
+            throw error;
+        }
     }
-}
+
+    async putCalificacion(idOfertaOficial, calificaciones) {
+        try {        
+            
+            //console.log('Datos recibidos para nueva asistencia:', data);
+            const cursoLocal = await cursoLocalService.getPorIdOfertaOficial(idOfertaOficial);
+            if (!cursoLocal) {
+                return res.status(404).json({ error: 'Curso no encontrado para la oferta oficial.' });
+            }
+
+            const resultado = await inscriptoLocalRepo.putCalificaciones(calificaciones);
+            return resultado;
+           
+        } catch (error) {
+            console.error('Error al guardar la calificación:', error);
+            throw error;
+        }
+    }
+
 }
 
 module.exports = new InscriptoLocalService();

@@ -4,6 +4,11 @@ const ciieService = require('./ciieService');
 const agenteRepo = require('../repos/agenteRepo');
 const personaRepo = require('../repos/personaRepo');
 const cargoService = require('./cargoService');
+const inscriptoLocalRepo = require('../repos/inscriptoLocalRepo');
+const cursoLocalService = require('./cursoLocalService');
+const encuentroService = require('./encuentroService');
+const inscriptoLocalService = require('./inscriptoLocalService');
+const asistenciaService = require('./asistenciaService');
 
 class AgenteService {
 
@@ -183,6 +188,18 @@ class AgenteService {
             console.error('Error al actualizar el estado del agente:', error);
             throw error;
         }   
+    }
+
+    async postAsistenciaCursante(data) {
+        try {
+            const curso = await cursoLocalService.getPorIdOfertaOficial(data.idOfertaOficial);
+            //console.log('Curso obtenido para idOfertaOficial', data.idOfertaOficial, ':', curso);
+            if (!curso) throw new Error('Curso no encontrado');
+            return await asistenciaService.postAsistenciaEncuentro(curso._id, data);
+        } catch (error) {
+            console.error('Error al guardar la asistencia:', error);
+            throw error;
+        }
     }
 }
 

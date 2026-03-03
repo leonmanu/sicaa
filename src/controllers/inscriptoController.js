@@ -1,6 +1,8 @@
 const inscriptoExternoService = require('../services/inscriptoExternoService')
 const inscriptoLocalService = require('../services/inscriptoLocalService')
 const cursoLocalService = require('../services/cursoLocalService')
+const encuentroService = require('../services/encuentroService')
+const asistenciaService = require('../services/asistenciaService')
 
 const viewInscripto = async (req, res) => {
     try{
@@ -8,7 +10,6 @@ const viewInscripto = async (req, res) => {
 
         const cursoLocal = await cursoLocalService.getPorIdOfertaOficial(idOfertaOficial)
        
-        
         const inscriptoLocal = await inscriptoLocalService.getPorCursoId(cursoLocal._id)
 
         res.render('pages/cursante/inscriptoLocalList', { 
@@ -38,6 +39,33 @@ const viewListaAsistencia = async (req, res) => {
 
         res.render('pages/cursante/listaAsistencia', { 
             inscriptoExterno: [], // El array raw del ABC
+            inscriptosLocales,          // Para comparar quién ya tiene pareja
+            cursoLocal,                 // Para llenar el <select> del modal
+            title: "Sincronización de Inscripto",
+            user: req.user
+        });
+
+    } catch (error) {
+        console.error('Error en listar inscriptos:', error.message);
+        req.flash('error', 'Error asignar cargo.');
+        // 5. Manejo de errores (400 para errores de validación/negocio)
+        res.redirect(`/pages/error`);
+    }
+}
+
+const viewAsistencia = async (req, res) => {
+    try{
+        const { idOfertaOficial } = req.params
+
+        const cursoLocal = await cursoLocalService.getPorIdOfertaOficial(idOfertaOficial)
+        const inscriptosLocales = await inscriptoLocalService.getPorCursoId(cursoLocal._id)
+
+        const encuentros = await encuentroService.getPorCursoId(cursoLocal._id)
+
+        //const inscriptosLocales = await inscriptoLocalService.getPorCursoId(cursoLocal._id)
+
+        res.render('pages/cursante/asistencia', { 
+            encuentros,
             inscriptosLocales,          // Para comparar quién ya tiene pareja
             cursoLocal,                 // Para llenar el <select> del modal
             title: "Sincronización de Inscripto",
@@ -120,9 +148,47 @@ const vincularCursantes = async (req, res) => {
     }
 }
 
+const putCalificacion = async (req, res) => {
+    try {
+        const { idOfertaOficial, calificaciones } = req.body;
+        //console.log("Calificaciones recibidas en el controller:", calificaciones);
+
+        // Aquí deberías llamar a un método en tu service para procesar estas calificaciones
+        // Ejemplo: await inscriptoLocalService.actualizarCalificaciones(calificaciones);
+        const resultado = await inscriptoLocalService.putCalificacion(idOfertaOficial, calificaciones);
+        return res.status(200).json({ 
+            success: true, 
+            message: resultado.message
+        });
+    } catch (error) {
+        console.error('Error al guardar calificaciones:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error interno al guardar las calificaciones.'
+        });
+    }
+}
+
+const postAsistencia = async (req, res) => {
+    try {        
+        console.log('Datos recibidos para nueva asistencia:', req.body);
+        const {encuentroNumero, idOfertaOficial, asistencias} = await req.body;
+        
+        //console.log('Datos recibidos para nueva asistencia:', data);
+        const resultado = await asistenciaService.postPorIdInscripcionOficial(idOfertaOficial, encuentroNumero, asistencias)
+        res.status(201).json(resultado);
+    } catch (error) {
+        console.error('Error al guardar la asistencia:', error);
+        res.status(500).json({ error: 'No se pudo guardar la asistencia.' });
+    }
+}
+
 module.exports = { 
     viewInscripto,
     getExternosPorIdOfertaOficial,
     vincularCursantes,
-    viewListaAsistencia
+    viewListaAsistencia,
+    viewAsistencia,
+    putCalificacion,
+    postAsistencia
 }

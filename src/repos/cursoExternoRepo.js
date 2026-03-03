@@ -10,6 +10,13 @@ class CursoExternoRepo {
         });
     }
 
+    async getRawCursosTodos() {
+        const url =  URLS.PROPUESTAS_TODAS.LISTA + '?idciie=65&lim=S&qi=65';
+        return await client.get(url, {
+            headers: { 'Referer': URLS.PROPUESTAS_TODAS.REFERER_ORIGEN }
+        });
+    }
+
     async getRawCursos() {
         const urlFiltro = `${URLS.PROPUESTAS.LISTA}?idciie=65&lim=S&qi=65`;
         return await client.get(URLS.PROPUESTAS.DATOS, {

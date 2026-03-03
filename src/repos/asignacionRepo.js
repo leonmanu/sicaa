@@ -38,8 +38,7 @@ class AsignacionRepo {
                 { path: 'rolId' },
                 { path: 'areaId' }
             ]
-        })
-        .lean();
+        }).lean();
     }
 }
 

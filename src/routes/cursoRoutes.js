@@ -2,10 +2,20 @@ const express = require('express');
 const router = express.Router();
 const cursoExternoController = require('../controllers/cursoExternoController');
 
-const { vincularCurso} = require('../controllers/cursoLocalController');
+const {
+    vincularCurso,
+    getCursosPorCargoClaveCiieClave,
+    getCursosLocales,
+    getPorCiie
+} = require('../controllers/cursoLocalController');
 
 router
+    //Locales
+    .get('/ciie', getPorCiie)
+    .get('/:cargoClave/:ciieClave', getCursosPorCargoClaveCiieClave)
+    .post('/vincularLocal', vincularCurso)
+
+    //Externos
     .get('/lista', cursoExternoController.getCursos)
-    .post('/vincularLocal', vincularCurso);
 
 module.exports = router;

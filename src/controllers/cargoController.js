@@ -56,6 +56,19 @@ class CargoController {
         }
     }
 
+    getCargos = async (req, res) => {
+        try {
+            const cargos = await cargoService.getCargosPorUsuarioTipo(req.user)
+            res.render('pages/usuario/cargo', {
+                cargos,
+                user: req.user
+            })
+        } catch (error) {
+            req.flash('error', error.message)
+            res.redirect('/');
+        }
+    }
+
 }
 
 module.exports = new CargoController();

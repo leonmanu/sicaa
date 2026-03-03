@@ -1,6 +1,7 @@
 const cargoRepo = require('../repos/cargoRepo');
 const Asignacion = require('../models/Asignacion');
 const asignacionRepo = require('../repos/asignacionRepo');
+const ciieService = require('./ciieService');
 
 class CargoService {
 
@@ -39,7 +40,7 @@ class CargoService {
         }
     }
 
-    async getCargoPorClave(clave) {
+    async getPorClave(clave) {
         try {
             return await cargoRepo.findByClave(clave);
         } catch (error) {
@@ -48,10 +49,15 @@ class CargoService {
         }
     }
 
-    async getPorCargoClaveCiieId(clave, ciieId) {
+    async getPorCargoClaveCiieId(clave, ciieClave) {
         try {
-            console.log('cargoClave: ', clave, ' || ciieId: ',ciieId)
-            return await cargoRepo.getPorCargoClaveCiieId(clave, ciieId);
+            //console.log('cargoServie/getPorCargoClaveCiieId -> cargoClave: ', clave, ' || ciieId: ',ciieId)
+            const ciie = await ciieService.getPorClave(ciieClave)
+            //console.log('cargoServie/getPorCargoClaveCiieId -> CIIE encontrado: ', ciie)
+            
+            const cargo = await cargoRepo.getPorCargoClaveCiieId(clave, ciie._id);
+
+            return cargo;
         } catch (error) {
             console.error('Error en getCargoPorClave:', error);
             throw error;
@@ -68,11 +74,22 @@ class CargoService {
         }
     }
 
-    async getCargosPorAgente(usuarioId) {
+    async getCargosPorUsuarioTipo(usuario) {
         try {
-            return await asignacionRepo.getByAgente(usuarioId);
+            if (usuario.tipo === 'agente') {
+                const cargos = await cargoRepo.getPorAgente(usuario._id);
+                //console.log('Cargos encontrados para agente:', cargos);
+                return cargos
+            }
+            if (usuario.tipo === 'institucion') {
+                console.log('usuario: ', usuario)
+                const cargos = await cargoRepo.getPorCiieReferenciaId(usuario.referenciaId);
+                console.log('Cargos encontrados para institución:', cargos);
+                return cargos
+            }
+            return [];
         } catch (error) {
-            console.error('Error en getCargosPorAgente:', error);
+            console.error('Error en getCargosPorUsuarioTipo:', error);
             throw error;
         }
     }

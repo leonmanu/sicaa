@@ -26,6 +26,13 @@ const cursoSchema = new mongoose.Schema({
         type: Number, 
         default: 1 
     },
+
+    encuentros: [{
+        numero: Number,
+        fecha: Date,
+        tema: String, // Opcional: qué se dio ese día
+        esVirtual: { type: Boolean, default: false }
+    }],
     
     // Estado y Cupos
     disponible: String,                              // Índice [7] ('S' o 'N')
@@ -35,7 +42,7 @@ const cursoSchema = new mongoose.Schema({
     // Enlaces
     enlaceInscripcion: String,                       // Índice [12]
 
-    cantidadEncuentros: Number,
+    //cantidadEncuentros: Number,
 
     // Relaciones Locales (Tu Sistema)
     cargoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cargo' },
@@ -43,6 +50,15 @@ const cursoSchema = new mongoose.Schema({
     propuestaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Propuesta' },
     
     estado: { type: String, default: 'pendiente' },
+    calificaciones: {
+        estado: {
+            type: String,
+            enum: ['sin_cargar', 'pendiente_envio', 'enviado'],
+            default: 'sin_cargar'
+        },
+        fechaEnvio: Date,
+        enviadoPor: String
+    },
     creadoPor: { type: String }
 }, { 
     timestamps: true, 

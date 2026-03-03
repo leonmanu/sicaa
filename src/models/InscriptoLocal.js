@@ -1,10 +1,13 @@
+//inscriptoLocalRepo.js
+
 const mongoose = require('mongoose');
 
 const InscriptoLocalSchema = new mongoose.Schema({
     cursoId: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'CursoLocal', 
-        required: true 
+        required: true,
+        index: true
     },
     idInscripcionOficial: { type: String, unique: true }, 
     
@@ -42,13 +45,17 @@ const InscriptoLocalSchema = new mongoose.Schema({
     },
     
     // Asistencia por encuentros
-    encuentros: [],
+    asistencia: [{
+        encuentroId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encuentro' },
+        estado: { 
+            type: String, 
+            enum: ['Presente', 'Ausente', 'Pendiente'], 
+            default: 'Pendiente' // O 'Ausente' según tu preferencia de carga
+        },
+        fecha: Date // Duplicamos la fecha aquí para mostrar el historial sin hacer "populate"
+    }],
     
-    // Estadísticas calculadas (se actualizan automáticamente)
-    totalEncuentros: { type: Number, default: 0 },
-    asistenciasPresentes: { type: Number, default: 0 },
-    porcentajeAsistencia: { type: Number, default: 0 },
-    
+
     observaciones: String,
     creadoPor: String
 }, { timestamps: true });

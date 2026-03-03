@@ -2,8 +2,7 @@ const cargoRepo = require('../repos/cargoRepo');
 const cursoLocalRepo = require('../repos/cursoLocalRepo');
 const inscriptoLocalRepo = require('../repos/inscriptoLocalRepo');
 const cargoService = require('./cargoService');
-const { getCargoPorClave } = require('./cargoService');
-const ciieService = require('./ciieService');
+
 
 class CursoLocalService {
     async vincularCurso(data, usuario) {
@@ -62,11 +61,13 @@ class CursoLocalService {
         }
     }
 
+
+
     // En cursoLocalService.js
 async getCursosPorCiieId(ciieId) {
     // 1. Traemos los cursos con tu repo actual (el del populate gigante)
     const cursos = await cursoLocalRepo.getPorCiieId(ciieId);
-
+    console.log('cursos[0]: ', cursos[0])
     if (!cursos || cursos.length === 0) return [];
 
     // 2. Extraemos todos los IDs de los cursos para buscar sus inscriptos de una sola vez
@@ -89,6 +90,16 @@ async getCursosPorCiieId(ciieId) {
     });
 }
 
+async getPorIdOfertaOficial(IdOfertaOficial) {
+    try {
+        const cursoLocal = await cursoLocalRepo.getPorIdOfertaOficial(IdOfertaOficial)
+        return cursoLocal
+    } catch {
+        console.error('Error en el cursoLocalService->getPorIdOfertaOficial: ', error.message)
+        throw error
+    }
+}
+
     // async getCursosPorCiieId(ciieId) {
     //     try {
     //         const cursosLocales = await cursoLocalRepo.getPorCiieId(ciieId)
@@ -99,16 +110,34 @@ async getCursosPorCiieId(ciieId) {
     //     }
     // }
 
-    async getPorCursoClaveCiieId(cargoClave, ciieId) {
+    async getPorCursoClaveCiieClave(cargoClave, ciieClave) {
         try {
-            console.log("getPorCursoClaveCiieId - service", cargoClave, ciieId)
-            const cargo = cargoService.getPorCargoClaveCiieId(cargoClave, ciieId)
-            return await cursoLocalRepo.getPorCursoClaveCiieId(cargoClave, ciieId);
+            console.log("getPorCursoClaveCiieClave - service", cargoClave, ciieClave)
+            const cargo = await cargoService.getPorCargoClaveCiieId(cargoClave, ciieClave)
+            console.log('CargoID: ', cargo._id)
+            const cursosLocales = await cursoLocalRepo.getPorCargoId(cargo._id);
+            console.log('cursoLocalService cursosLocales: ', cursosLocales)
+            return { cursosLocales, cargo };
         } catch (error) {
             console.error('Error obteniendo cursos por clave de cargo y CIIE:', error.message)
             throw error;
         }
     }
+
+    //  async getPorCursoClaveCiieClave(cargoClave, ciieClave) {
+    //     try {
+    //         const ciie = await ciieService.getPorClave(ciieClave);
+    //         console.log('CIIE ID: ', ciie._id)
+    //         const cargo = await cargoService.getPorCargoClaveCiieId(cargoClave, ciie._id);
+    //         console.log('CargoID: ', cargo._id)
+    //         const cursosLocales = await cursoLocalRepo.getPorCargoId
+    //         console.log('cursoLocalService cursosLocales: ', cursosLocales)
+    //         return { cursosLocales, cargo };
+    //     } catch (error) {
+    //         console.error('Error obteniendo cursos por clave de cargo y CIIE:', error.message)
+    //         throw error;
+    //     }
+    // }
 
     async getPorCursoIdCiieId(cargoId, ciieId) {
         try {
@@ -120,6 +149,29 @@ async getCursosPorCiieId(ciieId) {
             throw error;
         }
     }
+
+    // async getPorUsuarioTipo(cargoClave, ciieClave) {
+    //     try {
+    //         if (usuario.tipo === 'agente') {
+    //             const cargo = await cargoService.getPorClave(cargoClave)
+    //             const cursosLocales = await cursoLocalRepo.getPorCargoId(cargo._id)
+    //             console.log('Cursos encontrados para agente:', cursosLocales);
+    //             return {cursosLocales, cargo}
+    //         }
+    //         if (usuario.tipo === 'institucion') {
+    //             console.log('usuario: ', usuario)
+    //             const cursosLocales = await cursoLocalRepo.getPorCiieId(usuario.referenciaId)
+    //             console.log('Cargos encontrados para institución:', cursosLocales);
+    //             return cargos
+    //         }
+    //         console.log("cursoLocalSevice -> getPorUsuarioTipo: ", cargoId, ciieId)
+    //         const cursos = cargoService.getPorCargoClaveCiieId(cargoClave, ciieId)
+    //         return await cursoLocalRepo.getPorCursoClaveCiieId(cargoId, ciieId);
+    //     } catch (error) {
+    //         console.error('Error obteniendo cursos por clave de cargo y CIIE:', error.message)
+    //         throw error;
+    //     }
+    // }
 
 
     async getPorCargoId(cargoId) {
