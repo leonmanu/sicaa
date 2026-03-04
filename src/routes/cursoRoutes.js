@@ -6,13 +6,15 @@ const {
     vincularCurso,
     getCursosPorCargoClaveCiieClave,
     getCursosLocales,
-    getPorCiie
+    getPorCiie,
+    viewFormAltaPorCargoClaveCiieClave
 } = require('../controllers/cursoLocalController');
 
 router
     //Locales
     .get('/ciie', getPorCiie)
     .get('/:cargoClave/:ciieClave', getCursosPorCargoClaveCiieClave)
+    .get('/:cargoClave/:ciieClave/alta', viewFormAltaPorCargoClaveCiieClave)
     .post('/vincularLocal', vincularCurso)
 
     //Externos

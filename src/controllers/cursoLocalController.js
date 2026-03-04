@@ -94,11 +94,29 @@ const getCursosPorCargoClaveCiieClave = async (req, res) => {
     }
 }
 
+const viewFormAltaPorCargoClaveCiieClave = async (req, res) => {
+    try {
+        //const ciieId = req.user.referenciaId;
+        const {cargoClave, ciieClave} = req.params
+        const {cursosLocales, cargo} = await cursoLocalService.getPorCursoClaveCiieClave(cargoClave, ciieClave);
+        
+        res.render('pages/curso/cursoLocalForm', {
+            cargo,         // Objeto único
+            cursosLocales, // Array para el forEach
+            user: req.user
+        });
+    } catch (error) {
+        console.error('Error al obtener cursos por ID oficial:', error.message);
+        res.status(500).send("Error en el servidor: " + error.message);
+    }
+}
+
 
 module.exports = {
     vincularCurso,
     getCursosLocales,
     getCursosPorCiieId,
     getCursosPorCargoClaveCiieClave,
-    getPorCiie
+    getPorCiie,
+    viewFormAltaPorCargoClaveCiieClave
 }

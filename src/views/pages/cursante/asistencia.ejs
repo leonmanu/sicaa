@@ -5,71 +5,117 @@
     <title>SICAA - Matriz de Asistencia</title>
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <style>
-        .table-responsive { 
-            max-height: 75vh; 
-            overflow-y: auto;
-        }
-        .table-responsive::-webkit-scrollbar { width: 8px; }
-        .table-responsive::-webkit-scrollbar-track { background: var(--bs-dark); }
-        .table-responsive::-webkit-scrollbar-thumb { background: var(--bs-warning); border-radius: 4px; }
+    .table-responsive { 
+        max-height: 75vh; 
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch; /* Scroll fluido en iOS */
+    }
+    
+    .table-responsive::-webkit-scrollbar { width: 8px; }
+    .table-responsive::-webkit-scrollbar-track { background: var(--bs-dark); }
+    .table-responsive::-webkit-scrollbar-thumb { background: var(--bs-warning); border-radius: 4px; }
 
+    /* SOLUCIÓN: Usar diferentes estrategias según viewport */
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        background-color: var(--bs-dark) !important;
+        z-index: 10; /* Aumentado de 2 a 10 para garantizar que esté arriba */
+        box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+    }
+
+    /* En móviles: usa una estrategia alternativa */
+    @media (max-width: 768px) {
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .table-responsive table {
+            min-width: 100%;
+        }
+        
+        /* En móviles, el sticky puede no funcionar bien, así que usamos una solución alternativa */
         .sticky-col {
+            /* Mantener sticky pero mejorar el comportamiento */
             position: sticky;
             left: 0;
             background-color: var(--bs-dark) !important;
-            z-index: 2;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+            z-index: 10;
         }
-
-        .switch-asistencia {
-            display: inline-flex;
-            background: var(--bs-dark);
-            border-radius: 50px;
-            padding: 4px;
-            position: relative;
-            width: 180px;
-            height: 44px;
-            cursor: pointer;
-            user-select: none;
-            border: 2px solid var(--bs-secondary);
-            transition: all 0.3s;
+        
+        /* Agregar padding extra en móviles para mejor visualización */
+        .sticky-col {
+            min-width: 200px; /* Reducir ancho mínimo en móviles */
         }
+    }
 
-        .switch-option {
-            flex: 1;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--bs-secondary);
+    /* En tablets y desktop */
+    @media (min-width: 769px) {
+        .sticky-col {
+            min-width: 300px;
         }
+    }
 
-        .switch-slider {
-            position: absolute;
-            width: calc(50% - 8px);
-            height: calc(100% - 8px);
-            border-radius: 50px;
-            transition: all 0.3s ease-out;
-            background: var(--bs-secondary);
+    .switch-asistencia {
+        display: inline-flex;
+        background: var(--bs-dark);
+        border-radius: 50px;
+        padding: 4px;
+        position: relative;
+        width: 180px;
+        height: 44px;
+        cursor: pointer;
+        user-select: none;
+        border: 2px solid var(--bs-secondary);
+        transition: all 0.3s;
+    }
+
+    .switch-option {
+        flex: 1;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--bs-secondary);
+    }
+
+    .switch-slider {
+        position: absolute;
+        width: calc(50% - 8px);
+        height: calc(100% - 8px);
+        border-radius: 50px;
+        transition: all 0.3s ease-out;
+        background: var(--bs-secondary);
+    }
+
+    .switch-asistencia[data-estado="Presente"] { border-color: var(--bs-success); }
+    .switch-asistencia[data-estado="Presente"] .switch-slider { transform: translateX(0); background: var(--bs-success); }
+    .switch-asistencia[data-estado="Presente"] .opt-p { color: white; }
+
+    .switch-asistencia[data-estado="Ausente"] { border-color: var(--bs-danger); }
+    .switch-asistencia[data-estado="Ausente"] .switch-slider { transform: translateX(100%); background: var(--bs-danger); }
+    .switch-asistencia[data-estado="Ausente"] .opt-a { color: white; }
+
+    .inscripto-card:hover {
+        border-color: var(--bs-warning) !important;
+        transform: translateY(-2px);
+        transition: all 0.2s;
+    }
+
+    /* FIX: Asegurar que thead también sea sticky en móviles */
+    @media (max-width: 768px) {
+        .table-responsive thead {
+            position: sticky;
+            top: 0;
+            z-index: 11; /* Mayor que sticky-col */
+            background-color: var(--bs-dark) !important;
         }
-
-        .switch-asistencia[data-estado="Presente"] { border-color: var(--bs-success); }
-        .switch-asistencia[data-estado="Presente"] .switch-slider { transform: translateX(0); background: var(--bs-success); }
-        .switch-asistencia[data-estado="Presente"] .opt-p { color: white; }
-
-        .switch-asistencia[data-estado="Ausente"] { border-color: var(--bs-danger); }
-        .switch-asistencia[data-estado="Ausente"] .switch-slider { transform: translateX(100%); background: var(--bs-danger); }
-        .switch-asistencia[data-estado="Ausente"] .opt-a { color: white; }
-
-        .inscripto-card:hover {
-            border-color: var(--bs-warning) !important;
-            transform: translateY(-2px);
-            transition: all 0.2s;
-        }
-    </style>
+    }
+</style>
 </head>
 
 <body>
