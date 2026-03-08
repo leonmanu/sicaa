@@ -4,6 +4,11 @@ const BASE = 'https://formacionpermanente.abc.gob.ar/inscripcion';
 
 module.exports = {
     BASE_URL: BASE,
+    PROPUESTASBASE: {
+        LISTA: `${BASE}/propuestas/tabla.php`,
+        DATOS: `${BASE}/propuestas/datos.php`,
+        REFERER_ORIGEN: `${BASE}/menuciie/menu.php`
+    },
     PROPUESTAS_TODAS: {
         LISTA: `${BASE}/propuestas/tabla.php`
     },

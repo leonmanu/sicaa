@@ -46,6 +46,7 @@ app.set('views', path.join(__dirname, 'views'));
 // 4. Rutas
 app.use('/auth', require('./routes/authRoutes'));
 app.use('/curso', require('./routes/cursoRoutes'));
+app.use('/cursoBase', require('./routes/cursoBaseRouter'));
 app.use('/cursante', require('./routes/cursanteRoutes'));
 app.use('/usuario', require('./routes/usuarioRoutes'));
 app.use('/admin', require('./routes/adminRoutes'));

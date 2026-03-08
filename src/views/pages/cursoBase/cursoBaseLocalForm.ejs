@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Mis Cursos</title>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container py-5">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a href="/usuario/mis-cargos" class="text-decoration-none">Mis Cargos</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Gestión de Cursos</li>
+                    </ol>
+                </nav>
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>
+                    <%= cargo.rolId.nombre || 'Área General' %>
+                </h2>
+                <p class="text-muted mb-0">
+                    <span class="badge bg-secondary me-2">CIIE <%= cargo.ciieId?.nombre || '' %></span>
+                    <span class="badge bg-outline-info border border-info text-info">Clave Cargo: <%= cargo.clave %></span>
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end d-flex align-items-end justify-content-md-end mt-3 mt-md-0">
+                <a href="alta/" class="btn btn-primary shadow-sm">
+                    <i class="bi bi-plus-circle me-1"></i> Alta de propuesta
+                </a>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-dark border-secondary shadow-sm">
+                    <div class="card-body py-2 px-3">
+                        <small class="text-muted text-uppercase d-block" style="font-size: 0.7rem;">Cursos vinculados</small>
+                        <span class="h4 fw-bold mb-0"><%= cursosLocales.length %></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+    </div>
+
+    <%- include('../../partials/scripts') %>
+
+    <script>
+        $(document).ready(function() {
+            $('#tablaCursosCargo').DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                responsive: true,
+                order: [[1, 'desc'], [3, 'desc']] // Ordena por Año y luego por Fecha de Inicio
+            });
+        });
+
+        // Función rápida para el botón de copiar enlace
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Enlace de inscripción copiado al portapapeles');
+            });
+        }
+    </script>
+</body>
+</html>
+
+
+
+
