@@ -3,6 +3,7 @@ const router = express.Router();
 const cursoExternoController = require('../controllers/cursoExternoController');
 
 const {
+    post,
     vincularCurso,
     getCursosPorCargoClaveCiieClave,
     getCursosLocales,
@@ -17,6 +18,7 @@ router
     .get('/ciie', getPorCiie)
     .get('/:cargoClave/:ciieClave', getCursosPorCargoClaveCiieClave)
     .get('/:cargoClave/:ciieClave/alta', viewFormAltaPorCargoClaveCiieClave)
+    .post('/alta', post)
     .post('/vincularLocal', vincularCurso)
 
 

@@ -1,3 +1,4 @@
+const ciieService = require('../services/ciieService');
 const cursoBaseExternoService = require('../services/cursoBaseExternoService');
 const cursoBaseLocalService = require('../services/cursoBaseLocalService');
 //const cursoBaseLocalService = require('../services/cusoBaseLocalService')
@@ -27,10 +28,11 @@ const get = async (req, res) => {
 }
 }
 
-const getPorCiieId = async (req, res) => {
+const getPorCiie = async (req, res) => {
     try {
         // Ejecutamos las 3 consultas en paralelo
-        const cursosBaseLocal = await cursoBaseLocalService.getPorCiieId('697a7b3388d6b63c14ccf889');
+        const ciieId = req.user.referenciaId
+        const cursosBaseLocal = await cursoBaseLocalService.getPorCiieId(ciieId);
         if (!cursosBaseLocal ) {
             cursosBaseLocal = [];
         }
@@ -44,12 +46,59 @@ const getPorCiieId = async (req, res) => {
         });
 
     } catch (error) {
-    console.error('Error al orquestar datos de cursos:', error);
-    req.flash('error', 'Error al orquestar datos de cursos: ' + error.message);
-    res.status(500).render('pages/error', { 
-        error: "No se pudo conectar con el sitio oficial o la base de datos." 
-    });
+        console.error('Error al orquestar datos de cursos:', error);
+        req.flash('error', 'Error al orquestar datos de cursos: ' + error.message);
+        res.status(500).render('pages/error', { 
+            error: "No se pudo conectar con el sitio oficial o la base de datos." 
+        });
+    }
 }
+
+const getPorCiieClave = async (req, res) => {
+    try {
+        const ciieClave = req.params.ciieClave;
+        const ciie = await ciieService.getPorClave(ciieClave);
+        if (!ciie) {
+            req.flash('error', 'CIIE no encontrado para la clave: ' + ciieClave);  
+        }
+         
+        const ciieId = ciie.referenciaId
+        const cursosBaseLocal = await cursoBaseLocalService.getPorCiieId(ciieId);
+        if (!cursosBaseLocal ) {
+            cursosBaseLocal = [];
+        }
+
+        //console.log('cursoBaseLocalList del ABC:', cursosBaseExterno[0]);
+        // Renderizamos con toda la "foto" completa
+        res.render('pages/cursoBase/cursoBaseLocalList', { 
+            cursosBaseLocal,          // Para comparar quién ya tiene pareja
+            title: "Sincronización de Cursos",
+            user: req.user
+        });
+
+    } catch (error) {
+        console.error('Error al orquestar datos de cursos:', error);
+        req.flash('error', 'Error al orquestar datos de cursos: ' + error.message);
+        res.status(500).render('pages/error', { 
+            error: "No se pudo conectar con el sitio oficial o la base de datos." 
+        });
+    }
+}
+
+const getPorCiieClavejson = async (req, res) => {
+    try {
+        const { ciieClave } = req.params;
+        const ciie = await ciieService.getPorClave(ciieClave);
+        if (!ciie) return res.status(404).json({ error: 'CIIE no encontrado' });
+
+        const cursosBaseLocal = await cursoBaseLocalService.getPorCiieId(ciie._id);
+        console.log('Cursos base locales encontrados para CIIE id', ciie._id, ':', cursosBaseLocal);
+        res.json(cursosBaseLocal || []);
+
+    } catch (error) {
+        console.error('Error al obtener cursos base:', error);
+        res.status(500).json({ error: 'No se pudieron obtener los cursos base.' });
+    }
 }
 
 const getExternos = async (req, res) => {
@@ -96,7 +145,9 @@ const sincronizar = async (req, res) => {
 
 module.exports = { 
     get,
-    getPorCiieId,
+    getPorCiie,
+    getPorCiieClave,
+    getPorCiieClavejson,
     getExternos,
     sincronizar
 }

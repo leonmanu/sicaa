@@ -48,6 +48,51 @@ class CursoLocalRepo {
         }
     }
 
+    async getPorId(cursoId) {
+        try {
+            return await CursoLocal.findById(cursoId)
+                .populate(populateCargoBase)
+                .lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getPorId:', error.message);
+            throw error;
+        }
+    }
+
+    async getPendientesVinculacionPorCiie(ciieId) {
+        try {
+            return await CursoLocal.find({
+                ciieId: new mongoose.Types.ObjectId(ciieId),
+                $or: [
+                    { idOfertaOficial: { $exists: false } },
+                    { idOfertaOficial: null },
+                    { idOfertaOficial: '' }
+                ]
+            })
+                .populate(populateCargoConOcupante)
+                .sort({ createdAt: -1 })
+                .lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getPendientesVinculacionPorCiie:', error.message);
+            throw error;
+        }
+    }
+
+    async vincularConOfertaOficial(cursoId, dataActualizada) {
+        try {
+            return await CursoLocal.findByIdAndUpdate(
+                new mongoose.Types.ObjectId(cursoId),
+                { $set: dataActualizada },
+                { new: true }
+            )
+                .populate(populateCargoConOcupante)
+                .lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.vincularConOfertaOficial:', error.message);
+            throw error;
+        }
+    }
+
     async getPorCargoId(cargoId) {
         try {
             return await CursoLocal.find({ cargoId: new mongoose.Types.ObjectId(cargoId) })

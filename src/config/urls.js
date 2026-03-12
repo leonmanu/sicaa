@@ -1,7 +1,10 @@
 // urls.js
 
-const BASE = 'https://formacionpermanente.abc.gob.ar/inscripcion';
+const { actualizar } = require("../repos/personaRepo");
 
+const BASE = 'https://formacionpermanente.abc.gob.ar/inscripcion';
+// URL que al parecer edita las propuestas por id
+//https://formacionpermanente.abc.gob.ar/inscripcion/propuestas/am.php?id=4247&volver=misofertas.php&quees=M&qi=65
 module.exports = {
     BASE_URL: BASE,
     PROPUESTASBASE: {
@@ -15,6 +18,7 @@ module.exports = {
     PROPUESTAS: {
         LISTA: `${BASE}/propuestas/misofertas.php`,
         DATOS: `${BASE}/propuestas/datosmisofertas.php`,
+        ACTUALIZA: `${BASE}/propuestas/actualiza.php`,
         REFERER_ORIGEN: `${BASE}/menuciie/menu.php`
     },
     INSCRIPTOS: {

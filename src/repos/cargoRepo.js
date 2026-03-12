@@ -12,7 +12,12 @@ const populateBase = [
 const populateOcupanteAgente = {
     path: 'ocupante',
     match: { estado: 'Activo' },
-    populate: { path: 'usuarioId' }
+    populate: { 
+        path: 'usuarioId',
+        populate: {
+            path: 'referenciaId'
+        }
+    }
 };
 
 const populateOcupanteCiie = {
@@ -82,7 +87,17 @@ class CargoRepo {
                 }
             )
                 .populate('areaId')
+                .populate({
+                    path: 'ocupante',
+                    // Opcional: solo traer la asignación si está activa
+                    match: { estado: 'Activo' }, 
+                    populate: {
+                        path: 'usuarioId',
+                        populate: { path: 'referenciaId' } // Aquí llega al Agente (Nombre, Apellido, etc)
+                    }
+                })
                 .lean();
+                console.log('Cargo encontrado en CargoRepo.getPorCargoClaveCiieId:', cargo);
             return cargo;
         } catch (error) {
             console.error('Error en CargoRepo.findByClave:', error.message);

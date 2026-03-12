@@ -8,7 +8,7 @@ const getCursos = async (req, res) => {
         // Ejecutamos las 3 consultas en paralelo
         const [cursosExternos, cursosLocales, cargos] = await Promise.all([
             cursoExternoService.listarCursos(), // Fetch al ABC
-            cursoLocalService.getCursosLocales(),              // Cursos ya vinculados en Mongo
+            cursoLocalService.getCursosPorCiieId(req.user.referenciaId),              // Cursos ya vinculados en Mongo
             cargoService.getConRolAreaCiie(req.user.referenciaId),               // Planta para el modal de asignación
             
         ]);

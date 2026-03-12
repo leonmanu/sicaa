@@ -2,52 +2,38 @@ const mongoose = require('mongoose');
 
 const cursoSchema = new mongoose.Schema({
     // Identificadores Oficiales
-    idOfertaOficial: { type: String, unique: true }, // Índice [0]
-    idCursoOriginal: { type: String },               // Índice [13]
-    idCiieOriginal: { type: String },                // Índice [14]
+    idOfertaOficial: { type: String },
+    idCursoOriginal: { type: String },
+    idCiieOriginal: { type: String },
     
     // Datos de la Propuesta
-    nombrePropuesta: { type: String },               // Índice [9]
-    dispositivo: { type: String },                   // Índice [10] (Curso, Taller, etc)
-    dirigidaA: { type: String },                     // Índice [11]
-    formadorAbc: { type: String },                   // Índice [17] (Nombre que viene del ABC)
+    nombrePropuesta: { type: String },
+    dispositivo: { type: String },
+    formadorAbc: { type: String },
+    tituloFormulario: { type: String, default: '' },
     
-    // Tiempos (Guardar como Date para poder filtrar/ordenar)
-    anio: Number,                                    // Índice [1]
-    cohorte: { 
-        type: Number, 
-        default: 0 
-    },                             // Índice [2]
-    fechaInicioInscripcion: Date,                    // Índice [3]
-    fechaFinInscripcion: Date,                       // Índice [4]
-    fechaInicioCurso: Date,                          // Índice [5]
-    fechaFinCurso: Date,                             // Índice [6]
-    cantidadEncuentros: { 
-        type: Number, 
-        default: 1 
-    },
+    // Tiempos
+    anio: Number,
+    cohorte: { type: Number, default: 0 },
+    fechaInicioInscripcion: Date,
+    fechaFinInscripcion: Date,
+    fechaInicioCurso: Date,
+    fechaFinCurso: Date,
+    cantidadEncuentros: { type: Number, default: 1 },
 
-    encuentros: [{
-        numero: Number,
-        fecha: Date,
-        tema: String, // Opcional: qué se dio ese día
-        esVirtual: { type: Boolean, default: false }
-    }],
-    
     // Estado y Cupos
-    disponible: String,                              // Índice [7] ('S' o 'N')
-    cupo: Number,                                    // Índice [8]
-    certifica: String,                               // Índice [16]
-    
+    disponible: String,
+    cupo: Number,
+    certifica: String,
+    alcance: { type: Number, enum: [1, 2], default: 1 },
+
     // Enlaces
-    enlaceInscripcion: String,                       // Índice [12]
+    enlaceInscripcion: String,
 
-    //cantidadEncuentros: Number,
-
-    // Relaciones Locales (Tu Sistema)
+    // Relaciones Locales
     cargoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cargo' },
     ciieId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
-    propuestaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Propuesta' },
+    cursoBaseId: { type: mongoose.Schema.Types.ObjectId, ref: 'CursoBase' },
     
     estado: { type: String, default: 'pendiente' },
     calificaciones: {
@@ -59,6 +45,25 @@ const cursoSchema = new mongoose.Schema({
         fechaEnvio: Date,
         enviadoPor: String
     },
+
+    // Publicación en sitio visual Drupal
+    publicacionDrupal: {
+        nodeId: { type: String },
+        nivel: { type: String },
+        materia: { type: String },
+        modalidad: { type: String },
+        formatoDictado: { 
+            type: String,
+            enum: ['Asincrónico (239)', 'Presencial (237)', 'Sincrónico (238)', 'Virtual (236)']
+        },
+        puntaje: { type: Number },
+        duracion: { type: String },
+        diasHorarios: { type: String },
+        sede: { type: String },
+        organiza: { type: String },
+        publicado: { type: Boolean, default: false }
+    },
+
     creadoPor: { type: String }
 }, { 
     timestamps: true, 
