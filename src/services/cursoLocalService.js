@@ -71,7 +71,7 @@ class CursoLocalService {
             publicacionDrupal: this._normalizePublicacionDrupal(
                 data.publicacionDrupal,
                 data.cantidadHoras,     // se pasa por separado porque viene en el root del payload
-                data.horaDictado
+                data.fechaInicioCurso  
             )
         };
 
@@ -321,7 +321,8 @@ class CursoLocalService {
 
         let response = await cursoExternoRepo.crearOfertaOficial(payload);
         const ofertasResponse = await cursoExternoRepo.getOfertasDelCursoActivo();
-console.log('Ofertas tras el alta:', ofertasResponse?.data);
+        const ofertaCreada = ofertasResponse?.data?.aaData?.[0];
+        console.log('Ofertas tras el alta:', ofertasResponse?.data);
         // console.log('Respuesta cruda ABC:', JSON.stringify(response?.data));
         // console.log('Respuesta headers:', response?.headers);
         // console.log('Status:', response?.status);
@@ -344,9 +345,13 @@ console.log('Ofertas tras el alta:', ofertasResponse?.data);
         }
 
         const cursoActualizado = await cursoLocalRepo.vincularConOfertaOficial(cursoLocalId, {
-            idOfertaOficial: this._sanitizeString(control),
-            estado: 'vinculado',
-            creadoPor: this._sanitizeString(usuario?.email) || cursoLocal.creadoPor
+            idOfertaOficial:        ofertaCreada[0],
+            enlaceInscripcion:      ofertaCreada[11],
+            fechaInicioInscripcion: this._parseFechaAbc(ofertaCreada[3]),
+            fechaFinInscripcion:    this._parseFechaAbc(ofertaCreada[4]),
+            disponible:             ofertaCreada[7],
+            estado:                 'vinculado',
+            creadoPor:              this._sanitizeString(usuario?.email) || cursoLocal.creadoPor
         });
 
         return {
@@ -357,6 +362,69 @@ console.log('Ofertas tras el alta:', ofertasResponse?.data);
                 mensaje: this._sanitizeString(mensaje)
             }
         };
+    }
+
+    async editarCursoPendiente(data = {}, usuario = {}) {
+        const cursoLocalId = this._sanitizeObjectId(data.cursoLocalId);
+        if (!cursoLocalId) {
+            const err = new Error('El campo cursoLocalId es obligatorio.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const cursoLocal = await cursoLocalRepo.getPorId(cursoLocalId);
+        if (!cursoLocal) {
+            const err = new Error('Curso local no encontrado.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        const mismoCiie = String(cursoLocal.ciieId?._id || cursoLocal.ciieId) === String(usuario?.referenciaId);
+        if (!mismoCiie) {
+            const err = new Error('No tenes permisos para editar este curso.');
+            err.statusCode = 403;
+            throw err;
+        }
+
+        if (this._sanitizeString(cursoLocal.idOfertaOficial)) {
+            const err = new Error('Solo se pueden editar cursos pendientes sin oferta oficial.');
+            err.statusCode = 409;
+            throw err;
+        }
+
+        const update = {
+            dispositivo: this._sanitizeString(data.dispositivo),
+            formadorAbc: this._sanitizeString(data.formadorAbc),
+            tituloFormulario: this._sanitizeString(data.tituloFormulario),
+            anio: this._toNumberOrNull(data.anio),
+            cohorte: this._toNumberOrNull(data.cohorte),
+            fechaInicioInscripcion: this._toDateOrNull(data.fechaInicioInscripcion),
+            fechaFinInscripcion: this._toDateOrNull(data.fechaFinInscripcion),
+            fechaInicioCurso: this._toDateOrNull(data.fechaInicioCurso),
+            fechaFinCurso: this._toDateOrNull(data.fechaFinCurso),
+            disponible: this._sanitizeString(data.disponible),
+            cupo: this._toNumberOrNull(data.cupo),
+            alcance: this._toNumberOrNull(data.alcance),
+            certifica: this._sanitizeString(data.certifica),
+            enlaceInscripcion: this._sanitizeString(data.enlaceInscripcion),
+            creadoPor: this._sanitizeString(usuario?.email) || cursoLocal.creadoPor
+        };
+
+        if (update.alcance !== null && update.alcance !== undefined) {
+            update.alcance = this._normalizeAlcance(update.alcance);
+        }
+
+        Object.keys(update).forEach((key) => {
+            if (update[key] === undefined) delete update[key];
+        });
+
+        if (Object.keys(update).length === 0) {
+            const err = new Error('No hay campos validos para actualizar.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        return await cursoLocalRepo.actualizarPendiente(cursoLocalId, update);
     }
 
     // ─── Helpers privados ────────────────────────────────────────────────────
@@ -418,7 +486,7 @@ console.log('Ofertas tras el alta:', ofertasResponse?.data);
         // Armamos diasHorarios combinando día + hora + duración
         // Ej: "Martes, 14:00 hs. (4 hs. por encuentro)"
         const dia   = this._sanitizeString(value.diasHorarios);
-        const hora  = this._sanitizeString(horaDictado);
+        const hora = fechaInicioCurso ? fechaInicioCurso.split('T')[1]?.slice(0, 5) : undefined;
         const horas = this._toNumberOrNull(cantidadHoras);
         let diasHorarios;
         if (dia) {

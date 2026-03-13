@@ -105,6 +105,22 @@ const postVincularConSitioOficial = async (req, res) => {
     }
 }
 
+const postEditarCursoPendiente = async (req, res) => {
+    try {
+        const curso = await cursoLocalService.editarCursoPendiente(req.body, req.user);
+        return res.status(200).json({
+            success: true,
+            message: 'Curso pendiente actualizado correctamente.',
+            curso
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudo editar el curso pendiente.';
+        console.error('Error en postEditarCursoPendiente:', message);
+        return res.status(status).json({ success: false, error: message });
+    }
+}
+
     const postCrearYVincularConSitioOficial = async (req, res) => {
         try {
             const resultado = await cursoLocalService.crearYVincularCursoEnSitioOficial(req.body, req.user);
@@ -201,5 +217,6 @@ module.exports = {
     viewFormAltaPorCargoClaveCiieClave,
     getVincularConSitioOficial,
     postVincularConSitioOficial,
+    postEditarCursoPendiente,
     postCrearYVincularConSitioOficial,
 }

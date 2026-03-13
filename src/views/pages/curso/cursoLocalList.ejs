@@ -230,17 +230,12 @@
                     </div>
 
                     <!-- FECHA INICIO y HORA -->
-                    <div class="col-4">
-                        <label class="form-label small fw-bold">INICIO CURSADA <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control bg-dark border-secondary text-white"
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">INICIO CURSADA <small>fecha y hora</small> <span class="text-danger">* </span></label>
+                        <input type="datetime-local" class="form-control bg-dark border-secondary text-white"
                                id="fechaInicioCurso" name="fechaInicioCurso" required>
                     </div>
-                    <div class="col-4">
-                        <label class="form-label small fw-bold">HORA</label>
-                        <input type="time" class="form-control bg-dark border-secondary text-white"
-                               id="horaDictado" name="horaDictado">
-                    </div>
-                    <div class="col-4">
+                    <div class="col-6">
                         <label class="form-label small fw-bold">FORMATO DICTADO <span class="text-danger">*</span></label>
                         <select id="drupalFormatoDictado" name="drupalFormatoDictado"
                                 class="form-select bg-dark border-secondary text-white" required>
@@ -502,17 +497,12 @@
     function recalcularDesdeFechaInicio() {
         const dispositivo = $('#dispositivoSeleccionado').val();
         const encuentros  = $('#cantidadEncuentros').val();
-        const fechaInicio = $('#fechaInicioCurso').val();
+        const fechaInicio = $('#fechaInicioCurso').val(); // "2026-03-24T14:00"
+        const soloFecha   = fechaInicio ? fechaInicio.split('T')[0] : ''; // "2026-03-24"
 
-    console.log('dispositivo:', dispositivo);
-    console.log('encuentros:', encuentros);
-    console.log('fechaInicio:', fechaInicio);
-    console.log('fechaFin calculada:', calcularFechaFin(dispositivo, fechaInicio, encuentros));
-        // Día de dictado
-        $('#drupalDiaDictado').val(diaDeSemana(fechaInicio));
+        $('#drupalDiaDictado').val(diaDeSemana(soloFecha));
 
-        // Fecha fin
-        const nuevaFechaFin = calcularFechaFin(dispositivo, fechaInicio, encuentros);
+        const nuevaFechaFin = calcularFechaFin(dispositivo, soloFecha, encuentros);
         if (nuevaFechaFin) $('#fechaFinCurso').val(nuevaFechaFin);
     }
 

@@ -93,6 +93,21 @@ class CursoLocalRepo {
         }
     }
 
+    async actualizarPendiente(cursoId, dataActualizada) {
+        try {
+            return await CursoLocal.findByIdAndUpdate(
+                new mongoose.Types.ObjectId(cursoId),
+                { $set: dataActualizada },
+                { new: true }
+            )
+                .populate(populateCargoConOcupante)
+                .lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.actualizarPendiente:', error.message);
+            throw error;
+        }
+    }
+
     async getPorCargoId(cargoId) {
         try {
             return await CursoLocal.find({ cargoId: new mongoose.Types.ObjectId(cargoId) })

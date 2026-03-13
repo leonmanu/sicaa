@@ -21,12 +21,27 @@
             </a>
         </div>
 
+        <div class="d-flex flex-wrap gap-2 mb-3 justify-content-end">
+            <button id="btnSeleccionarTodo" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-check2-square me-1"></i>Seleccionar todos
+            </button>
+            <button id="btnCrearSeleccionados" class="btn btn-success btn-sm">
+                <i class="bi bi-cloud-upload me-1"></i>Crear seleccionados
+            </button>
+            <button id="btnCrearTodos" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-layers me-1"></i>Crear todos los pendientes
+            </button>
+        </div>
+
         <div class="card bg-dark border-secondary shadow-sm">
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table id="tablaPendientes" class="table table-dark table-hover align-middle mb-0">
                         <thead class="small text-uppercase text-muted">
                             <tr>
+                                <th class="text-center" style="width: 52px;">
+                                    <input id="checkAllCursos" type="checkbox" class="form-check-input" aria-label="Seleccionar todos los cursos">
+                                </th>
                                 <th>Curso Local</th>
                                 <th>Cargo</th>
                                 <th>Anio/Cohorte</th>
@@ -38,6 +53,13 @@
                             <% if (cursosPendientes && cursosPendientes.length > 0) { %>
                                 <% cursosPendientes.forEach(curso => { %>
                                     <tr>
+                                        <td class="text-center">
+                                            <input
+                                                type="checkbox"
+                                                class="form-check-input check-curso"
+                                                data-curso-id="<%= curso._id %>"
+                                                aria-label="Seleccionar curso <%= (curso.nombrePropuesta || 'Sin nombre').replace(/"/g, '&quot;') %>">
+                                        </td>
                                         <td>
                                             <div class="fw-semibold"><%= curso.nombrePropuesta || 'Sin nombre' %></div>
                                             <small class="text-muted"><%= curso.dispositivo || 'Sin dispositivo' %></small>
@@ -53,6 +75,11 @@
                                         </td>
                                         <td class="text-end pe-4">
                                             <div class="d-flex justify-content-end gap-2">
+                                                <button
+                                                    class="btn btn-outline-warning btn-sm btn-editar-curso"
+                                                    data-curso-id="<%= curso._id %>">
+                                                    <i class="bi bi-pencil-square me-1"></i>Editar
+                                                </button>
                                                 <button
                                                     class="btn btn-primary btn-sm btn-vincular-oficial"
                                                     data-curso-id="<%= curso._id %>"
@@ -71,13 +98,101 @@
                                 <% }) %>
                             <% } else { %>
                                 <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted">
+                                    <td colspan="6" class="text-center py-5 text-muted">
                                         No hay cursos pendientes de vinculacion con el sitio oficial.
                                     </td>
                                 </tr>
                             <% } %>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalEditarCurso" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content bg-dark border-warning">
+                <div class="modal-header border-warning">
+                    <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Curso Pendiente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-secondary py-2 mb-3">
+                        Curso: <strong id="nombreCursoEdicion"></strong>
+                    </div>
+
+                    <form id="formEditarCurso" class="row g-3">
+                        <input type="hidden" id="editarCursoLocalId" name="cursoLocalId">
+
+                        <div class="col-md-6">
+                            <label class="form-label">Dispositivo</label>
+                            <input type="text" class="form-control bg-dark border-secondary text-white" id="editarDispositivo" name="dispositivo">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Formador ABC</label>
+                            <input type="text" class="form-control bg-dark border-secondary text-white" id="editarFormadorAbc" name="formadorAbc">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Titulo formulario</label>
+                            <input type="text" class="form-control bg-dark border-secondary text-white" id="editarTituloFormulario" name="tituloFormulario">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Anio</label>
+                            <input type="number" class="form-control bg-dark border-secondary text-white" id="editarAnio" name="anio" min="2000" max="2100">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Cohorte</label>
+                            <input type="number" class="form-control bg-dark border-secondary text-white" id="editarCohorte" name="cohorte" min="0" max="10">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Inicio inscripcion</label>
+                            <input type="date" class="form-control bg-dark border-secondary text-white" id="editarFechaInicioInscripcion" name="fechaInicioInscripcion">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fin inscripcion</label>
+                            <input type="date" class="form-control bg-dark border-secondary text-white" id="editarFechaFinInscripcion" name="fechaFinInscripcion">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Inicio curso</label>
+                            <input type="date" class="form-control bg-dark border-secondary text-white" id="editarFechaInicioCurso" name="fechaInicioCurso">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fin curso</label>
+                            <input type="date" class="form-control bg-dark border-secondary text-white" id="editarFechaFinCurso" name="fechaFinCurso">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Disponible</label>
+                            <input type="text" class="form-control bg-dark border-secondary text-white" id="editarDisponible" name="disponible" placeholder="S o N">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Cupo</label>
+                            <input type="number" class="form-control bg-dark border-secondary text-white" id="editarCupo" name="cupo" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Alcance</label>
+                            <select class="form-select bg-dark border-secondary text-white" id="editarAlcance" name="alcance">
+                                <option value="">Sin cambios</option>
+                                <option value="1">1 - Distrital</option>
+                                <option value="2">2 - Provincial</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Certifica</label>
+                            <input type="text" class="form-control bg-dark border-secondary text-white" id="editarCertifica" name="certifica">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Enlace inscripcion</label>
+                            <input type="text" class="form-control bg-dark border-secondary text-white" id="editarEnlaceInscripcion" name="enlaceInscripcion">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-warning">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="btnGuardarEdicionCurso" class="btn btn-warning">Guardar cambios</button>
                 </div>
             </div>
         </div>
@@ -122,11 +237,129 @@
         </div>
     </div>
 
+    <script id="cursosPendientesJson" type="application/json"><%- JSON.stringify(cursosPendientes || []) %></script>
     <script id="ofertasOficialesJson" type="application/json"><%- JSON.stringify(ofertasOficiales || []) %></script>
     <%- include('../../partials/scripts') %>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        const CURSOS_PENDIENTES = JSON.parse(document.getElementById('cursosPendientesJson').textContent || '[]');
         const OFERTAS = JSON.parse(document.getElementById('ofertasOficialesJson').textContent || '[]');
+        const cursosById = new Map(CURSOS_PENDIENTES.map(curso => [String(curso._id), curso]));
+
+        function toDateInputValue(value) {
+            if (!value) return '';
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return '';
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function getCursosSeleccionados() {
+            return $('.check-curso:checked').map(function () {
+                return $(this).data('curso-id');
+            }).get();
+        }
+
+        function setBotonesLoteEstado(disabled) {
+            $('#btnCrearSeleccionados').prop('disabled', disabled);
+            $('#btnCrearTodos').prop('disabled', disabled);
+            $('#btnSeleccionarTodo').prop('disabled', disabled);
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function crearCursoEnAbc(cursoLocalId) {
+            const response = await fetch('/ciie/cursos/nuevo/publicar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cursoLocalId })
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'No se pudo crear la oferta oficial.');
+            }
+
+            return result;
+        }
+
+        async function procesarCreacionEnLote(ids = []) {
+            if (!ids.length) {
+                Swal.fire('Atencion', 'No hay cursos seleccionados para crear.', 'warning');
+                return;
+            }
+
+            const confirm = await Swal.fire({
+                icon: 'question',
+                title: 'Crear cursos en ABC',
+                text: `Se crearán ${ids.length} cursos con una pausa aleatoria de 3 a 4 segundos entre cada alta.`,
+                showCancelButton: true,
+                confirmButtonText: 'Si, comenzar',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (!confirm.isConfirmed) return;
+
+            setBotonesLoteEstado(true);
+
+            let ok = 0;
+            const errores = [];
+
+            Swal.fire({
+                title: 'Procesando cursos...',
+                html: `0/${ids.length} completados`,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            for (let i = 0; i < ids.length; i += 1) {
+                const cursoId = ids[i];
+                const curso = cursosById.get(String(cursoId));
+
+                try {
+                    await crearCursoEnAbc(cursoId);
+                    ok += 1;
+                } catch (error) {
+                    errores.push(`${curso?.nombrePropuesta || cursoId}: ${error.message}`);
+                }
+
+                const html = `${i + 1}/${ids.length} completados`;
+                if (Swal.isVisible()) Swal.update({ html });
+
+                if (i < ids.length - 1) {
+                    const pausa = 3000 + Math.floor(Math.random() * 1001);
+                    await wait(pausa);
+                }
+            }
+
+            Swal.close();
+            setBotonesLoteEstado(false);
+
+            if (errores.length === 0) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Proceso completado',
+                    text: `Se crearon ${ok} cursos correctamente.`,
+                    timer: 2200,
+                    showConfirmButton: false
+                });
+                location.reload();
+                return;
+            }
+
+            await Swal.fire({
+                icon: ok > 0 ? 'warning' : 'error',
+                title: 'Proceso finalizado con observaciones',
+                html: `Creados: <b>${ok}</b><br>Con error: <b>${errores.length}</b><br><br><small>${errores.slice(0, 5).join('<br>')}</small>`
+            });
+
+            location.reload();
+        }
 
         function renderOfertas(q = '') {
             const query = (q || '').toLowerCase();
@@ -166,7 +399,10 @@
             $('#tablaPendientes').DataTable({
                 language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
                 pageLength: 10,
-                order: [[2, 'desc']]
+                order: [[3, 'desc']],
+                columnDefs: [
+                    { orderable: false, targets: [0, 5] }
+                ]
             });
 
             renderOfertas('');
@@ -228,6 +464,86 @@
                 }
             });
 
+            $(document).on('click', '.btn-editar-curso', function () {
+                const cursoId = String($(this).data('curso-id'));
+                const curso = cursosById.get(cursoId);
+
+                if (!curso) {
+                    Swal.fire('Error', 'No se encontraron los datos del curso a editar.', 'error');
+                    return;
+                }
+
+                $('#editarCursoLocalId').val(cursoId);
+                $('#nombreCursoEdicion').text(curso.nombrePropuesta || 'Sin nombre');
+                $('#editarDispositivo').val(curso.dispositivo || '');
+                $('#editarFormadorAbc').val(curso.formadorAbc || '');
+                $('#editarTituloFormulario').val(curso.tituloFormulario || '');
+                $('#editarAnio').val(curso.anio ?? '');
+                $('#editarCohorte').val(curso.cohorte ?? '');
+                $('#editarFechaInicioInscripcion').val(toDateInputValue(curso.fechaInicioInscripcion));
+                $('#editarFechaFinInscripcion').val(toDateInputValue(curso.fechaFinInscripcion));
+                $('#editarFechaInicioCurso').val(toDateInputValue(curso.fechaInicioCurso));
+                $('#editarFechaFinCurso').val(toDateInputValue(curso.fechaFinCurso));
+                $('#editarDisponible').val(curso.disponible || '');
+                $('#editarCupo').val(curso.cupo ?? '');
+                $('#editarAlcance').val(curso.alcance ?? '');
+                $('#editarCertifica').val(curso.certifica || '');
+                $('#editarEnlaceInscripcion').val(curso.enlaceInscripcion || '');
+
+                const modalEditar = new bootstrap.Modal(document.getElementById('modalEditarCurso'));
+                modalEditar.show();
+            });
+
+            $('#btnGuardarEdicionCurso').on('click', async function () {
+                const payload = {
+                    cursoLocalId: $('#editarCursoLocalId').val(),
+                    dispositivo: $('#editarDispositivo').val(),
+                    formadorAbc: $('#editarFormadorAbc').val(),
+                    tituloFormulario: $('#editarTituloFormulario').val(),
+                    anio: $('#editarAnio').val(),
+                    cohorte: $('#editarCohorte').val(),
+                    fechaInicioInscripcion: $('#editarFechaInicioInscripcion').val(),
+                    fechaFinInscripcion: $('#editarFechaFinInscripcion').val(),
+                    fechaInicioCurso: $('#editarFechaInicioCurso').val(),
+                    fechaFinCurso: $('#editarFechaFinCurso').val(),
+                    disponible: $('#editarDisponible').val(),
+                    cupo: $('#editarCupo').val(),
+                    alcance: $('#editarAlcance').val(),
+                    certifica: $('#editarCertifica').val(),
+                    enlaceInscripcion: $('#editarEnlaceInscripcion').val()
+                };
+
+                if (!payload.cursoLocalId) {
+                    Swal.fire('Atencion', 'No se encontro el curso a editar.', 'warning');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/ciie/cursos/nuevo/editar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+
+                    if (!result.success) {
+                        throw new Error(result.error || 'No se pudieron guardar los cambios.');
+                    }
+
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Curso actualizado',
+                        text: 'Los cambios se guardaron correctamente.',
+                        timer: 1600,
+                        showConfirmButton: false
+                    });
+
+                    location.reload();
+                } catch (error) {
+                    Swal.fire('Error', error.message, 'error');
+                }
+            });
+
             $(document).on('click', '.btn-crear-oficial', async function () {
                 const cursoLocalId = $(this).data('curso-id');
                 const nombre = $(this).data('curso-nombre');
@@ -244,16 +560,7 @@
                 if (!confirm.isConfirmed) return;
 
                 try {
-                    const response = await fetch('/ciie/cursos/nuevo/publicar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cursoLocalId })
-                    });
-
-                    const result = await response.json();
-                    if (!result.success) {
-                        throw new Error(result.error || 'No se pudo crear la oferta oficial.');
-                    }
+                    const result = await crearCursoEnAbc(cursoLocalId);
 
                     await Swal.fire({
                         icon: 'success',
@@ -267,6 +574,26 @@
                 } catch (error) {
                     Swal.fire('Error', error.message, 'error');
                 }
+            });
+
+            $('#checkAllCursos').on('change', function () {
+                $('.check-curso').prop('checked', this.checked);
+            });
+
+            $('#btnSeleccionarTodo').on('click', function () {
+                const allChecked = $('.check-curso').length > 0 && $('.check-curso:checked').length === $('.check-curso').length;
+                $('.check-curso').prop('checked', !allChecked);
+                $('#checkAllCursos').prop('checked', !allChecked);
+            });
+
+            $('#btnCrearSeleccionados').on('click', async function () {
+                const ids = getCursosSeleccionados();
+                await procesarCreacionEnLote(ids);
+            });
+
+            $('#btnCrearTodos').on('click', async function () {
+                const ids = CURSOS_PENDIENTES.map(c => c._id);
+                await procesarCreacionEnLote(ids);
             });
         });
     </script>
