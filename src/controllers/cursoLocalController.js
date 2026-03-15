@@ -4,7 +4,7 @@ const cursoLocalService = require('../services/cursoLocalService');
 const vincularCurso = async (req, res) => {
     try {
         const resultado = await cursoLocalService.vincularCurso(req.body, req.user);
-        console.log('Curso vinculado localmente con éxito:', req.body);
+        //console.log('Curso vinculado localmente con éxito:', req.body);
         req.flash('success', 'Curso vinculado localmente con éxito.');
         return res.status(200).json({ 
             success: true, 
@@ -171,6 +171,7 @@ const getCursosPorCiieId = async (req, res) => {
 }
 
 const getCursosPorCargoClaveCiieClave = async (req, res) => {
+    
     try {
         //const ciieId = req.user.referenciaId;
         const {cargoClave, ciieClave} = req.params

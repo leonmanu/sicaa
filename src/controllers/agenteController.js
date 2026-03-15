@@ -64,6 +64,19 @@ const inscriptoLocalService = require('../services/inscriptoLocalService');
 //     }
 // }
 
+const getAgentesPorCiie = async (req, res) => {
+    try {
+        console.log('Obteniendo agentes para el CIIE con clave:', req.params.ciieClave);
+        const ciieClave = await req.params.ciieClave;
+        const ciie = await ciieService.getPorClave(ciieClave);
+        const agentes = await agenteService.getAgentesPorCiie(ciie._id);
+        res.status(200).json(agentes);
+    } catch (error) {
+        console.error('Error al obtener los agentes por CIIE:', error);
+        res.status(500).json({ error: 'No se pudo obtener los agentes.' });
+    }
+}
+
 const postEncuentro = async (req, res) => {
     try {
         const data = req.body;
@@ -92,6 +105,7 @@ module.exports = {
     //getCargosPorAgenteEmail,
     //getPorCursoClaveCiieClave,
     //viewAsistencia,
+    getAgentesPorCiie,
     postEncuentro,
     postAsistenciaCursante
 };

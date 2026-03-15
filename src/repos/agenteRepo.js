@@ -2,6 +2,8 @@
 const Usuario = require('../models/Usuario'); // El modelo que definimos antes
 const Ciie = require('../models/Ciie'); // <--
 const Persona = require('../models/Persona'); // <--
+const Cargo = require('../models/Cargo');
+const Asignacion = require('../models/Asignacion');
 
 class AgenteRepo {
     // Reemplaza a 'obtenerTodasLasFilas'
@@ -9,6 +11,23 @@ class AgenteRepo {
         // En Mongo no hay rangos, solo pedimos la colección completa
         return await Usuario.find({}).populate('perfilId'); 
     }
+
+    async getAgentesPorCiieId(ciieId) {
+    const cargos = await Cargo.find({ ciieId })
+        .populate({
+            path: 'ocupante',
+            match: { estado: 'Activo' },
+            populate: {
+                path: 'usuarioId',
+                populate: { path: 'referenciaId' }
+            }
+        })
+        .lean();
+
+    return cargos
+        .filter(c => c.ocupante?.usuarioId?.referenciaId)
+        .map(c => c.ocupante.usuarioId.referenciaId);
+}
 
     async buscarPorEmail(email) {
         // La 'i' al final significa "case-insensitive" (ignora mayúsculas/minúsculas)
@@ -84,6 +103,30 @@ class AgenteRepo {
         .sort({ apellido: 1 })
         .lean()
     }
+
+    async getAgentesPorCiieId(ciieId) {
+        const cargos = await Cargo.find({ ciieId })
+        .populate({
+            path: 'ocupante',
+            match: { estado: 'Activo' },
+            populate: {
+                path: 'usuarioId',
+                populate: { path: 'referenciaId' } // refPath: 'tipoModel' → resuelve a Persona
+            }
+        });
+
+    return cargos
+        .filter(c => c.ocupante?.usuarioId?.referenciaId)
+        .map(c => {
+            const persona = c.ocupante.usuarioId.referenciaId;
+            const apellido = persona.apellido || '';
+            const inicial  = persona.nombre?.charAt(0) || '';
+            return {
+                abreviado:    `${apellido}, ${inicial}.`,
+                nombreCompleto: `${apellido}, ${persona.nombre}`
+            };
+        });
+}
 
     async getPorModelo(tipoModel) {
         try {

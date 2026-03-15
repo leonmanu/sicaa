@@ -70,8 +70,7 @@ class CursoLocalService {
             // Publicación Drupal
             publicacionDrupal: this._normalizePublicacionDrupal(
                 data.publicacionDrupal,
-                data.cantidadHoras,     // se pasa por separado porque viene en el root del payload
-                data.fechaInicioCurso  
+                data.cantidadHoras 
             )
         };
 
@@ -486,12 +485,10 @@ class CursoLocalService {
         // Armamos diasHorarios combinando día + hora + duración
         // Ej: "Martes, 14:00 hs. (4 hs. por encuentro)"
         const dia   = this._sanitizeString(value.diasHorarios);
-        const hora = fechaInicioCurso ? fechaInicioCurso.split('T')[1]?.slice(0, 5) : undefined;
         const horas = this._toNumberOrNull(cantidadHoras);
         let diasHorarios;
         if (dia) {
             diasHorarios = dia;
-            if (hora)  diasHorarios += `, ${hora} hs.`;
             if (horas) diasHorarios += ` (${horas} hs. por encuentro)`;
         }
 

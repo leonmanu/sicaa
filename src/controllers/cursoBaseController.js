@@ -92,7 +92,7 @@ const getPorCiieClavejson = async (req, res) => {
         if (!ciie) return res.status(404).json({ error: 'CIIE no encontrado' });
 
         const cursosBaseLocal = await cursoBaseLocalService.getPorCiieId(ciie._id);
-        console.log('Cursos base locales encontrados para CIIE id', ciie._id, ':', cursosBaseLocal);
+        //console.log('Cursos base locales encontrados para CIIE id', ciie._id, ':', cursosBaseLocal);
         res.json(cursosBaseLocal || []);
 
     } catch (error) {

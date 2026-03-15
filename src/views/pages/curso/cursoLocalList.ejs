@@ -23,7 +23,7 @@
                     <%= cargo?.areaId?.nombre || 'Área General' %> * <small><% formadore = cargo?.ocupante?.usuarioId?.referenciaId?.apellido+', '+cargo?.ocupante?.usuarioId?.referenciaId?.nombre %></small>
                 </h2>
                 <p class="text-muted mb-0">
-                    <span class="badge bg-secondary me-2">CIIE <%= cargo.ciieId?.nombre || '' %></span>
+                    <span class="badge bg-secondary me-2"><%=ciieClave%> <%= cargo.ciieId?.nombre || '' %></span>
                     <span class="badge bg-outline-info border border-info text-info">Clave Cargo: <%= cargo.clave %></span>
                 </p>
             </div>
@@ -80,26 +80,26 @@
                                             <%= c.fechaInicioCurso ? new Date(c.fechaInicioCurso).toLocaleDateString('es-AR') : 'A definir' %>
                                         </td>
                                         <td>
-                                            <small class="text-muted"><%= c.dispositivo %> </small>
+                                            <small class="text-muted"><%= c.dispositivo %></small>
                                         </td>
                                         <td class="text-center pe-4">
                                             <% if (c.estado === 'vinculado') { %>
                                                 <div class="btn-group" role="group">
-                                                <a href="/inscripto/curso/<%= c.idOfertaOficial %>" class="btn btn-lg btn-outline-primary" title="Ver alumnos">
-                                                    <i class="bi bi-people-fill"></i>
-                                                </a>
-                                                <button class="btn btn-lg btn-outline-secondary" 
-                                                        onclick="copyToClipboard('<%= c.enlaceInscripcion %>')"
-                                                        title="Copiar link de inscripción">
-                                                    <i class="bi bi-link-45deg"></i>
-                                                </button>
-                                                <button class="btn btn-lg btn-outline-danger disabled" title="Desvincular">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                                <% } else { %>
+                                                    <a href="/inscripto/curso/<%= c.idOfertaOficial %>" class="btn btn-lg btn-outline-primary" title="Ver alumnos">
+                                                        <i class="bi bi-people-fill"></i>
+                                                    </a>
+                                                    <button class="btn btn-lg btn-outline-secondary"
+                                                            onclick="copyToClipboard('<%= c.enlaceInscripcion %>')"
+                                                            title="Copiar link de inscripción">
+                                                        <i class="bi bi-link-45deg"></i>
+                                                    </button>
+                                                    <button class="btn btn-lg btn-outline-danger disabled" title="Desvincular">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            <% } else { %>
                                                 <span class="badge bg-secondary">En proceso de alta...</span>
-                                                <%}%>
+                                            <% } %>
                                         </td>
                                     </tr>
                                 <% }); %>
@@ -117,610 +117,715 @@
         </div>
     </div>
 
+    <!-- MODAL PASO 1 -->
     <div class="modal fade" id="modalSeleccionarBase" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content bg-dark border-primary">
-            <div class="modal-header bg-primary bg-opacity-10 border-primary">
-                <div>
-                    <h5 class="modal-title fw-bold mb-0">
-                        <i class="bi bi-archive me-2"></i>Seleccioná un Curso Base
-                    </h5>
-                    <small class="text-muted">Paso 1 de 2</small>
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content bg-dark border-primary">
+                <div class="modal-header bg-primary bg-opacity-10 border-primary">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0"><i class="bi bi-archive me-2"></i>Seleccioná un Curso Base</h5>
+                        <small class="text-muted">Paso 1 de 2</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-0">
-
-                <!-- Buscador + Filtros -->
-                <div class="p-3 border-bottom border-secondary sticky-top bg-dark">
-                    <input type="text" id="buscarCursoBase"
-                        class="form-control bg-dark border-secondary text-white mb-2"
-                        placeholder="Buscar por nombre, dispositivo o área...">
-
-                    <!-- Filtros: ocultos hasta que carguen los datos -->
-                    <div id="wrapperFiltros" class="d-none">
-                        <div class="row g-2">
-                            <div class="col-md-4">
-                                <select id="filtroDispositivo" class="form-select form-select-sm bg-dark border-secondary text-white">
-                                    <option value="">Todos los dispositivos</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <select id="filtroArea" class="form-select form-select-sm bg-dark border-secondary text-white">
-                                    <option value="">Todas las áreas</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <select id="filtroAnio" class="form-select form-select-sm bg-dark border-secondary text-white">
-                                    <option value="">Todos los años</option>
-                                </select>
+                <div class="modal-body p-0">
+                    <div class="p-3 border-bottom border-secondary sticky-top bg-dark">
+                        <input type="text" id="buscarCursoBase"
+                            class="form-control bg-dark border-secondary text-white mb-2"
+                            placeholder="Buscar por nombre, dispositivo o área...">
+                        <div id="wrapperFiltros" class="d-none">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <select id="filtroDispositivo" class="form-select form-select-sm bg-dark border-secondary text-white">
+                                        <option value="">Todos los dispositivos</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <select id="filtroArea" class="form-select form-select-sm bg-dark border-secondary text-white">
+                                        <option value="">Todas las áreas</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <select id="filtroAnio" class="form-select form-select-sm bg-dark border-secondary text-white">
+                                        <option value="">Todos los años</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    <div id="estadoCargando" class="text-center py-5">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <div class="text-muted small">Cargando cursos base...</div>
+                    </div>
+                    <div id="estadoError" class="text-center py-5 d-none">
+                        <i class="bi bi-exclamation-circle text-danger fs-3 mb-2 d-block"></i>
+                        <div class="text-muted small">No se pudieron cargar los cursos base.</div>
+                        <button class="btn btn-sm btn-outline-primary mt-3" id="btnReintentar">Reintentar</button>
+                    </div>
+                    <div class="list-group list-group-flush d-none" id="listaCursosBase"></div>
                 </div>
-
-                <!-- Estado: cargando -->
-                <div id="estadoCargando" class="text-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status"></div>
-                    <div class="text-muted small">Cargando cursos base...</div>
-                </div>
-
-                <!-- Estado: error -->
-                <div id="estadoError" class="text-center py-5 d-none">
-                    <i class="bi bi-exclamation-circle text-danger fs-3 mb-2 d-block"></i>
-                    <div class="text-muted small">No se pudieron cargar los cursos base.</div>
-                    <button class="btn btn-sm btn-outline-primary mt-3" id="btnReintentar">Reintentar</button>
-                </div>
-
-                <!-- Lista de resultados -->
-                <div class="list-group list-group-flush d-none" id="listaCursosBase"></div>
             </div>
         </div>
     </div>
-</div>
 
-
-<!-- ═══════════════════════════════════════════════════════════════
-     MODAL PASO 2: Completar datos del curso
-     ═══════════════════════════════════════════════════════════════ -->
-<div class="modal fade" id="modalAltaCurso" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-dark border-success">
-            <div class="modal-header bg-success bg-opacity-10 border-success">
-                <div>
-                    <h5 class="modal-title fw-bold mb-0">
-                        <i class="bi bi-plus-circle me-2"></i>Nueva Oferta
-                    </h5>
-                    <small class="text-muted">Paso 2 de 2</small>
+    <!-- MODAL PASO 2 -->
+    <div class="modal fade" id="modalAltaCurso" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border-success">
+                <div class="modal-header bg-success bg-opacity-10 border-success">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0"><i class="bi bi-plus-circle me-2"></i>Nueva Oferta</h5>
+                        <small class="text-muted">Paso 2 de 2</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-
-                <!-- Resumen del curso base seleccionado -->
-                <div class="alert alert-dark border border-primary mb-4 p-3">
-                    <div class="fw-bold text-white" id="resumenNombreBase"></div>
-                    <small class="text-muted" id="resumenDetalleBase"></small>
-                </div>
-
-                <!-- Campos ocultos -->
-                <input type="hidden" id="cursoBaseId" name="cursoBaseId">
-                <input type="hidden" id="idCursoOriginal" name="idCursoOriginal">
-                <input type="hidden" id="nombrePropuesta" name="nombrePropuesta">
-                <input type="hidden" id="dispositivo" name="dispositivo">
-                <input type="hidden" id="dispositivoSeleccionado">
-                <input type="hidden" id="cargoId" name="cargoId" value="<%= cargo._id %>">
-                <input type="hidden" id="ciieId" name="ciieId" value="<%= cargo.ciieId?._id || '' %>">
-                <input type="hidden" id="creadoPor" name="creadoPor" value="<%= usuario?.email || '' %>">
-
-                <div class="row g-3">
-
-                    <!-- AÑO y COHORTE -->
-                    <div class="col-6">
-                        <label class="form-label small fw-bold">AÑO <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control bg-dark border-secondary text-white"
-                               id="anio" name="anio"
-                               value="<%= new Date().getFullYear() %>" required>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label small fw-bold">COHORTE <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control bg-dark border-secondary text-white"
-                               id="cohorte" name="cohorte"
-                               value="1" min="0" required>
+                <div class="modal-body">
+                    <div class="alert alert-dark border border-primary mb-4 p-3">
+                        <div class="fw-bold text-white" id="resumenNombreBase"></div>
+                        <small class="text-muted" id="resumenDetalleBase"></small>
                     </div>
 
-                    <!-- FECHA INICIO y HORA -->
-                    <div class="col-6">
-                        <label class="form-label small fw-bold">INICIO CURSADA <small>fecha y hora</small> <span class="text-danger">* </span></label>
-                        <input type="datetime-local" class="form-control bg-dark border-secondary text-white"
-                               id="fechaInicioCurso" name="fechaInicioCurso" required>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label small fw-bold">FORMATO DICTADO <span class="text-danger">*</span></label>
-                        <select id="drupalFormatoDictado" name="drupalFormatoDictado"
-                                class="form-select bg-dark border-secondary text-white" required>
-                            <option value="Presencial (237)">Presencial</option>
-                            <option value="Sincrónico (238)">Bimodal / Sincrónico</option>
-                            <option value="Virtual (236)">Virtual</option>
-                            <option value="Asincrónico (239)">Asincrónico</option>
-                        </select>
-                    </div>
+                    <input type="hidden" id="cursoBaseId" name="cursoBaseId">
+                    <input type="hidden" id="idCursoOriginal" name="idCursoOriginal">
+                    <input type="hidden" id="nombrePropuesta" name="nombrePropuesta">
+                    <input type="hidden" id="dispositivo" name="dispositivo">
+                    <input type="hidden" id="dispositivoSeleccionado">
+                    <input type="hidden" id="cargoId" name="cargoId" value="<%= cargo._id %>">
+                    <input type="hidden" id="ciieId" name="ciieId" value="<%= cargo.ciieId?._id || '' %>">
+                    <input type="hidden" id="creadoPor" name="creadoPor" value="<%= usuario?.email || '' %>">
 
-                    
+                    <div class="row g-3">
 
-                    
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">AÑO <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control bg-dark border-secondary text-white"
+                                   id="anio" name="anio" value="<%= new Date().getFullYear() %>" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">COHORTE <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control bg-dark border-secondary text-white"
+                                   id="cohorte" name="cohorte" value="1" min="0" required>
+                        </div>
 
-                                        <!-- FORMADOR -->
-                    <div class="col-12">
-                        <label class="form-label small fw-bold">FORMADOR/A <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control bg-dark border-secondary text-white"
-                               id="formadorAbc" name="formadorAbc" maxlength="100"
-                               value="<%= formadore %>" required>
-                    </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">INICIO CURSADA <small>fecha y hora</small> <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control bg-dark border-secondary text-white"
+                                   id="fechaInicioCurso" name="fechaInicioCurso" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">FORMATO DICTADO <span class="text-danger">*</span></label>
+                            <select id="drupalFormatoDictado" name="drupalFormatoDictado"
+                                    class="form-select bg-dark border-secondary text-white" required>
+                                <option value="Presencial (237)">Presencial</option>
+                                <option value="Sincrónico (238)">Bimodal / Sincrónico</option>
+                                <option value="Virtual (236)">Virtual</option>
+                                <option value="Asincrónico (239)">Asincrónico</option>
+                            </select>
+                        </div>
 
-                    <!-- ACORDEÓN: Otros datos -->
-                     <hr>
-                    <div class="col-12 mt-2">
-                        <div class="accordion" id="acordeonCamposOpcionalesCurso">
-                            <div class="accordion-item bg-dark border-secondary">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed bg-dark text-white"
-                                            type="button"
-                                            data-bs-toggle="collapse"
-                                            data-bs-target="#collapseDrupalCurso">
-                                        <b>MÁS DATOS...</b>
-                                    </button>
-                                </h2>
-                                <div id="collapseDrupalCurso" class="accordion-collapse collapse"
-                                     data-bs-parent="#acordeonCamposOpcionalesCurso">
-                                    <div class="accordion-body">
-                                        <div class="row g-3">
+                        <!-- BLOQUE FORMADORES -->
+                        <div class="col-12" id="bloqueFormadores">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small fw-bold mb-0">FORMADOR/A <span class="text-danger">*</span></label>
+                                <button type="button" id="btnAgregarFormador"
+                                        class="btn btn-sm btn-outline-info py-0 px-2"
+                                        style="font-size: 0.75rem;">
+                                    <i class="bi bi-person-plus me-1"></i>+ Invitado
+                                </button>
+                            </div>
+                            <div id="listaFormadores">
+                                <div class="formador-row d-flex gap-2 mb-2 align-items-center" data-index="0">
+                                    <input type="text"
+                                           class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
+                                           id="formadorAbc" name="formadorAbc"
+                                           maxlength="40" placeholder="Apellido, Nombre"
+                                           value="<%= formadore %>" required>
+                                </div>
+                            </div>
+                            <div id="wrapperCharCount" class="d-none mt-1">
+                                <div class="d-flex justify-content-between mb-1" style="font-size: 0.7rem;">
+                                    <span class="text-muted">Caracteres usados al combinar</span>
+                                    <span id="charCountLabel" class="fw-bold">0 / 40</span>
+                                </div>
+                                <div class="progress" style="height: 4px;">
+                                    <div id="charCountBar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <div id="charCountWarning" class="text-danger d-none mt-1" style="font-size: 0.7rem;">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Superaste el límite de 40 caracteres.
+                                </div>
+                            </div>
+                        </div>
 
-                                            
-                                            <!-- CUPO y ENCUENTROS -->
-                                            <div class="col-6">
-                                                <label class="form-label small fw-bold">ENCUENTROS <span class="text-danger">*</span></label>
-                                                <input type="number" class="form-control bg-dark border-secondary text-white"
-                                                    id="cantidadEncuentros" name="cantidadEncuentros" min="1" value="" required>
-                                            </div>
-                                            <div class="col-6">
-                                                <label class="form-label small fw-bold">HORAS <span class="text-danger">*</span></label>
-                                                <input type="number" class="form-control bg-dark border-secondary text-white"
-                                                    id="cantidadHoras" name="cantidadHoras" min="1" value="" required>
-                                            </div>
-                                            <div class="col-6">
-                                                <label class="form-label small fw-bold">CUPO <span class="text-danger">*</span></label>
-                                                <input type="number" class="form-control bg-dark border-secondary text-white"
-                                                    id="cupo" name="cupo" min="1" value="30" required>
-                                            </div>
-                                                                    <!-- FORMATO DICTADO -->
-                                            <div class="col-6" id="wrapperPuntaje">
-                                                <label class="form-label small fw-bold">PUNTAJE</label>
-                                                <input type="number" id="drupalPuntaje"
-                                                    class="form-control bg-dark border-secondary text-white"
-                                                    step="0.01" min="0">
-                                            </div>
-                                            <div class="col-6">
-                                                <label class="form-label small fw-bold">DÍA DICTADO <span class="text-danger">*</span></label>
-                                                <select id="drupalDiaDictado" name="drupalDiaDictado"
-                                                        class="form-select bg-dark border-secondary text-white" required>
-                                                    <option value="Lunes">Lunes</option>
-                                                    <option value="Martes">Martes</option>
-                                                    <option value="Miércoles">Miércoles</option>
-                                                    <option value="Jueves">Jueves</option>
-                                                    <option value="Viernes">Viernes</option>
-                                                    <option value="Sábado">Sábado</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-6">
-                                                <label class="form-label small fw-bold">FIN CURSADA <span class="text-danger">*</span></label>
-                                                <input type="date" class="form-control bg-dark border-secondary text-white"
-                                                    id="fechaFinCurso" name="fechaFinCurso" required>
-                                            </div>
+                        <hr>
 
-                                            
-                                            <!-- NIVEL -->
-                                            <div class="col-6">
-                                                <label class="form-label small fw-bold">NIVEL <span class="text-danger">*</span></label>
-                                                <input type="text" id="drupalNivel"
-                                                       class="form-control bg-dark border-secondary text-white"
-                                                       maxlength="120"
-                                                       value="<%= cargo?.areaId?.nivel || '' %>" required>
+                        <!-- ACORDEÓN -->
+                        <div class="col-12 mt-2">
+                            <div class="accordion" id="acordeonCamposOpcionalesCurso">
+                                <div class="accordion-item bg-dark border-secondary">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed bg-dark text-white"
+                                                type="button" data-bs-toggle="collapse"
+                                                data-bs-target="#collapseDrupalCurso">
+                                            <b>MÁS DATOS...</b>
+                                        </button>
+                                    </h2>
+                                    <div id="collapseDrupalCurso" class="accordion-collapse collapse"
+                                         data-bs-parent="#acordeonCamposOpcionalesCurso">
+                                        <div class="accordion-body">
+                                            <div class="row g-3">
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">ENCUENTROS <span class="text-danger">*</span></label>
+                                                    <input type="number" class="form-control bg-dark border-secondary text-white"
+                                                           id="cantidadEncuentros" name="cantidadEncuentros" min="1" value="" required>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">HORAS <span class="text-danger">*</span></label>
+                                                    <input type="number" class="form-control bg-dark border-secondary text-white"
+                                                           id="cantidadHoras" name="cantidadHoras" min="1" value="" required>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">CUPO <span class="text-danger">*</span></label>
+                                                    <input type="number" class="form-control bg-dark border-secondary text-white"
+                                                           id="cupo" name="cupo" min="1" value="30" required>
+                                                </div>
+                                                <div class="col-6" id="wrapperPuntaje">
+                                                    <label class="form-label small fw-bold">PUNTAJE</label>
+                                                    <input type="number" id="drupalPuntaje"
+                                                           class="form-control bg-dark border-secondary text-white"
+                                                           step="0.01" min="0">
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">DÍA DICTADO <span class="text-danger">*</span></label>
+                                                    <select id="drupalDiaDictado" name="drupalDiaDictado"
+                                                            class="form-select bg-dark border-secondary text-white" required>
+                                                        <option value="Lunes">Lunes</option>
+                                                        <option value="Martes">Martes</option>
+                                                        <option value="Miércoles">Miércoles</option>
+                                                        <option value="Jueves">Jueves</option>
+                                                        <option value="Viernes">Viernes</option>
+                                                        <option value="Sábado">Sábado</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">FIN CURSADA <span class="text-danger">*</span></label>
+                                                    <input type="datetime-local" class="form-control bg-dark border-secondary text-white"
+                                                           id="fechaFinCurso" name="fechaFinCurso" required>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">NIVEL <span class="text-danger">*</span></label>
+                                                    <input type="text" id="drupalNivel"
+                                                           class="form-control bg-dark border-secondary text-white"
+                                                           maxlength="120" value="<%= cargo?.areaId?.nivel || '' %>" required>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">ALCANCE <span class="text-danger">*</span></label>
+                                                    <select id="alcance" name="alcance"
+                                                            class="form-select bg-dark border-secondary text-white" required>
+                                                        <option value="1" selected>Este CIIE</option>
+                                                        <option value="2">Regional</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label small fw-bold">TÍTULO FORMULARIO</label>
+                                                    <input type="text" class="form-control bg-dark border-secondary text-white"
+                                                           id="tituloFormulario" name="tituloFormulario" maxlength="200">
+                                                </div>
+                                                <div class="col-8">
+                                                    <label class="form-label small fw-bold">SEDE <span class="text-danger">*</span></label>
+                                                    <input type="text" id="drupalSede"
+                                                           class="form-control bg-dark border-secondary text-white"
+                                                           maxlength="120"
+                                                           value="CIIE G. de Laferrere - Monseñor López May N° 3250" required>
+                                                </div>
+                                                <div class="col-4">
+                                                    <label class="form-label small fw-bold">ORGANIZA <span class="text-danger">*</span></label>
+                                                    <input type="text" id="drupalOrganiza"
+                                                           class="form-control bg-dark border-secondary text-white"
+                                                           maxlength="120" value="DFDP" required>
+                                                </div>
                                             </div>
-
-                                            <!-- ALCANCE -->
-                                            <div class="col-6">
-                                                <label class="form-label small fw-bold">ALCANCE <span class="text-danger">*</span></label>
-                                                <select id="alcance" name="alcance"
-                                                        class="form-select bg-dark border-secondary text-white" required>
-                                                    <option value="1" selected>Este CIIE</option>
-                                                    <option value="2">Regional</option>
-                                                </select>
-                                            </div>
-                                            <!-- TÍTULO FORMULARIO (opcional) -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">TÍTULO FORMULARIO</label>
-                                                <input type="text"
-                                                       class="form-control bg-dark border-secondary text-white"
-                                                       id="tituloFormulario" name="tituloFormulario" maxlength="200">
-                                            </div>
-                                            <!-- SEDE -->
-                                            <div class="col-8">
-                                                <label class="form-label small fw-bold">SEDE <span class="text-danger">*</span></label>
-                                                <input type="text" id="drupalSede"
-                                                       class="form-control bg-dark border-secondary text-white"
-                                                       maxlength="120"
-                                                       value="CIIE G. de Laferrere - Monseñor López May N° 3250" required>
-                                            </div>
-
-                                            <!-- ORGANIZA -->
-                                            <div class="col-4">
-                                                <label class="form-label small fw-bold">ORGANIZA <span class="text-danger">*</span></label>
-                                                <input type="text" id="drupalOrganiza"
-                                                       class="form-control bg-dark border-secondary text-white"
-                                                       maxlength="120" value="DFDP" required>
-                                            </div>
-
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                </div><!-- /row -->
-            </div><!-- /modal-body -->
+                    </div><!-- /row -->
+                </div><!-- /modal-body -->
 
-            <div class="modal-footer border-success">
-                <button type="button" class="btn btn-outline-secondary" id="btnVolver">
-                    <i class="bi bi-arrow-left me-1"></i>Volver
-                </button>
-                <button type="button" class="btn btn-success fw-bold px-4" id="btnGuardarCurso">
-                    <i class="bi bi-check-circle me-1"></i>Crear Curso
-                </button>
+                <div class="modal-footer border-success">
+                    <button type="button" class="btn btn-outline-secondary" id="btnVolver">
+                        <i class="bi bi-arrow-left me-1"></i>Volver
+                    </button>
+                    <button type="button" class="btn btn-success fw-bold px-4" id="btnGuardarCurso">
+                        <i class="bi bi-check-circle me-1"></i>Crear Curso
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     <%- include('../../partials/scripts') %>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        $(document).ready(function () {
+    $(document).ready(function () {
 
-    // ─── DataTable ───────────────────────────────────────────────────────────
-    $('#tablaCursosCargo').DataTable({
-        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
-        responsive: true,
-        order: [[1, 'desc'], [3, 'desc']]
-    });
-
-    // ─── Datos desde EJS ─────────────────────────────────────────────────────
-    const cursosExistentes = JSON.parse('<%- JSON.stringify(cursosLocales.map(c => ({ anio: c.anio, cohorte: c.cohorte }))) %>');
-
-    // ─── Reglas por dispositivo ───────────────────────────────────────────────
-    const REGLAS = {
-        'Taller en Servicio':       { encuentros: 3, horas: 4, fechaFin: 'manual',   cohorte: true  },
-        'Taller Fuera de Servicio': { encuentros: 5, horas: 3, fechaFin: 'semanal',  cohorte: true  },
-        'Seminario':                { encuentros: 3, horas: 3, fechaFin: 'semanal',  cohorte: true  },
-        'Extensión CIIE':           { encuentros: 1, horas: 2, fechaFin: 'mismo_dia', cohorte: false }
-    };
-
-    // ─── Helpers ─────────────────────────────────────────────────────────────
-    function esTaller(dispositivo) {
-        return dispositivo && dispositivo.toLowerCase().includes('taller');
-    }
-
-    function calcularPuntaje(dispositivo, encuentros) {
-        if (!esTaller(dispositivo)) return '';
-        const n = parseInt(encuentros) || 0;
-        if (n < 3) return '';
-        if (n >= 8) return 0.48;
-        return 0.44;
-    }
-
-    function proximaCohorte(anio) {
-        const delAnio = cursosExistentes.filter(c => c.anio == anio);
-        if (delAnio.length === 0) return 1;
-        return Math.max(...delAnio.map(c => c.cohorte)) + 1;
-    }
-
-    // Suma N semanas a una fecha string YYYY-MM-DD, devuelve YYYY-MM-DD
-    function sumarSemanas(fechaStr, semanas) {
-        if (!fechaStr) return '';
-        const d = new Date(fechaStr + 'T00:00:00');
-        d.setDate(d.getDate() + semanas * 7);
-        return d.toISOString().split('T')[0];
-    }
-
-    function calcularFechaFin(dispositivo, fechaInicioStr, encuentros) {
-        const regla = REGLAS[dispositivo];
-        if (!regla || !fechaInicioStr) return '';
-
-        const n = parseInt(encuentros) || 1;
-
-        if (regla.fechaFin === 'mismo_dia') return fechaInicioStr;
-        if (regla.fechaFin === 'semanal')   return sumarSemanas(fechaInicioStr, n - 1);
-        if (regla.fechaFin === 'manual')    return ''; // Taller en Servicio: no se calcula
-        return '';
-    }
-
-    function diaDeSemana(fechaStr) {
-        if (!fechaStr) return '';
-        const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const d = new Date(fechaStr + 'T00:00:00');
-        return dias[d.getDay()];
-    }
-
-    // ─── Recálculo completo desde dispositivo ────────────────────────────────
-    function recalcularDesdeCursoBase(dispositivo) {
-        const regla = REGLAS[dispositivo];
-
-        // Encuentros
-        const encuentros = regla ? regla.encuentros : '';
-        $('#cantidadEncuentros').val(encuentros);
-
-        // Horas
-        $('#cantidadHoras').val(regla ? regla.horas : '');
-
-        // Cohorte: 0 si es Extensión, próxima cohorte si no
-        if (regla && !regla.cohorte) {
-            $('#cohorte').val(0);
-        } else {
-            const anioActual = parseInt($('#anio').val()) || new Date().getFullYear();
-            $('#cohorte').val(proximaCohorte(anioActual));
-        }
-
-        // Puntaje
-        $('#drupalPuntaje').val(calcularPuntaje(dispositivo, encuentros));
-
-        // Fecha fin (si ya hay fecha de inicio)
-        const fechaInicio = $('#fechaInicioCurso').val();
-        if (fechaInicio) {
-            $('#fechaFinCurso').val(calcularFechaFin(dispositivo, fechaInicio, encuentros));
-        }
-    }
-
-    // ─── Recálculo parcial al cambiar encuentros ──────────────────────────────
-    function recalcularDesdeEncuentros() {
-        const dispositivo = $('#dispositivoSeleccionado').val();
-        const encuentros  = $('#cantidadEncuentros').val();
-        const fechaInicio = $('#fechaInicioCurso').val();
-
-        $('#drupalPuntaje').val(calcularPuntaje(dispositivo, encuentros));
-
-        const nuevaFechaFin = calcularFechaFin(dispositivo, fechaInicio, encuentros);
-        if (nuevaFechaFin) $('#fechaFinCurso').val(nuevaFechaFin);
-    }
-
-    // ─── Recálculo parcial al cambiar fecha inicio ────────────────────────────
-    function recalcularDesdeFechaInicio() {
-        const dispositivo = $('#dispositivoSeleccionado').val();
-        const encuentros  = $('#cantidadEncuentros').val();
-        const fechaInicio = $('#fechaInicioCurso').val(); // "2026-03-24T14:00"
-        const soloFecha   = fechaInicio ? fechaInicio.split('T')[0] : ''; // "2026-03-24"
-
-        $('#drupalDiaDictado').val(diaDeSemana(soloFecha));
-
-        const nuevaFechaFin = calcularFechaFin(dispositivo, soloFecha, encuentros);
-        if (nuevaFechaFin) $('#fechaFinCurso').val(nuevaFechaFin);
-    }
-
-    // ─── Lazy load cursos base ────────────────────────────────────────────────
-    let cursosBaseCargados = false;
-    let todosLosCursosBase = [];
-
-    $('#modalSeleccionarBase').on('show.bs.modal', function () {
-        if (cursosBaseCargados) return;
-        cargarCursosBase();
-    });
-
-    function renderFiltros(cursos) {
-        const dispositivos = [...new Set(cursos.map(c => c.dispositivo).filter(Boolean))].sort();
-        const areas        = [...new Set(cursos.map(c => c.areaNombre).filter(Boolean))].sort();
-        const anios        = [...new Set(cursos.map(c => c.anioReferencia).filter(Boolean))].sort((a, b) => b - a);
-
-        $('#filtroDispositivo').empty().append('<option value="">Todos los dispositivos</option>');
-        dispositivos.forEach(d => $('#filtroDispositivo').append(`<option value="${d}">${d}</option>`));
-
-        $('#filtroArea').empty().append('<option value="">Todas las áreas</option>');
-        areas.forEach(a => $('#filtroArea').append(`<option value="${a}">${a}</option>`));
-
-        $('#filtroAnio').empty().append('<option value="">Todos los años</option>');
-        anios.forEach(a => $('#filtroAnio').append(`<option value="${a}">${a}</option>`));
-    }
-
-    function renderLista(cursos) {
-        const $lista = $('#listaCursosBase').empty();
-        if (cursos.length === 0) {
-            $lista.html('<div class="p-4 text-center text-muted">No hay cursos base que coincidan.</div>');
-            return;
-        }
-        cursos.forEach(cb => {
-            $lista.append(`
-                <button type="button"
-                    class="list-group-item list-group-item-action bg-dark border-secondary item-curso-base"
-                    data-id="${cb._id}"
-                    data-nombre="${cb.nombre}"
-                    data-dispositivo="${cb.dispositivo}"
-                    data-area="${cb.areaNombre}"
-                    data-anioreferencia="${cb.anioReferencia}"
-                    data-idoriginal="${cb.idCursoOriginal}">
-                    <div class="fw-bold text-white">${cb.nombre}</div>
-                    <small class="text-muted">${cb.dispositivo} · ${cb.areaNombre} · ${cb.anioReferencia}</small>
-                </button>
-            `);
-        });
-    }
-
-    function filtrarYRenderizar() {
-        const q          = $('#buscarCursoBase').val().toLowerCase();
-        const dispositivo = $('#filtroDispositivo').val();
-        const area        = $('#filtroArea').val();
-        const anio        = $('#filtroAnio').val();
-
-        const filtrados = todosLosCursosBase.filter(cb => {
-            const matchTexto = !q || cb.nombre.toLowerCase().includes(q) ||
-                (cb.dispositivo || '').toLowerCase().includes(q) ||
-                (cb.areaNombre  || '').toLowerCase().includes(q);
-            const matchDisp = !dispositivo || cb.dispositivo === dispositivo;
-            const matchArea = !area        || cb.areaNombre  === area;
-            const matchAnio = !anio        || String(cb.anioReferencia) === String(anio);
-            return matchTexto && matchDisp && matchArea && matchAnio;
+        // ─── DataTable ───────────────────────────────────────────────────────────
+        $('#tablaCursosCargo').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            responsive: true,
+            order: [[1, 'desc'], [3, 'desc']]
         });
 
-        renderLista(filtrados);
-    }
+        // ─── Datos desde EJS ─────────────────────────────────────────────────────
+        const cursosExistentes = JSON.parse('<%- JSON.stringify(cursosLocales.map(c => ({ anio: c.anio, cohorte: c.cohorte }))) %>');
 
-    function cargarCursosBase() {
-        $('#estadoCargando').removeClass('d-none');
-        $('#estadoError').addClass('d-none');
-        $('#listaCursosBase').addClass('d-none').empty();
-        $('#wrapperFiltros').addClass('d-none');
+        // ─── Reglas por dispositivo ───────────────────────────────────────────────
+        const REGLAS = {
+            'Taller en Servicio':       { encuentros: 3, horas: 4, fechaFin: 'manual',    cohorte: true  },
+            'Taller Fuera de Servicio': { encuentros: 5, horas: 3, fechaFin: 'semanal',   cohorte: true  },
+            'Seminario':                { encuentros: 3, horas: 3, fechaFin: 'semanal',   cohorte: true  },
+            'Extensión CIIE':           { encuentros: 1, horas: 2, fechaFin: 'mismo_dia', cohorte: false }
+        };
 
-        $.get(`/cursoBase/porCiie/<%= ciieClave %>`)
-            .done(function (data) {
-                cursosBaseCargados    = true;
-                todosLosCursosBase    = data || [];
-                $('#estadoCargando').addClass('d-none');
-                renderFiltros(todosLosCursosBase);
-                renderLista(todosLosCursosBase);
-                $('#listaCursosBase').removeClass('d-none');
-                $('#wrapperFiltros').removeClass('d-none');
-            })
-            .fail(function () {
-                $('#estadoCargando').addClass('d-none');
-                $('#estadoError').removeClass('d-none');
-            });
-    }
-
-    $('#btnReintentar').click(cargarCursosBase);
-    $('#buscarCursoBase, #filtroDispositivo, #filtroArea, #filtroAnio').on('input change', filtrarYRenderizar);
-
-    // ─── Paso 1 → Paso 2 ─────────────────────────────────────────────────────
-    $(document).on('click', '.item-curso-base', function () {
-        const d = $(this).data();
-
-        $('#dispositivoSeleccionado').val(d.dispositivo || '');
-        $('#cursoBaseId').val(d.id);
-        $('#idCursoOriginal').val(d.idoriginal || '');
-        $('#nombrePropuesta').val(d.nombre || '');
-        $('#dispositivo').val(d.dispositivo || '');
-        $('#resumenNombreBase').text(d.nombre);
-        $('#resumenDetalleBase').text(`${d.dispositivo} · ${d.area} · ${d.anioreferencia}`);
-
-        recalcularDesdeCursoBase(d.dispositivo);
-
-        $('#modalSeleccionarBase').modal('hide');
-        setTimeout(() => $('#modalAltaCurso').modal('show'), 400);
-    });
-
-    // ─── Listeners de cambio manual ───────────────────────────────────────────
-    $('#anio').on('change input', function () {
-        const dispositivo = $('#dispositivoSeleccionado').val();
-        const regla = REGLAS[dispositivo];
-        if (!regla || regla.cohorte) {
-            $('#cohorte').val(proximaCohorte($(this).val()));
+        // ─── Helpers ─────────────────────────────────────────────────────────────
+        function esTaller(dispositivo) {
+            return dispositivo && dispositivo.toLowerCase().includes('taller');
         }
-    });
 
-    $('#cantidadEncuentros').on('change input', recalcularDesdeEncuentros);
-    $('#fechaInicioCurso').on('change input', recalcularDesdeFechaInicio);
+        function calcularPuntaje(dispositivo, encuentros) {
+            if (!esTaller(dispositivo)) return '';
+            const n = parseInt(encuentros) || 0;
+            if (n < 3) return '';
+            if (n >= 8) return 0.48;
+            return 0.44;
+        }
 
-    // ─── Volver al paso 1 ────────────────────────────────────────────────────
-    $('#btnVolver').click(function () {
-        $('#modalAltaCurso').modal('hide');
-        setTimeout(() => $('#modalSeleccionarBase').modal('show'), 400);
-    });
+        function proximaCohorte(anio) {
+            const delAnio = cursosExistentes.filter(c => c.anio == anio);
+            if (delAnio.length === 0) return 1;
+            return Math.max(...delAnio.map(c => c.cohorte)) + 1;
+        }
 
-    // ─── Guardar ─────────────────────────────────────────────────────────────
-    $('#btnGuardarCurso').click(function () {
-        const btn = $(this);
+        function formatDateTimeLocal(d) {
+            const yyyy = d.getFullYear();
+            const mm   = String(d.getMonth() + 1).padStart(2, '0');
+            const dd   = String(d.getDate()).padStart(2, '0');
+            const hh   = String(d.getHours()).padStart(2, '0');
+            const mi   = String(d.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+        }
 
-        const obligatorios = ['anio', 'cohorte', 'fechaInicioCurso', 'cupo',
-            'cantidadEncuentros', 'cantidadHoras', 'drupalFormatoDictado', 'formadorAbc',
-            'drupalNivel', 'drupalSede', 'drupalOrganiza', 'alcance'];
+        function diaDeSemana(fechaStr) {
+            if (!fechaStr) return '';
+            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const d = new Date(fechaStr.includes('T') ? fechaStr : fechaStr + 'T00:00');
+            return dias[d.getDay()];
+        }
 
-        let valido = true;
-        obligatorios.forEach(id => {
-            const $campo = $('#' + id);
-            if (!$campo.val()) {
-                $campo.addClass('is-invalid');
-                valido = false;
+        // ─── Cálculo fecha fin ────────────────────────────────────────────────────
+        // fechaInicio + (encuentros-1) semanas + horas de duración
+        // Ej: inicio Martes 1/4 14:00, 5 encuentros semanales, 3 hs → fin 29/4 17:00
+        function calcularFechaFin(dispositivo, fechaInicioStr, encuentros, horas) {
+            const regla = REGLAS[dispositivo];
+            if (!regla || !fechaInicioStr) return '';
+
+            const n = parseInt(encuentros) || 1;
+            const h = parseFloat(horas) || 0;
+
+            const d = new Date(fechaInicioStr.includes('T') ? fechaInicioStr : fechaInicioStr + 'T00:00');
+
+            // Siempre: inicio + (encuentros - 1) semanas + horas
+            d.setDate(d.getDate() + (n - 1) * 7);
+            if (h > 0) d.setMinutes(d.getMinutes() + h * 60);
+
+            return formatDateTimeLocal(d);
+        }
+
+        // ─── Recálculos ───────────────────────────────────────────────────────────
+        function recalcularDesdeCursoBase(dispositivo) {
+            const regla = REGLAS[dispositivo];
+            const encuentros = regla ? regla.encuentros : '';
+            const horas      = regla ? regla.horas : '';
+
+            $('#cantidadEncuentros').val(encuentros);
+            $('#cantidadHoras').val(horas);
+            $('#drupalPuntaje').val(calcularPuntaje(dispositivo, encuentros));
+
+            if (regla && !regla.cohorte) {
+                $('#cohorte').val(0);
             } else {
-                $campo.removeClass('is-invalid');
+                $('#cohorte').val(proximaCohorte($('#anio').val()));
             }
-        });
 
-        if (!valido) {
-            Swal.fire('Campos incompletos', 'Completá todos los campos obligatorios.', 'warning');
-            return;
+            const fechaInicio = $('#fechaInicioCurso').val();
+            if (fechaInicio) {
+                const fin = calcularFechaFin(dispositivo, fechaInicio, encuentros, horas);
+                if (fin) $('#fechaFinCurso').val(fin);
+            }
         }
 
-        const publicacionDrupal = {
-            nivel:          $('#drupalNivel').val()          || undefined,
-            formatoDictado: $('#drupalFormatoDictado').val() || undefined,
-            puntaje:        $('#drupalPuntaje').val() ? Number($('#drupalPuntaje').val()) : undefined,
-            sede:           $('#drupalSede').val()           || undefined,
-            organiza:       $('#drupalOrganiza').val()       || undefined,
-            diasHorarios:   $('#drupalDiaDictado').val()     || undefined,
-            publicado:      false
-        };
+        function recalcularDesdeEncuentros() {
+            const dispositivo = $('#dispositivoSeleccionado').val();
+            const encuentros  = $('#cantidadEncuentros').val();
+            const horas       = $('#cantidadHoras').val();
+            const fechaInicio = $('#fechaInicioCurso').val();
 
-        const payload = {
-            cursoBaseId:        $('#cursoBaseId').val(),
-            cargoId:            $('#cargoId').val(),
-            ciieId:             $('#ciieId').val(),
-            creadoPor:          $('#creadoPor').val(),
-            idCursoOriginal:    $('#idCursoOriginal').val(),
-            nombrePropuesta:    $('#nombrePropuesta').val(),
-            dispositivo:        $('#dispositivo').val(),
-            tituloFormulario:   $('#tituloFormulario').val(),
-            anio:               Number($('#anio').val()),
-            cohorte:            Number($('#cohorte').val()),
-            fechaInicioCurso:   $('#fechaInicioCurso').val(),
-            fechaFinCurso:      $('#fechaFinCurso').val(),
-            cupo:               Number($('#cupo').val()),
-            alcance:            Number($('#alcance').val()),
-            cantidadEncuentros: Number($('#cantidadEncuentros').val()),
-            cantidadHoras:      Number($('#cantidadHoras').val()),
-            formadorAbc:        $('#formadorAbc').val(),
-            publicacionDrupal
-        };
+            $('#drupalPuntaje').val(calcularPuntaje(dispositivo, encuentros));
 
-        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Guardando...');
+            const fin = calcularFechaFin(dispositivo, fechaInicio, encuentros, horas);
+            if (fin) $('#fechaFinCurso').val(fin);
+        }
 
-        $.ajax({
-            url: '/curso/alta',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(payload),
-            success: function () {
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Curso creado!',
-                    showConfirmButton: false,
-                    timer: 1500
-                }).then(() => location.reload());
-            },
-            error: function (xhr) {
-                btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Crear Curso');
-                Swal.fire('Error', xhr.responseJSON?.error || 'No se pudo crear el curso.', 'error');
+        function recalcularDesdeFechaInicio() {
+            const dispositivo = $('#dispositivoSeleccionado').val();
+            const encuentros  = $('#cantidadEncuentros').val();
+            const horas       = $('#cantidadHoras').val();
+            const fechaInicio = $('#fechaInicioCurso').val();
+
+            $('#drupalDiaDictado').val(diaDeSemana(fechaInicio));
+
+            const fin = calcularFechaFin(dispositivo, fechaInicio, encuentros, horas);
+            if (fin) $('#fechaFinCurso').val(fin);
+        }
+
+        $('#cantidadEncuentros, #cantidadHoras').on('change input', recalcularDesdeEncuentros);
+        $('#fechaInicioCurso').on('change input', recalcularDesdeFechaInicio);
+
+        $('#anio').on('change input', function () {
+            const dispositivo = $('#dispositivoSeleccionado').val();
+            const regla = REGLAS[dispositivo];
+            if (!regla || regla.cohorte) {
+                $('#cohorte').val(proximaCohorte($(this).val()));
             }
         });
-    });
 
-    // Limpiar is-invalid al escribir
-    $(document).on('input change', '.form-control, .form-select', function () {
-        $(this).removeClass('is-invalid');
-    });
-});
+        // ─── Widget formadores ────────────────────────────────────────────────────
+        const MAX_FORMADORES = 3;
+        const MAX_CHARS = 40;
+        let agentesDelCiie = [];
 
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert('Enlace de inscripción copiado al portapapeles');
-    });
-}
+        $('#modalAltaCurso').on('show.bs.modal', function () {
+            if (agentesDelCiie.length > 0) return;
+            $.get(`/agente/porCiie/<%=ciieClave%>`)
+                .done(function (data) { agentesDelCiie = data || []; });
+        });
+
+        function abreviarNombre(nombreCompleto) {
+            const partes = nombreCompleto.split(',');
+            if (partes.length < 2) return nombreCompleto.trim();
+            const apellido = partes[0].trim();
+            const nombre   = partes[1].trim();
+            return `${apellido}, ${nombre.charAt(0).toUpperCase()}.`;
+        }
+
+        function contarFormadores() {
+            return $('#listaFormadores .formador-row').length;
+        }
+
+        function getCombinado() {
+            const valores = [];
+            $('#listaFormadores .input-formador').each(function () {
+                const v = $(this).val().trim();
+                if (v) valores.push(v);
+            });
+            return valores.join('; ');
+        }
+
+        function actualizarCharCount() {
+            if (contarFormadores() < 2) {
+                $('#wrapperCharCount').addClass('d-none');
+                return;
+            }
+            $('#wrapperCharCount').removeClass('d-none');
+            const largo = getCombinado().length;
+            const pct   = Math.min((largo / MAX_CHARS) * 100, 100);
+            $('#charCountLabel').text(`${largo} / ${MAX_CHARS}`);
+            $('#charCountBar').css('width', `${pct}%`)
+                .removeClass('bg-success bg-warning bg-danger')
+                .addClass(largo > MAX_CHARS ? 'bg-danger' : largo >= MAX_CHARS * 0.8 ? 'bg-warning' : 'bg-success');
+            $('#charCountWarning').toggleClass('d-none', largo <= MAX_CHARS);
+        }
+
+        function actualizarBtnAgregar() {
+            $('#btnAgregarFormador').prop('disabled', contarFormadores() >= MAX_FORMADORES);
+        }
+
+        function mostrarSugerencias(agentes, $input) {
+            $input = $($input);
+            $input.siblings('.dropdown-formadores').remove();
+            if (!agentes || agentes.length === 0) return;
+
+            const $drop = $('<div class="dropdown-formadores list-group position-absolute shadow" style="z-index:9999; min-width:250px;"></div>');
+            agentes.slice(0, 6).forEach(a => {
+                $drop.append(`
+                    <button type="button"
+                            class="list-group-item list-group-item-action bg-dark border-secondary text-white py-1 px-2"
+                            style="font-size:0.85rem;"
+                            data-abreviado="${a.abreviado}">
+                        <span class="fw-bold">${a.abreviado}</span>
+                        <small class="text-muted ms-2">${a.nombreCompleto}</small>
+                    </button>
+                `);
+            });
+
+            $input.parent().css('position', 'relative').append($drop);
+            $drop.on('click', 'button', function () {
+                $input.val($(this).data('abreviado'));
+                $drop.remove();
+                actualizarCharCount();
+            });
+            $(document).one('click', function () { $drop.remove(); });
+        }
+
+        function agregarFilaFormador() {
+            const index = contarFormadores();
+
+            if (index === 1) {
+                const $principal = $('#listaFormadores .input-formador').first();
+                const valor = $principal.val().trim();
+                if (valor) $principal.val(abreviarNombre(valor));
+            }
+
+            const $fila = $(`
+                <div class="formador-row d-flex gap-2 mb-2 align-items-center" data-index="${index}">
+                    <input type="text"
+                           class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
+                           placeholder="Buscar o escribir apellido, inicial..."
+                           maxlength="40">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-formador flex-shrink-0" title="Quitar">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            `);
+
+            $('#listaFormadores').append($fila);
+            $fila.find('.input-formador').focus();
+            actualizarBtnAgregar();
+            actualizarCharCount();
+
+            $fila.find('.input-formador').on('input', function () {
+                actualizarCharCount();
+                const q = $(this).val().trim().toLowerCase();
+                if (q.length < 2) {
+                    $(this).siblings('.dropdown-formadores').remove();
+                    return;
+                }
+                const filtrados = agentesDelCiie.filter(a =>
+                    `${a.abreviado} ${a.nombreCompleto}`.toLowerCase().includes(q)
+                );
+                mostrarSugerencias(filtrados, $(this));
+            });
+        }
+
+        $('#btnAgregarFormador').click(agregarFilaFormador);
+
+        $(document).on('click', '.btn-eliminar-formador', function () {
+            $(this).closest('.formador-row').remove();
+            actualizarBtnAgregar();
+            actualizarCharCount();
+        });
+
+        $('#listaFormadores').on('input', '#formadorAbc', function () {
+            actualizarCharCount();
+        });
+
+        // ─── Lazy load cursos base ────────────────────────────────────────────────
+        let cursosBaseCargados = false;
+        let todosLosCursosBase = [];
+
+        $('#modalSeleccionarBase').on('show.bs.modal', function () {
+            if (cursosBaseCargados) return;
+            cargarCursosBase();
+        });
+
+        function renderFiltros(cursos) {
+            const dispositivos = [...new Set(cursos.map(c => c.dispositivo).filter(Boolean))].sort();
+            const areas        = [...new Set(cursos.map(c => c.areaNombre).filter(Boolean))].sort();
+            const anios        = [...new Set(cursos.map(c => c.anioReferencia).filter(Boolean))].sort((a, b) => b - a);
+            $('#filtroDispositivo').empty().append('<option value="">Todos los dispositivos</option>');
+            dispositivos.forEach(d => $('#filtroDispositivo').append(`<option value="${d}">${d}</option>`));
+            $('#filtroArea').empty().append('<option value="">Todas las áreas</option>');
+            areas.forEach(a => $('#filtroArea').append(`<option value="${a}">${a}</option>`));
+            $('#filtroAnio').empty().append('<option value="">Todos los años</option>');
+            anios.forEach(a => $('#filtroAnio').append(`<option value="${a}">${a}</option>`));
+        }
+
+        function renderLista(cursos) {
+            const $lista = $('#listaCursosBase').empty();
+            if (cursos.length === 0) {
+                $lista.html('<div class="p-4 text-center text-muted">No hay cursos base que coincidan.</div>');
+                return;
+            }
+            cursos.forEach(cb => {
+                $lista.append(`
+                    <button type="button"
+                        class="list-group-item list-group-item-action bg-dark border-secondary item-curso-base"
+                        data-id="${cb._id}"
+                        data-nombre="${cb.nombre}"
+                        data-dispositivo="${cb.dispositivo}"
+                        data-area="${cb.areaNombre}"
+                        data-anioreferencia="${cb.anioReferencia}"
+                        data-idoriginal="${cb.idCursoOriginal}">
+                        <div class="fw-bold text-white">${cb.nombre}</div>
+                        <small class="text-muted">${cb.dispositivo} · ${cb.areaNombre} · ${cb.anioReferencia}</small>
+                    </button>
+                `);
+            });
+        }
+
+        function filtrarYRenderizar() {
+            const q           = $('#buscarCursoBase').val().toLowerCase();
+            const dispositivo = $('#filtroDispositivo').val();
+            const area        = $('#filtroArea').val();
+            const anio        = $('#filtroAnio').val();
+            const filtrados = todosLosCursosBase.filter(cb => {
+                const matchTexto = !q || cb.nombre.toLowerCase().includes(q) ||
+                    (cb.dispositivo || '').toLowerCase().includes(q) ||
+                    (cb.areaNombre  || '').toLowerCase().includes(q);
+                const matchDisp = !dispositivo || cb.dispositivo === dispositivo;
+                const matchArea = !area        || cb.areaNombre  === area;
+                const matchAnio = !anio        || String(cb.anioReferencia) === String(anio);
+                return matchTexto && matchDisp && matchArea && matchAnio;
+            });
+            renderLista(filtrados);
+        }
+
+        function cargarCursosBase() {
+            $('#estadoCargando').removeClass('d-none');
+            $('#estadoError').addClass('d-none');
+            $('#listaCursosBase').addClass('d-none').empty();
+            $('#wrapperFiltros').addClass('d-none');
+            $.get(`/cursoBase/porCiie/<%= ciieClave %>`)
+                .done(function (data) {
+                    cursosBaseCargados = true;
+                    todosLosCursosBase = data || [];
+                    $('#estadoCargando').addClass('d-none');
+                    renderFiltros(todosLosCursosBase);
+                    renderLista(todosLosCursosBase);
+                    $('#listaCursosBase').removeClass('d-none');
+                    $('#wrapperFiltros').removeClass('d-none');
+                })
+                .fail(function () {
+                    $('#estadoCargando').addClass('d-none');
+                    $('#estadoError').removeClass('d-none');
+                });
+        }
+
+        $('#btnReintentar').click(cargarCursosBase);
+        $('#buscarCursoBase, #filtroDispositivo, #filtroArea, #filtroAnio').on('input change', filtrarYRenderizar);
+
+        // ─── Paso 1 → Paso 2 ─────────────────────────────────────────────────────
+        $(document).on('click', '.item-curso-base', function () {
+            const d = $(this).data();
+            $('#dispositivoSeleccionado').val(d.dispositivo || '');
+            $('#cursoBaseId').val(d.id);
+            $('#idCursoOriginal').val(d.idoriginal || '');
+            $('#nombrePropuesta').val(d.nombre || '');
+            $('#dispositivo').val(d.dispositivo || '');
+            $('#resumenNombreBase').text(d.nombre);
+            $('#resumenDetalleBase').text(`${d.dispositivo} · ${d.area} · ${d.anioreferencia}`);
+            recalcularDesdeCursoBase(d.dispositivo);
+            $('#modalSeleccionarBase').modal('hide');
+            setTimeout(() => $('#modalAltaCurso').modal('show'), 400);
+        });
+
+        // ─── Volver ──────────────────────────────────────────────────────────────
+        $('#btnVolver').click(function () {
+            $('#modalAltaCurso').modal('hide');
+            setTimeout(() => $('#modalSeleccionarBase').modal('show'), 400);
+        });
+
+        // ─── Guardar ─────────────────────────────────────────────────────────────
+        $('#btnGuardarCurso').click(function () {
+            const btn = $(this);
+
+            const formadorCombinado = getCombinado();
+            if (!formadorCombinado) {
+                Swal.fire('Campos incompletos', 'Ingresá al menos un formador.', 'warning');
+                return;
+            }
+            if (formadorCombinado.length > MAX_CHARS) {
+                Swal.fire('Límite de caracteres', 'El nombre combinado de formadores supera los 40 caracteres.', 'warning');
+                return;
+            }
+
+            const obligatorios = ['anio', 'cohorte', 'fechaInicioCurso', 'cupo',
+                'cantidadEncuentros', 'cantidadHoras', 'drupalFormatoDictado',
+                'drupalNivel', 'drupalSede', 'drupalOrganiza', 'alcance'];
+
+            let valido = true;
+            obligatorios.forEach(id => {
+                const $campo = $('#' + id);
+                if (!$campo.val()) { $campo.addClass('is-invalid'); valido = false; }
+                else $campo.removeClass('is-invalid');
+            });
+
+            if (!valido) {
+                Swal.fire('Campos incompletos', 'Completá todos los campos obligatorios.', 'warning');
+                return;
+            }
+
+            const publicacionDrupal = {
+                nivel:          $('#drupalNivel').val()          || undefined,
+                formatoDictado: $('#drupalFormatoDictado').val() || undefined,
+                puntaje:        $('#drupalPuntaje').val() ? Number($('#drupalPuntaje').val()) : undefined,
+                sede:           $('#drupalSede').val()           || undefined,
+                organiza:       $('#drupalOrganiza').val()       || undefined,
+                diasHorarios:   $('#drupalDiaDictado').val()     || undefined,
+                publicado:      false
+            };
+
+            const payload = {
+                cursoBaseId:        $('#cursoBaseId').val(),
+                cargoId:            $('#cargoId').val(),
+                ciieId:             $('#ciieId').val(),
+                creadoPor:          $('#creadoPor').val(),
+                idCursoOriginal:    $('#idCursoOriginal').val(),
+                nombrePropuesta:    $('#nombrePropuesta').val(),
+                dispositivo:        $('#dispositivo').val(),
+                tituloFormulario:   $('#tituloFormulario').val(),
+                anio:               Number($('#anio').val()),
+                cohorte:            Number($('#cohorte').val()),
+                fechaInicioCurso:   $('#fechaInicioCurso').val(),
+                fechaFinCurso:      $('#fechaFinCurso').val(),
+                cupo:               Number($('#cupo').val()),
+                alcance:            Number($('#alcance').val()),
+                cantidadEncuentros: Number($('#cantidadEncuentros').val()),
+                cantidadHoras:      Number($('#cantidadHoras').val()),
+                formadorAbc:        formadorCombinado,
+                publicacionDrupal
+            };
+
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Guardando...');
+
+            $.ajax({
+                url: '/curso/alta',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: function () {
+                    Swal.fire({ icon: 'success', title: '¡Curso creado!', showConfirmButton: false, timer: 1500 })
+                        .then(() => location.reload());
+                },
+                error: function (xhr) {
+                    btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Crear Curso');
+                    Swal.fire('Error', xhr.responseJSON?.error || 'No se pudo crear el curso.', 'error');
+                }
+            });
+        });
+
+        $(document).on('input change', '.form-control, .form-select', function () {
+            $(this).removeClass('is-invalid');
+        });
+
+    }); // fin document.ready
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Enlace de inscripción copiado al portapapeles');
+        });
+    }
     </script>
 </body>
 </html>

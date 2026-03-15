@@ -71,6 +71,25 @@ class AgenteService {
             throw error}
     }
 
+   async getAgentesPorCiie(ciieId) {
+    const personas = await agenteRepo.getAgentesPorCiieId(ciieId);
+    console.log('Agentes obtenidos para CIIE id', ciieId, ':', personas.length);
+    return personas
+        .sort((a, b) => {
+            const apellidoA = (a.apellido || a.nombreCompleto || '').toLowerCase();
+            const apellidoB = (b.apellido || b.nombreCompleto || '').toLowerCase();
+            if (apellidoA !== apellidoB) return apellidoA < apellidoB ? -1 : 1;
+            const nombreA = (a.nombre || a.abreviado || '').toLowerCase();
+            const nombreB = (b.nombre || b.abreviado || '').toLowerCase();
+            return nombreA < nombreB ? -1 : nombreA > nombreB ? 1 : 0;
+        })
+        .filter(a => (a.apellido && a.nombre) || (a.abreviado && a.nombreCompleto))
+            .map(a => ({
+                abreviado: a.abreviado || `${a.apellido}, ${String(a.nombre || '').charAt(0)}.`,
+                nombreCompleto: a.nombreCompleto || `${a.apellido}, ${a.nombre}`
+            }));
+}
+
     async getAgentes() {
     try {
         const agentes = await agenteRepo.getAgentes();
@@ -103,6 +122,8 @@ class AgenteService {
         throw error;
     }
 }
+
+
     async getPorDni(dni) {
         try {
             const persona = await personaRepo.getPorDni(dni)
