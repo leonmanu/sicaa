@@ -434,7 +434,7 @@
         const btn = document.createElement('button');
         btn.textContent = 'Confirmar';
         btn.className = 'btn btn-sm btn-success w-100 mt-2';
-        btn.addEventListener('click', function() { instance.close(); });
+        btn.addEventListener('click touchstart', function() { instance.close(); });
         instance.calendarContainer.appendChild(btn);
     }
 };
@@ -600,7 +600,7 @@
                 `);
             });
             $input.parent().css('position', 'relative').append($drop);
-            $drop.on('click', 'button', function () {
+            $drop.on('click touchstart', 'button', function () {
                 $input.val($(this).data('abreviado'));
                 $drop.remove();
                 actualizarCharCount();
@@ -803,7 +803,7 @@
         $('#buscarCursoBase, #filtroDispositivo, #filtroArea, #filtroAnio').on('input change', filtrarYRenderizar);
 
         // ─── Paso 1 → Paso 2 ─────────────────────────────────────────────────────
-        $(document).on('click', '.item-curso-base', function () {
+        $(document).on('click touchstart', '.item-curso-base', function () {
             const d = $(this).data();
             $('#dispositivoSeleccionado').val(d.dispositivo || '');
             $('#cursoBaseId').val(d.id);
