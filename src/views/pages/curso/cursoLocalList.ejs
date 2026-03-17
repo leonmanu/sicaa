@@ -439,20 +439,23 @@
     }
 };
 
-        const fpInicio = flatpickr('#fechaInicioCurso', {
-            ...fpOpts,
-            onChange: function(selectedDates) {
-                if (!selectedDates[0]) return;
-                const d = selectedDates[0];
-                // Día de dictado
-                const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                $('#drupalDiaDictado').val(dias[d.getDay()]);
-                // Fecha fin
-                recalcularFechaFin(d);
-            }
-        });
-
-        const fpFin = flatpickr('#fechaFinCurso', fpOpts);
+        // ─── Flatpickr ───────────────────────────────────────────────────────────
+let fpInicio, fpFin;
+try {
+    fpInicio = flatpickr('#fechaInicioCurso', {
+        ...fpOpts,
+        onChange: function(selectedDates) {
+            if (!selectedDates[0]) return;
+            const d = selectedDates[0];
+            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            $('#drupalDiaDictado').val(dias[d.getDay()]);
+            recalcularFechaFin(d);
+        }
+    });
+    fpFin = flatpickr('#fechaFinCurso', fpOpts);
+} catch(e) {
+    console.error('Error Flatpickr:', e);
+}
 
         // ─── Helpers ─────────────────────────────────────────────────────────────
         function esTaller(dispositivo) {
@@ -488,7 +491,7 @@
             const d = new Date(fechaInicioDate);
             d.setDate(d.getDate() + (n - 1) * 7);
             if (h > 0) d.setMinutes(d.getMinutes() + h * 60);
-            fpFin.setDate(d, true);
+            if (fpFin) fpFin.setDate(d, true);
         }
 
         // ─── Recálculos ───────────────────────────────────────────────────────────
@@ -505,9 +508,9 @@
                 $('#cohorte').val(proximaCohorte($('#anio').val()));
             }
             // Recalcular fecha fin si ya hay fecha inicio
-            if (fpInicio.selectedDates[0]) {
-                recalcularFechaFin(fpInicio.selectedDates[0]);
-            }
+            if (fpInicio && fpInicio.selectedDates[0]) {
+    recalcularFechaFin(fpInicio.selectedDates[0]);
+}
         }
 
         $('#cantidadEncuentros, #cantidadHoras').on('change input', function () {
@@ -722,8 +725,6 @@
         let todosLosCursosBase = [];
 
         $('#modalSeleccionarBase').on('show.bs.modal', function () {
-            fpInicio.close();
-            fpFin.close();
             if (cursosBaseCargados) return;
             cargarCursosBase();
         });
