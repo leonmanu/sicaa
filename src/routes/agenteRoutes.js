@@ -17,7 +17,7 @@ const {
     post
 } = require('../controllers/encuentroController');
 
-const {getAgentesPorCiie} = require('../controllers/agenteController');
+const {getAgentesPorCiie, getAgentesPorAlcance} = require('../controllers/agenteController');
 
 //http://localhost:3000/agente/curso/cdi-1/ciie06901
 router
@@ -32,10 +32,11 @@ router
     .get('/inscriptos/:idInscripcion', cursanteExternoController.getCursantes)
     
 
-    //ajax inscripto
+    //ajax 
     .get('/inscriptosExternos/curso/:idOfertaOficial/consultar', getExternosPorIdOfertaOficial)
     .post('/inscriptos/guardar', vincularCursantes)
     .get('/porCiie/:ciieClave', getAgentesPorCiie)
+    .get('/porAlcance/:ciieId', getAgentesPorAlcance)
     
 
     //encuentros

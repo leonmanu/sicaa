@@ -100,6 +100,19 @@ const postAsistenciaCursante = async (req, res) => {
     }
 }
 
+// En agenteController.js
+const getAgentesPorAlcance = async (req, res) => {
+    try {
+        const { ciieId } = req.params;
+        const { alcance = 'local' } = req.query;
+        const agentes = await agenteService.getAgentesPorAlcance(ciieId, alcance);
+        res.status(200).json(agentes);
+    } catch (error) {
+        console.error('Error al obtener agentes por alcance:', error);
+        res.status(500).json({ error: 'No se pudo obtener los agentes.' });
+    }
+}
+
 
 module.exports = { 
     //getCargosPorAgenteEmail,
@@ -107,5 +120,6 @@ module.exports = {
     //viewAsistencia,
     getAgentesPorCiie,
     postEncuentro,
-    postAsistenciaCursante
+    postAsistenciaCursante,
+    getAgentesPorAlcance
 };

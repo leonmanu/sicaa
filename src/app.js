@@ -55,6 +55,8 @@ app.use('/agente', require('./routes/agenteRoutes'));
 app.use('/cargo', require('./routes/cargoRoutes'));
 app.use('/asignaciones', require('./routes/asignacionRoutes'));
 app.use('/inscripto', require('./routes/inscriptoRouter'));
+//test-drupal para probar sesión Drupal
+app.use('/test', require('./test/sesionDrupalTest'));
 
 app.get('/', (req, res) => res.render('pages/index'));
 

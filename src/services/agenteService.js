@@ -9,6 +9,7 @@ const cursoLocalService = require('./cursoLocalService');
 const encuentroService = require('./encuentroService');
 const inscriptoLocalService = require('./inscriptoLocalService');
 const asistenciaService = require('./asistenciaService');
+const cargoRepo = require('../repos/cargoRepo');
 
 class AgenteService {
 
@@ -221,6 +222,22 @@ class AgenteService {
             console.error('Error al guardar la asistencia:', error);
             throw error;
         }
+    }
+
+    async getAgentesPorAlcance(ciieId, alcance = 'local') {
+        const cargos = await cargoRepo.getAgentesPorAlcance(ciieId, alcance);
+        return cargos
+            .map(c => {
+                const persona = c.ocupante.usuarioId.referenciaId;
+                return {
+                    cargoId:        c._id,
+                    abreviado:      `${persona.apellido}, ${persona.nombre.charAt(0)}.`,
+                    nombreCompleto: `${persona.apellido}, ${persona.nombre}`,
+                    area:           c.areaId?.nombre || '',
+                    ciie:           c.ciieId?.nombre || ''
+                };
+            })
+            .sort((a, b) => a.area.localeCompare(b.area) || a.abreviado.localeCompare(b.abreviado));
     }
 }
 

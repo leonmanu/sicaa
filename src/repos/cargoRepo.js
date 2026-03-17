@@ -117,6 +117,38 @@ class CargoRepo {
         return cargos.filter(cargo => cargo.ocupante !== null);
     }
 
+    async getAgentesPorAlcance(ciieId, alcance = 'local') {
+    let ciieIds = [ciieId];
+
+    if (alcance === 'regional' || alcance === 'todos') {
+        const Ciie = require('../models/Ciie');
+        const miCiie = await Ciie.findById(ciieId).lean();
+
+        if (alcance === 'regional' && miCiie?.region) {
+            const ciiesRegion = await Ciie.find({ region: miCiie.region }).lean();
+            ciieIds = ciiesRegion.map(c => c._id);
+        } else if (alcance === 'todos') {
+            const todosCiies = await Ciie.find({}).lean();
+            ciieIds = todosCiies.map(c => c._id);
+        }
+    }
+
+    const cargos = await Cargo.find({ ciieId: { $in: ciieIds } })
+        .populate({
+            path: 'ocupante',
+            match: { estado: 'Activo' },
+            populate: {
+                path: 'usuarioId',
+                populate: { path: 'referenciaId' }
+            }
+        })
+        .populate('ciieId', 'nombre region')
+        .populate('areaId', 'nombre')
+        .lean();
+
+    return cargos.filter(c => c.ocupante?.usuarioId?.referenciaId);
+}
+
     async getPorCiieReferenciaId(referenciaId) {
         const resultado = await Cargo.find({ ciieId:referenciaId })
             .populate(populateBase)

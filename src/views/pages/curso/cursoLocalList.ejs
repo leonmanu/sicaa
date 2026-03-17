@@ -210,7 +210,7 @@
                         <div class="col-6">
                             <label class="form-label small fw-bold">INICIO CURSADA <small>fecha y hora</small> <span class="text-danger">*</span></label>
                             <input type="datetime-local" class="form-control bg-dark border-secondary text-white"
-                                   id="fechaInicioCurso" name="fechaInicioCurso" required>
+                                   id="fechaInicioCurso" name="fechaInicioCurso" step="300" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label small fw-bold">FORMATO DICTADO <span class="text-danger">*</span></label>
@@ -233,8 +233,22 @@
                                     <i class="bi bi-person-plus me-1"></i>+ Invitado
                                 </button>
                             </div>
+
+                            <!-- Selector de alcance: oculto hasta agregar primer invitado -->
+                            <div id="wrapperAlcance" class="d-none mb-2">
+                                <div class="btn-group btn-group-sm w-100" role="group">
+                                    <input type="radio" class="btn-check" name="alcanceFormadores" id="alcanceLocal" value="local" checked>
+                                    <label class="btn btn-outline-secondary" for="alcanceLocal">Este CIIE</label>
+                                    <input type="radio" class="btn-check" name="alcanceFormadores" id="alcanceRegional" value="regional">
+                                    <label class="btn btn-outline-secondary" for="alcanceRegional">Regional</label>
+                                    <input type="radio" class="btn-check" name="alcanceFormadores" id="alcanceTodos" value="todos">
+                                    <label class="btn btn-outline-secondary" for="alcanceTodos">Todos</label>
+                                </div>
+                            </div>
+
                             <div id="listaFormadores">
-                                <div class="formador-row d-flex gap-2 mb-2 align-items-center" data-index="0">
+                                <!-- Formador principal (siempre presente, sin botón eliminar) -->
+                                <div class="formador-row mb-2" data-index="0" data-cargo-id="">
                                     <input type="text"
                                            class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
                                            id="formadorAbc" name="formadorAbc"
@@ -242,6 +256,7 @@
                                            value="<%= formadore %>" required>
                                 </div>
                             </div>
+
                             <div id="wrapperCharCount" class="d-none mt-1">
                                 <div class="d-flex justify-content-between mb-1" style="font-size: 0.7rem;">
                                     <span class="text-muted">Caracteres usados al combinar</span>
@@ -382,13 +397,13 @@
 
         // ─── Reglas por dispositivo ───────────────────────────────────────────────
         const REGLAS = {
-            'Taller en Servicio':       { encuentros: 3, horas: 4, fechaFin: 'manual',    cohorte: true  },
-            'Taller Fuera de Servicio': { encuentros: 5, horas: 3, fechaFin: 'semanal',   cohorte: true  },
-            'Seminario':                { encuentros: 3, horas: 3, fechaFin: 'semanal',   cohorte: true  },
-            'Extensión CIIE':           { encuentros: 1, horas: 2, fechaFin: 'mismo_dia', cohorte: false }
+            'Taller en Servicio':       { encuentros: 3, horas: 4, cohorte: true  },
+            'Taller Fuera de Servicio': { encuentros: 5, horas: 3, cohorte: true  },
+            'Seminario':                { encuentros: 3, horas: 3, cohorte: true  },
+            'Extensión CIIE':           { encuentros: 1, horas: 2, cohorte: false }
         };
 
-        // ─── Helpers ─────────────────────────────────────────────────────────────
+        // ─── Helpers generales ────────────────────────────────────────────────────
         function esTaller(dispositivo) {
             return dispositivo && dispositivo.toLowerCase().includes('taller');
         }
@@ -397,8 +412,7 @@
             if (!esTaller(dispositivo)) return '';
             const n = parseInt(encuentros) || 0;
             if (n < 3) return '';
-            if (n >= 8) return 0.48;
-            return 0.44;
+            return n >= 8 ? 0.48 : 0.44;
         }
 
         function proximaCohorte(anio) {
@@ -423,22 +437,13 @@
             return dias[d.getDay()];
         }
 
-        // ─── Cálculo fecha fin ────────────────────────────────────────────────────
-        // fechaInicio + (encuentros-1) semanas + horas de duración
-        // Ej: inicio Martes 1/4 14:00, 5 encuentros semanales, 3 hs → fin 29/4 17:00
         function calcularFechaFin(dispositivo, fechaInicioStr, encuentros, horas) {
-            const regla = REGLAS[dispositivo];
-            if (!regla || !fechaInicioStr) return '';
-
+            if (!fechaInicioStr) return '';
             const n = parseInt(encuentros) || 1;
             const h = parseFloat(horas) || 0;
-
             const d = new Date(fechaInicioStr.includes('T') ? fechaInicioStr : fechaInicioStr + 'T00:00');
-
-            // Siempre: inicio + (encuentros - 1) semanas + horas
             d.setDate(d.getDate() + (n - 1) * 7);
             if (h > 0) d.setMinutes(d.getMinutes() + h * 60);
-
             return formatDateTimeLocal(d);
         }
 
@@ -447,17 +452,14 @@
             const regla = REGLAS[dispositivo];
             const encuentros = regla ? regla.encuentros : '';
             const horas      = regla ? regla.horas : '';
-
             $('#cantidadEncuentros').val(encuentros);
             $('#cantidadHoras').val(horas);
             $('#drupalPuntaje').val(calcularPuntaje(dispositivo, encuentros));
-
             if (regla && !regla.cohorte) {
                 $('#cohorte').val(0);
             } else {
                 $('#cohorte').val(proximaCohorte($('#anio').val()));
             }
-
             const fechaInicio = $('#fechaInicioCurso').val();
             if (fechaInicio) {
                 const fin = calcularFechaFin(dispositivo, fechaInicio, encuentros, horas);
@@ -470,9 +472,7 @@
             const encuentros  = $('#cantidadEncuentros').val();
             const horas       = $('#cantidadHoras').val();
             const fechaInicio = $('#fechaInicioCurso').val();
-
             $('#drupalPuntaje').val(calcularPuntaje(dispositivo, encuentros));
-
             const fin = calcularFechaFin(dispositivo, fechaInicio, encuentros, horas);
             if (fin) $('#fechaFinCurso').val(fin);
         }
@@ -482,41 +482,45 @@
             const encuentros  = $('#cantidadEncuentros').val();
             const horas       = $('#cantidadHoras').val();
             const fechaInicio = $('#fechaInicioCurso').val();
-
             $('#drupalDiaDictado').val(diaDeSemana(fechaInicio));
-
             const fin = calcularFechaFin(dispositivo, fechaInicio, encuentros, horas);
             if (fin) $('#fechaFinCurso').val(fin);
         }
 
         $('#cantidadEncuentros, #cantidadHoras').on('change input', recalcularDesdeEncuentros);
         $('#fechaInicioCurso').on('change input', recalcularDesdeFechaInicio);
-
         $('#anio').on('change input', function () {
-            const dispositivo = $('#dispositivoSeleccionado').val();
-            const regla = REGLAS[dispositivo];
-            if (!regla || regla.cohorte) {
-                $('#cohorte').val(proximaCohorte($(this).val()));
-            }
+            const regla = REGLAS[$('#dispositivoSeleccionado').val()];
+            if (!regla || regla.cohorte) $('#cohorte').val(proximaCohorte($(this).val()));
         });
 
         // ─── Widget formadores ────────────────────────────────────────────────────
         const MAX_FORMADORES = 3;
         const MAX_CHARS = 40;
-        let agentesDelCiie = [];
+        let agentesDelCiie  = [];  // para el campo principal
+        let agentesInvitados = []; // para los invitados
 
         $('#modalAltaCurso').on('show.bs.modal', function () {
             if (agentesDelCiie.length > 0) return;
             $.get(`/agente/porCiie/<%=ciieClave%>`)
                 .done(function (data) { agentesDelCiie = data || []; });
+            cargarAgentesInvitados('local');
+        });
+
+        function cargarAgentesInvitados(alcance) {
+            const ciieId = $('#ciieId').val();
+            $.get(`/agente/porAlcance/${ciieId}`, { alcance })
+                .done(function (data) { agentesInvitados = data || []; });
+        }
+
+        $(document).on('change', 'input[name="alcanceFormadores"]', function () {
+            cargarAgentesInvitados($(this).val());
         });
 
         function abreviarNombre(nombreCompleto) {
             const partes = nombreCompleto.split(',');
             if (partes.length < 2) return nombreCompleto.trim();
-            const apellido = partes[0].trim();
-            const nombre   = partes[1].trim();
-            return `${apellido}, ${nombre.charAt(0).toUpperCase()}.`;
+            return `${partes[0].trim()}, ${partes[1].trim().charAt(0).toUpperCase()}.`;
         }
 
         function contarFormadores() {
@@ -551,9 +555,10 @@
             $('#btnAgregarFormador').prop('disabled', contarFormadores() >= MAX_FORMADORES);
         }
 
+        // Sugerencias para el campo principal (solo nombre)
         function mostrarSugerencias(agentes, $input) {
             $input = $($input);
-            $input.siblings('.dropdown-formadores').remove();
+            $input.closest('.formador-row').find('.dropdown-formadores').remove();
             if (!agentes || agentes.length === 0) return;
 
             const $drop = $('<div class="dropdown-formadores list-group position-absolute shadow" style="z-index:9999; min-width:250px;"></div>');
@@ -568,7 +573,6 @@
                     </button>
                 `);
             });
-
             $input.parent().css('position', 'relative').append($drop);
             $drop.on('click', 'button', function () {
                 $input.val($(this).data('abreviado'));
@@ -578,24 +582,67 @@
             $(document).one('click', function () { $drop.remove(); });
         }
 
+        // Sugerencias para invitados (nombre + área + ciie + badge de cargo)
+        function mostrarSugerenciasInvitado(agentes, $input) {
+            $input = $($input);
+            $input.closest('.formador-row').find('.dropdown-formadores').remove();
+            if (!agentes || agentes.length === 0) return;
+
+            const $drop = $('<div class="dropdown-formadores list-group position-absolute shadow" style="z-index:9999; min-width:300px;"></div>');
+            agentes.slice(0, 8).forEach(a => {
+                $drop.append(`
+                    <button type="button"
+                            class="list-group-item list-group-item-action bg-dark border-secondary text-white py-1 px-2"
+                            style="font-size:0.85rem;"
+                            data-abreviado="${a.abreviado}"
+                            data-cargo-id="${a.cargoId}"
+                            data-area="${a.area}"
+                            data-ciie="${a.ciie}">
+                        <span class="fw-bold">${a.abreviado}</span>
+                        <small class="text-muted ms-2">${a.area} · ${a.ciie}</small>
+                    </button>
+                `);
+            });
+            $input.parent().css('position', 'relative').append($drop);
+            $drop.on('click', 'button', function () {
+                const $fila = $input.closest('.formador-row');
+                $input.val($(this).data('abreviado'));
+                $fila.attr('data-cargo-id', $(this).data('cargo-id'));
+                // Mostrar badge con info del cargo debajo del input
+                $fila.find('.cargo-badge').remove();
+                const area  = $(this).data('area');
+                const ciie  = $(this).data('ciie');
+                if (area || ciie) {
+                    $fila.append(`<div class="cargo-badge text-info mt-1" style="font-size:0.7rem;"><i class="bi bi-person-badge me-1"></i>${[area, ciie].filter(Boolean).join(' · ')}</div>`);
+                }
+                $drop.remove();
+                actualizarCharCount();
+            });
+            $(document).one('click', function () { $drop.remove(); });
+        }
+
         function agregarFilaFormador() {
             const index = contarFormadores();
 
+            // Al agregar el primer invitado: abreviar principal y mostrar selector de alcance
             if (index === 1) {
                 const $principal = $('#listaFormadores .input-formador').first();
                 const valor = $principal.val().trim();
                 if (valor) $principal.val(abreviarNombre(valor));
+                $('#wrapperAlcance').removeClass('d-none');
             }
 
             const $fila = $(`
-                <div class="formador-row d-flex gap-2 mb-2 align-items-center" data-index="${index}">
-                    <input type="text"
-                           class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
-                           placeholder="Buscar o escribir apellido, inicial..."
-                           maxlength="40">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-formador flex-shrink-0" title="Quitar">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
+                <div class="formador-row mb-2" data-index="${index}" data-cargo-id="">
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="text"
+                               class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
+                               placeholder="Buscar por área o nombre..."
+                               maxlength="40">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-formador flex-shrink-0" title="Quitar">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
                 </div>
             `);
 
@@ -608,15 +655,29 @@
                 actualizarCharCount();
                 const q = $(this).val().trim().toLowerCase();
                 if (q.length < 2) {
-                    $(this).siblings('.dropdown-formadores').remove();
+                    $(this).closest('.formador-row').find('.dropdown-formadores').remove();
                     return;
                 }
-                const filtrados = agentesDelCiie.filter(a =>
-                    `${a.abreviado} ${a.nombreCompleto}`.toLowerCase().includes(q)
+                const filtrados = agentesInvitados.filter(a =>
+                    `${a.abreviado} ${a.nombreCompleto} ${a.area} ${a.ciie}`.toLowerCase().includes(q)
                 );
-                mostrarSugerencias(filtrados, $(this));
+                mostrarSugerenciasInvitado(filtrados, $(this));
             });
         }
+
+        // Listener del campo principal para autocompletar
+        $('#listaFormadores').on('input', '#formadorAbc', function () {
+            actualizarCharCount();
+            const q = $(this).val().trim().toLowerCase();
+            if (q.length < 2) {
+                $(this).closest('.formador-row').find('.dropdown-formadores').remove();
+                return;
+            }
+            const filtrados = agentesDelCiie.filter(a =>
+                `${a.abreviado} ${a.nombreCompleto}`.toLowerCase().includes(q)
+            );
+            mostrarSugerencias(filtrados, $(this));
+        });
 
         $('#btnAgregarFormador').click(agregarFilaFormador);
 
@@ -624,10 +685,9 @@
             $(this).closest('.formador-row').remove();
             actualizarBtnAgregar();
             actualizarCharCount();
-        });
-
-        $('#listaFormadores').on('input', '#formadorAbc', function () {
-            actualizarCharCount();
+            if (contarFormadores() < 2) {
+                $('#wrapperAlcance').addClass('d-none');
+            }
         });
 
         // ─── Lazy load cursos base ────────────────────────────────────────────────
@@ -683,10 +743,10 @@
                 const matchTexto = !q || cb.nombre.toLowerCase().includes(q) ||
                     (cb.dispositivo || '').toLowerCase().includes(q) ||
                     (cb.areaNombre  || '').toLowerCase().includes(q);
-                const matchDisp = !dispositivo || cb.dispositivo === dispositivo;
-                const matchArea = !area        || cb.areaNombre  === area;
-                const matchAnio = !anio        || String(cb.anioReferencia) === String(anio);
-                return matchTexto && matchDisp && matchArea && matchAnio;
+                return matchTexto &&
+                    (!dispositivo || cb.dispositivo === dispositivo) &&
+                    (!area        || cb.areaNombre  === area) &&
+                    (!anio        || String(cb.anioReferencia) === String(anio));
             });
             renderLista(filtrados);
         }
@@ -750,6 +810,13 @@
                 return;
             }
 
+            const cargosInvitados = [];
+            $('#listaFormadores .formador-row').each(function (i) {
+                if (i === 0) return;
+                const cargoId = $(this).attr('data-cargo-id');
+                if (cargoId) cargosInvitados.push(cargoId);
+            });
+
             const obligatorios = ['anio', 'cohorte', 'fechaInicioCurso', 'cupo',
                 'cantidadEncuentros', 'cantidadHoras', 'drupalFormatoDictado',
                 'drupalNivel', 'drupalSede', 'drupalOrganiza', 'alcance'];
@@ -794,7 +861,8 @@
                 cantidadEncuentros: Number($('#cantidadEncuentros').val()),
                 cantidadHoras:      Number($('#cantidadHoras').val()),
                 formadorAbc:        formadorCombinado,
-                publicacionDrupal
+                publicacionDrupal,
+                cargosInvitados
             };
 
             btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Guardando...');

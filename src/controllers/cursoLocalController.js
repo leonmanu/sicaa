@@ -157,6 +157,7 @@ const getPorCiie = async (req, res) => {
 const getCursosPorCiieId = async (req, res) => {
     try {
         const ciieId = req.user._id;
+        console.log('Obteniendo cursos locales para CIIE ID:', ciieId);
         const cursosLocales = await cursoLocalService.getCursosPorCiieId(ciieId);
         
         res.render('pages/curso/cursoListTodos', { //vista pendiente

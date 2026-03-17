@@ -59,6 +59,9 @@ class CursoLocalService {
             cargoId,
             cursoBaseId,
             ciieId: this._sanitizeObjectId(data.ciieId) || this._sanitizeObjectId(usuario?._id),
+            cargosInvitados: Array.isArray(data.cargosInvitados)
+                ? data.cargosInvitados.map(id => this._sanitizeObjectId(id)).filter(Boolean)
+                : [],
 
             // Meta
             estado:    'pendiente',

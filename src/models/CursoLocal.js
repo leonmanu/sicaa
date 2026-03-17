@@ -63,6 +63,8 @@ const cursoSchema = new mongoose.Schema({
         organiza: { type: String },
         publicado: { type: Boolean, default: false }
     },
+    cantidadHoras:   { type: Number, default: 0 },
+    cargosInvitados: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Cargo' }],
 
     creadoPor: { type: String }
 }, { 
