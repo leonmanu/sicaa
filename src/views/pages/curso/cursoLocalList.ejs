@@ -6,6 +6,77 @@
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <style>
+        #tablaCursosCargo td,
+        #tablaCursosCargo th {
+            vertical-align: middle;
+        }
+
+        .dropdown-formadores {
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 767.98px) {
+            .container.py-5 {
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
+
+            #btnAltaCurso {
+                width: 100%;
+            }
+
+            #tablaCursosCargo {
+                min-width: 760px;
+            }
+
+            #tablaCursosCargo .btn-group {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.35rem;
+            }
+
+            #tablaCursosCargo .btn-group .btn {
+                font-size: 0.8rem;
+                padding: 0.3rem 0.4rem;
+                width: 100%;
+            }
+
+            #modalSeleccionarBase .sticky-top {
+                position: static !important;
+            }
+
+            #modalAltaCurso .col-6,
+            #modalAltaCurso .col-8,
+            #modalAltaCurso .col-4 {
+                width: 100%;
+            }
+
+            #modalAltaCurso .form-control,
+            #modalAltaCurso .form-select,
+            #modalSeleccionarBase .form-control,
+            #modalSeleccionarBase .form-select {
+                font-size: 16px;
+            }
+
+            #modalAltaCurso .modal-footer {
+                flex-direction: column-reverse;
+                gap: 0.5rem;
+            }
+
+            #modalAltaCurso .modal-footer .btn {
+                width: 100%;
+            }
+
+            #modalAltaCurso .dropdown-formadores,
+            #modalSeleccionarBase .dropdown-formadores {
+                left: 0;
+                right: 0;
+                min-width: 100% !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <%- include('../../partials/navbar') %>
@@ -126,7 +197,7 @@
 
     <!-- MODAL PASO 1 -->
     <div class="modal fade" id="modalSeleccionarBase" tabindex="-1" data-bs-backdrop="static">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
             <div class="modal-content bg-dark border-primary">
                 <div class="modal-header bg-primary bg-opacity-10 border-primary">
                     <div>
@@ -177,7 +248,7 @@
 
     <!-- MODAL PASO 2 -->
     <div class="modal fade" id="modalAltaCurso" tabindex="-1" data-bs-backdrop="static">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
             <div class="modal-content bg-dark border-success">
                 <div class="modal-header bg-success bg-opacity-10 border-success">
                     <div>
@@ -434,37 +505,25 @@
         const btn = document.createElement('button');
         btn.textContent = 'Confirmar';
         btn.className = 'btn btn-sm btn-success w-100 mt-2';
-        btn.addEventListener('click touchstart', function() { instance.close(); });
+        btn.addEventListener('click', function() { instance.close(); });
         instance.calendarContainer.appendChild(btn);
     }
 };
 
-        // ─── Flatpickr ───────────────────────────────────────────────────────────
-let fpInicio, fpFin;
-try {
-    fpInicio = flatpickr('#fechaInicioCurso', {
-        ...fpOpts,
-        onChange: function(selectedDates) {
-            if (!selectedDates[0]) return;
-            const d = selectedDates[0];
-            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-            $('#drupalDiaDictado').val(dias[d.getDay()]);
-            recalcularFechaFin(d);
-        }
-    });
-    fpFin = flatpickr('#fechaFinCurso', fpOpts);
-} catch(e) {
-    console.error('Error Flatpickr:', e);
-}
-// Evitar que Flatpickr interfiera con otros toques en mobile
-document.addEventListener('touchstart', function(e) {
-    if (!e.target.closest('.flatpickr-calendar') && 
-        !e.target.closest('#fechaInicioCurso') && 
-        !e.target.closest('#fechaFinCurso')) {
-        if (fpInicio) fpInicio.close();
-        if (fpFin) fpFin.close();
-    }
-}, { passive: true });
+        const fpInicio = flatpickr('#fechaInicioCurso', {
+            ...fpOpts,
+            onChange: function(selectedDates) {
+                if (!selectedDates[0]) return;
+                const d = selectedDates[0];
+                // Día de dictado
+                const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                $('#drupalDiaDictado').val(dias[d.getDay()]);
+                // Fecha fin
+                recalcularFechaFin(d);
+            }
+        });
+
+        const fpFin = flatpickr('#fechaFinCurso', fpOpts);
 
         // ─── Helpers ─────────────────────────────────────────────────────────────
         function esTaller(dispositivo) {
@@ -500,7 +559,7 @@ document.addEventListener('touchstart', function(e) {
             const d = new Date(fechaInicioDate);
             d.setDate(d.getDate() + (n - 1) * 7);
             if (h > 0) d.setMinutes(d.getMinutes() + h * 60);
-            if (fpFin) fpFin.setDate(d, true);
+            fpFin.setDate(d, true);
         }
 
         // ─── Recálculos ───────────────────────────────────────────────────────────
@@ -517,9 +576,9 @@ document.addEventListener('touchstart', function(e) {
                 $('#cohorte').val(proximaCohorte($('#anio').val()));
             }
             // Recalcular fecha fin si ya hay fecha inicio
-            if (fpInicio && fpInicio.selectedDates[0]) {
-    recalcularFechaFin(fpInicio.selectedDates[0]);
-}
+            if (fpInicio.selectedDates[0]) {
+                recalcularFechaFin(fpInicio.selectedDates[0]);
+            }
         }
 
         $('#cantidadEncuentros, #cantidadHoras').on('change input', function () {
@@ -612,7 +671,7 @@ document.addEventListener('touchstart', function(e) {
                 `);
             });
             $input.parent().css('position', 'relative').append($drop);
-            $drop.on('click touchstart', 'button', function () {
+            $drop.on('click', 'button', function () {
                 $input.val($(this).data('abreviado'));
                 $drop.remove();
                 actualizarCharCount();
@@ -758,19 +817,18 @@ document.addEventListener('touchstart', function(e) {
             }
             cursos.forEach(cb => {
                 $lista.append(`
-    <button type="button"
-        class="list-group-item list-group-item-action bg-dark border-secondary item-curso-base"
-        data-id="${cb._id}"
-        data-nombre="${cb.nombre}"
-        data-dispositivo="${cb.dispositivo}"
-        data-area="${cb.areaNombre}"
-        data-anioreferencia="${cb.anioReferencia}"
-        data-idoriginal="${cb.idCursoOriginal}"
-        style="touch-action: manipulation;">
-        <div class="fw-bold text-white" style="pointer-events:none;">${cb.nombre}</div>
-        <small class="text-muted" style="pointer-events:none;">${cb.dispositivo} · ${cb.areaNombre} · ${cb.anioReferencia}</small>
-    </button>
-`);
+                    <button type="button"
+                        class="list-group-item list-group-item-action bg-dark border-secondary item-curso-base"
+                        data-id="${cb._id}"
+                        data-nombre="${cb.nombre}"
+                        data-dispositivo="${cb.dispositivo}"
+                        data-area="${cb.areaNombre}"
+                        data-anioreferencia="${cb.anioReferencia}"
+                        data-idoriginal="${cb.idCursoOriginal}">
+                        <div class="fw-bold text-white">${cb.nombre}</div>
+                        <small class="text-muted">${cb.dispositivo} · ${cb.areaNombre} · ${cb.anioReferencia}</small>
+                    </button>
+                `);
             });
         }
 
@@ -816,10 +874,9 @@ document.addEventListener('touchstart', function(e) {
         $('#buscarCursoBase, #filtroDispositivo, #filtroArea, #filtroAnio').on('input change', filtrarYRenderizar);
 
         // ─── Paso 1 → Paso 2 ─────────────────────────────────────────────────────
-        $(document).on('click touchstart', '.item-curso-base', function (e) {
-    if (e.type === 'touchstart') e.preventDefault();
-    const d = $(this).data();
-    $('#dispositivoSeleccionado').val(d.dispositivo || '');
+        $(document).on('click', '.item-curso-base', function () {
+            const d = $(this).data();
+            $('#dispositivoSeleccionado').val(d.dispositivo || '');
             $('#cursoBaseId').val(d.id);
             $('#idCursoOriginal').val(d.idoriginal || '');
             $('#nombrePropuesta').val(d.nombre || '');
