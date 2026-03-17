@@ -722,6 +722,8 @@
         let todosLosCursosBase = [];
 
         $('#modalSeleccionarBase').on('show.bs.modal', function () {
+            fpInicio.close();
+            fpFin.close();
             if (cursosBaseCargados) return;
             cargarCursosBase();
         });
