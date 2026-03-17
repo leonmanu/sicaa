@@ -208,6 +208,35 @@ const viewFormAltaPorCargoClaveCiieClave = async (req, res) => {
     }
 }
 
+const getFlyerCurso = async (req, res) => {
+    try {
+        const curso = await cursoLocalService.getPorIdOfertaOficial(req.params.ofertaId);
+        if (!curso) {
+            req.flash('error', 'Curso no encontrado.');
+            return res.redirect('back');
+        }
+
+        const vistas = {
+            'Extensión CIIE':           'pages/flyer/flyerExtension',
+            'Taller en Servicio':       'pages/flyer/flyerTaller',
+            'Taller Fuera de Servicio': 'pages/flyer/flyerTaller',
+            'Seminario':                'pages/flyer/flyerSeminario',
+            'MADP + Ateneo':            'pages/flyer/flyerMadp',
+            'Ateneo Distancia':         'pages/flyer/flyerMadp',
+            'Curso Distancia':          'pages/flyer/flyerOtros',
+            'Seminario Distancia':      'pages/flyer/flyerSeminario',
+        };
+
+        const vista = vistas[curso.dispositivo] || 'pages/flyer/flyerOtros';
+
+        res.render(vista, { curso, user: req.user });
+
+    } catch (error) {
+        console.error('Error al generar flyer:', error.message);
+        res.status(500).send('Error al generar el flyer.');
+    }
+};
+
 
 module.exports = {
     vincularCurso,
@@ -221,4 +250,5 @@ module.exports = {
     postVincularConSitioOficial,
     postEditarCursoPendiente,
     postCrearYVincularConSitioOficial,
+    getFlyerCurso
 }

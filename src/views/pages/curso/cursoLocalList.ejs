@@ -98,6 +98,11 @@
                                                     <button class="btn btn-lg btn-outline-danger disabled" title="Desvincular">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
+                                                    <a href="/curso/flyer/<%= c.idOfertaOficial %>" 
+                                                        class="btn btn-lg btn-outline-warning" 
+                                                        title="Ver flyer" target="_blank">
+                                                            <i class="bi bi-image"></i>
+                                                        </a>
                                                 </div>
                                             <% } else { %>
                                                 <span class="badge bg-secondary">En proceso de alta...</span>
@@ -332,7 +337,7 @@
                                                            id="fechaFinCurso" name="fechaFinCurso" placeholder="Se calcula automáticamente" required>
                                                 </div>
                                                 <div class="col-6">
-                                                    <label class="form-label small fw-bold">NIVEL <span class="text-danger">*</span></label>
+                                                    <label class="form-label small fw-bold">NIVEL <span class="text-danger">*</span> <small>Destinatarios</small></label>
                                                     <input type="text" id="drupalNivel"
                                                            class="form-control bg-dark border-secondary text-white"
                                                            maxlength="120" value="<%= cargo?.areaId?.nivel || '' %>" required>

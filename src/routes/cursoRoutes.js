@@ -8,18 +8,20 @@ const {
     getCursosPorCargoClaveCiieClave,
     getCursosLocales,
     getPorCiie,
-    viewFormAltaPorCargoClaveCiieClave
+    viewFormAltaPorCargoClaveCiieClave,
+    getFlyerCurso
 } = require('../controllers/cursoLocalController');
 
 router
-    //Externos
     .get('/lista', cursoExternoController.getCursos)
-    //Locales
     .get('/ciie', getPorCiie)
-    .get('/:cargoClave/:ciieClave', getCursosPorCargoClaveCiieClave)
-    .get('/:cargoClave/:ciieClave/alta', viewFormAltaPorCargoClaveCiieClave)
     .post('/alta', post)
     .post('/vincularLocal', vincularCurso)
+    // ─── rutas estáticas primero ───
+    .get('/flyer/:ofertaId', getFlyerCurso)
+    // ─── rutas dinámicas después ───
+    .get('/:cargoClave/:ciieClave', getCursosPorCargoClaveCiieClave)
+    .get('/:cargoClave/:ciieClave/alta', viewFormAltaPorCargoClaveCiieClave)
 
 
 

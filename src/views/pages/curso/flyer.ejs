@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <%- include('../../partials/head') %>
+    <title>Flyer — <%= curso.tituloFormulario || curso.nombrePropuesta %></title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+    <style>
+        /* ─── Paleta oficial ─────────────────────────────── */
+        :root {
+            --teal:       #00ADC5;
+            --teal-dk:    #1FA8A8;
+            --orange:     #F47920;
+            --orange-lt:  #FBAA5A;
+            --sky:        #B8DFF0;
+            --sky-dk:     #7BBDD6;
+            --cream:      #F0EBE3;
+            --white:      #FFFFFF;
+            --text-dark:  #1A4A5A;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #1a1a2e;
+            font-family: 'Nunito', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ─── Layout página ──────────────────────────────── */
+        .page-layout {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+            padding: 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* ─── Flyer: 540 × 675 px (mitad de 1080×1350) ─── */
+        .flyer {
+            width: 540px;
+            height: 675px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 0;          /* sin redondeo externo */
+            flex-shrink: 0;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+            background: var(--cream);
+            font-family: 'Roboto', sans-serif;
+        }
+
+        /* ─── Fondo textura mapa ─────────────────────────── */
+        .flyer-bg {
+            position: absolute;
+            inset: 0;
+            background-color: var(--cream);
+            /* patrón de líneas suaves que simula un mapa topográfico */
+            background-image:
+                radial-gradient(ellipse 120% 80% at 70% 60%, rgba(200,185,168,0.35) 0%, transparent 70%),
+                repeating-linear-gradient(
+                    -30deg,
+                    transparent 0px, transparent 18px,
+                    rgba(180,165,145,0.09) 18px, rgba(180,165,145,0.09) 19px
+                ),
+                repeating-linear-gradient(
+                    60deg,
+                    transparent 0px, transparent 28px,
+                    rgba(160,145,125,0.06) 28px, rgba(160,145,125,0.06) 29px
+                );
+            z-index: 0;
+        }
+
+        /* ─── Badge CIIE (arriba derecha) ────────────────── */
+        .badge-ciie {
+            position: absolute;
+            top: -20px;
+            right: -25px;
+            background: var(--sky);
+            color: var(--text-dark);
+            border-radius: 10px;
+            padding: 7px 18px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            z-index: 10;
+            white-space: nowrap;
+        }
+        .badge-ciie strong {
+            font-size: 14px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+        }
+
+        .panel-background {
+            position: absolute;
+            top: 56px;
+            left: 40px;
+            width: 316px;
+            min-height: 400px;
+            background: var(--teal);
+            border-radius: 24px;
+            padding: 20px 20px 20px 20px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        /* ─── Panel teal principal ───────────────────────── */
+        .panel-teal {   
+            position: absolute;
+            top: 100px;
+            left: 35px;
+            width: 316px;
+            min-height: 440px;
+            background: var(--teal);
+            border-radius: 24px;
+            padding: 20px 20px 20px 20px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .panel-back {           
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 420px;
+            min-height: 570px;
+            background: var(--white);
+            border-radius: 15px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            /* Añadimos esto para que la imagen se posicione respecto al panel */
+            position: relative; 
+        }
+
+        .panel-back img {
+            position: absolute; /* Clave para moverla libremente */
+            bottom: 15px;       /* Distancia desde abajo */
+            right: 10px;        /* Distancia desde la derecha */
+            height: 50px;
+            width: auto;        /* Para mantener la proporción */
+        }
+
+        /* Badge dispositivo dentro del panel, arriba */
+        .badge-dispositivo {
+            position: absolute;
+            top: -18px;
+            left: 16px;
+            background: var(--orange-lt);
+            color: white;
+            border-radius: 12px;
+            padding: 10px 16px; /* Aumentamos un poco el padding */
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Más espacio entre icono y texto */
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(244,121,32,0.4);
+        }
+
+/* Ajuste específico para el icono del puzzle */
+.badge-dispositivo i { 
+    font-size: 1.4rem; /* Forzamos el tamaño del icono de Bootstrap */
+    display: flex;
+    align-items: center;
+    line-height: 1;
+}
+
+        /* Subtítulo "Experiencia CIIE" */
+        .curso-subtitulo {
+            font-size: 11px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.82);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            margin-top: 6px;
+        }
+
+        /* Título grande */
+        .curso-titulo {
+            font-size: 22px;
+            font-weight: 900;
+            color: white;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            
+            /* Agregamos esto para el auto-shrink */
+            height: 200px;      /* Altura máxima fija para el título */
+            display: flex;      /* Para que el texto se distribuya mejor */
+            align-items: flex-start; 
+            overflow: hidden;   /* Evita que se vea lo que sobra antes de achicar */
+            word-break: break-word;
+        }
+
+        /* Pill modalidad */
+        .pill-modalidad {
+            display: inline-block;
+            position: relative;
+            left: -20px;
+            background: var(--orange);
+            color: white;
+            padding: 7px 18px;
+
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            font-family: 'Roboto Mono', monospace;
+            text-transform: uppercase;
+            margin-bottom: 50px;
+            width: 230px;
+        }
+
+        /* Info box celeste */
+        .info-box {
+            background: var(--sky);
+            position: relative;
+            left: -20px;
+            padding: 10px 10px;
+            font-size: 10.5px;
+            color: var(--text-dark);
+            width: 230px;
+        }
+        .info-box strong { font-weight: 900; }
+
+        /* ─── Panel naranja fecha ────────────────────────── */
+        .panel-orange {
+            position: absolute;
+            bottom: 200px;
+            right: 35px;
+            width: 206px;
+            background: var(--orange);
+            border-radius: 20px;
+            /* overflow: hidden;  <-- ELIMINAR ESTA LÍNEA */
+            z-index: 3;
+            color: white;
+        }
+
+        .panel-orange-inner {
+            padding: 22px 18px 14px 18px;
+        }
+
+        .fecha-linea {
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1.1;
+            text-transform: uppercase;
+        }
+
+        .hora-badge {
+            display: inline-block;
+            background: var(--orange-lt);
+            border-radius: 7px;
+            padding: 5px 12px;
+            font-size: 20px;
+            font-weight: 900;
+            margin-top: 10px;
+            margin-bottom: 0;
+        }
+
+        .distrito-strip {
+            background: var(--orange-lt);
+            padding: 9px 18px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-align: center;
+            color: white;
+            margin-top: 12px;
+        }
+
+        /* Ícono calendario flotante */
+        .icono-cal {
+            position: absolute;
+            top: -16px;
+            right: 10px;
+            width: 42px;
+            height: 42px;
+            background: var(--teal);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+        }
+        .icono-cal svg { width: 24px; height: 24px; }
+
+        /* ─── Footer ─────────────────────────────────────── */
+        
+
+        /* ─── contenteditable styles ─────────────────────── */
+        [contenteditable="true"] {
+            outline: 2px dashed rgba(255,255,255,0.25);
+            border-radius: 3px;
+            cursor: text;
+            transition: outline 0.15s, background 0.15s;
+            min-width: 20px;
+        }
+        [contenteditable="true"]:hover { outline: 2px dashed rgba(255,255,255,0.6); }
+        [contenteditable="true"]:focus {
+            outline: 2px solid var(--orange);
+            background: rgba(244,121,32,0.1);
+        }
+        .panel-orange [contenteditable="true"]:focus { background: rgba(255,255,255,0.12); }
+
+        /* ─── Panel de edición ───────────────────────────── */
+        .edit-panel { width: 320px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+
+    <div class="container-fluid py-3">
+        <div class="row mb-3 px-3">
+            <div class="col">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a href="/usuario/mis-cargos" class="text-decoration-none">Mis Cargos</a></li>
+                        <li class="breadcrumb-item active">Flyer</li>
+                    </ol>
+                </nav>
+                <h4 class="fw-bold mb-0 text-white">
+                    <i class="bi bi-image me-2 text-primary"></i>Vista previa del flyer
+                </h4>
+            </div>
+        </div>
+
+        <div class="page-layout">
+
+            <!-- ══════════════ FLYER ══════════════ -->
+            <div>
+                <div class="flyer" id="flyer">
+                    <div class="flyer-bg"></div>
+
+                    <!-- Panel teal -->
+                    <div class="panel-back">
+                        <!-- Badge CIIE arriba derecha -->
+                    <div class="badge-ciie">
+                        CIIE <strong id="ed-ciie"><%=
+                            (// En flyer.ejs reemplazá curso.ciieId?.nombre por:
+                            curso.cargoId?.ciieId?.nombre || '').replace(/ciie\s*/i,'').toUpperCase()
+                        %></strong>
+                    </div>
+                        <img src="/img/logo-pba.svg" alt="Gobierno de la Provincia de Buenos Aires">
+                    </div>
+
+                    <div class="panel-teal">
+
+                        <!-- Badge dispositivo solapado arriba -->
+                        <div class="badge-dispositivo">
+                            <!-- ícono monitor + personas -->
+                            <i class="bi bi-puzzle"></i>
+                            <span id="ed-dispositivo">EXTENSIÓN CIIE</span>
+                        </div>
+
+                        <div class="curso-subtitulo">Experiencia CIIE: </div>
+
+                        <div class="curso-titulo" id="ed-titulo" contenteditable="true"><%=
+                            (curso.tituloFormulario || curso.nombrePropuesta || 'Título del curso').toUpperCase()
+                        %></div>
+
+                        <div class="pill-modalidad" id="ed-modalidad" contenteditable="true"><%=
+                            (curso.publicacionDrupal?.formatoDictado || 'Presencial')
+                                .replace(/\s*\(\d+\)/,'').toUpperCase()
+                        %></div>
+
+                        <div class="info-box">
+                        <div id="ed-formador" contenteditable="true">
+                            <strong>Formador/a:</strong> 
+                            <% 
+                                // Separamos por punto y coma
+                                let nombres = (curso.formadorAbc || '').split(';').map(n => n.trim()).filter(n => n);
+                                if (nombres.length > 0) { 
+                            %>
+                                <span><%= nombres[0] %></span>
+                                
+                                <% if (nombres.length > 1) { %>
+                                    <div style="display: block; margin-top: 2px;">
+                                        <%= nombres.slice(1).join(' ; ') %>
+                                    </div>
+                                <% } %>
+                            <% } else { %>
+                                <span> A DESIGNAR</span>
+                            <% } %>
+                        </div>
+
+                        <div style="margin-top: 8px;">
+                            <strong>Destinatarios:</strong> 
+                            <span id="ed-destinatarios" contenteditable="true">
+                                <%= curso.publicacionDrupal?.nivel || 'Todos' %>
+                            </span>
+                        </div>
+</div>
+                    </div>
+
+                    <!-- Panel naranja fecha/hora -->
+                    <div class="panel-orange">
+                        <div style="position:relative;">
+                            <!-- Ícono calendario flotante arriba derecha del panel -->
+                            <div class="icono-cal">
+        <i class="bi bi-calendar3"></i>
+    </div>
+                        </div>
+                        <div class="panel-orange-inner">
+                            <div class="fecha-linea" id="ed-fecha" contenteditable="true"><%=
+                                (() => {
+                                    if (!curso.fechaInicioCurso) return 'FECHA';
+                                    const d = new Date(curso.fechaInicioCurso);
+                                    const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+                                    const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+                                    return `${dias[d.getDay()]}, ${d.getDate()} DE ${meses[d.getMonth()]}`;
+                                })()
+                            %></div>
+                            <div class="hora-badge" id="ed-hora" contenteditable="true"><%=
+                                (() => {
+                                    if (!curso.fechaInicioCurso) return '00:00hs';
+                                    const d = new Date(curso.fechaInicioCurso);
+                                    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}hs`;
+                                })()
+                            %></div>
+                        </div>
+                        <div class="distrito-strip" id="ed-distrito" contenteditable="true"><%=
+                            
+                                 curso.cargoId?.ciieId.distrito
+                        %>, Bs.As</div>
+                    </div>
+
+                    <!-- Footer solo logo -->
+
+                </div><!-- /flyer -->
+            </div>
+
+            <!-- ══════════════ PANEL EDICIÓN ══════════════ -->
+            <div class="edit-panel">
+                <div class="card bg-dark border-secondary">
+                    <div class="card-header border-secondary">
+                        <h6 class="mb-0 fw-bold text-white">
+                            <i class="bi bi-pencil-square me-2"></i>Editar antes de descargar
+                        </h6>
+                        <small class="text-muted">Hacé click sobre cualquier texto del flyer para editarlo</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-dark border-secondary p-2 mb-3" style="font-size:0.8rem;">
+                            <i class="bi bi-info-circle me-1 text-info"></i>
+                            Los cambios son solo visuales y no se guardan en la base de datos.
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <% if (curso.publicacionDrupal && curso.publicacionDrupal.enlaceInscripcion) { %>
+                                <button class="btn btn-primary fw-bold" id="btnCopiarEnlace" 
+                                        data-link="<%= curso.publicacionDrupal.enlaceInscripcion %>">
+                                    <i class="bi bi-link-45deg me-2"></i>Copiar Enlace de Inscripción
+                                </button>
+                            <% } else if (curso.enlaceInscripcion) { %>
+                                <button class="btn btn-primary fw-bold" id="btnCopiarEnlace" 
+                                        data-link="<%= curso.enlaceInscripcion %>">
+                                    <i class="bi bi-link-45deg me-2"></i>Copiar Enlace de Inscripción
+                                </button>
+                            <% } %>
+                            
+                            <button class="btn btn-success fw-bold" id="btnDescargar">
+                                <i class="bi bi-download me-2"></i>Descargar PNG (1080×1350)
+                            </button>
+                            </div>
+                        </div>
+
+                        <hr class="border-secondary mt-3 mb-3">
+                        <p class="text-muted small mb-2">Campos editables en el flyer:</p>
+                        <ul class="text-muted small mb-0" style="padding-left:1.2rem; line-height:2.2;">
+                            <li>Título del curso</li>
+                            <li>Modalidad</li>
+                            <li>Formador/a</li>
+                            <li>Destinatarios</li>
+                            <li>Fecha</li>
+                            <li>Hora</li>
+                            <li>Distrito / sede</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /page-layout -->
+    </div>
+
+    <%- include('../../partials/scripts') %>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script>
+    // Auto-shrink del título si es muy largo
+    (function shrinkTitulo() {
+        const el = document.getElementById('ed-titulo');
+        if (!el) return;
+        let size = 24;
+        while (el.scrollHeight > el.clientHeight + 4 && size > 13) {
+            size -= 0.5;
+            el.style.fontSize = size + 'px';
+        }
+    })();
+
+    // Descargar como PNG 2x
+    document.getElementById('btnDescargar').addEventListener('click', function () {
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando...';
+
+        // Quitar outlines de edición temporalmente
+        const editables = document.querySelectorAll('[contenteditable="true"]');
+        editables.forEach(el => el.setAttribute('contenteditable', 'false'));
+
+        html2canvas(document.getElementById('flyer'), {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#F0EBE3'
+        }).then(function (canvas) {
+            const link = document.createElement('a');
+            link.download = 'flyer-<%= curso.idOfertaOficial || "extensionciie" %>.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            editables.forEach(el => el.setAttribute('contenteditable', 'true'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-download me-2"></i>Descargar PNG (1080×1350)';
+        });
+    });
+
+    // Re-shrink título al editar
+    document.getElementById('ed-titulo').addEventListener('input', function () {
+        this.style.fontSize = '24px';
+        let size = 24;
+        while (this.scrollHeight > this.clientHeight + 4 && size > 13) {
+            size -= 0.5;
+            this.style.fontSize = size + 'px';
+        }
+    });
+// Lógica para copiar el enlace al portapapeles
+const btnCopiar = document.getElementById('btnCopiarEnlace');
+if (btnCopiar) {
+    btnCopiar.addEventListener('click', function() {
+        const link = this.getAttribute('data-link');
+        
+        navigator.clipboard.writeText(link).then(() => {
+            // Feedback visual simple
+            const originalText = this.innerHTML;
+            this.classList.replace('btn-primary', 'btn-info');
+            this.innerHTML = '<i class="bi bi-check2 me-2"></i>¡Enlace Copiado!';
+            
+            setTimeout(() => {
+                this.classList.replace('btn-info', 'btn-primary');
+                this.innerHTML = originalText;
+            }, 2000);
+        }).catch(err => {
+            console.error('Error al copiar: ', err);
+            alert('No se pudo copiar el enlace automáticamente.');
+        });
+    });
+}
+    // Re-shrink título al editar
+document.getElementById('ed-titulo').addEventListener('input', function () {
+    // 1. Resetear a tamaño original para recalcular
+    this.style.fontSize = '24px';
+    let size = 24;
+    
+    // 2. Achicar mientras haya desborde (el +4 es margen de seguridad)
+    while (this.scrollHeight > this.offsetHeight && size > 11) {
+        size -= 0.5;
+        this.style.fontSize = size + 'px';
+    }
+});
+    </script>
+</body>
+</html>
