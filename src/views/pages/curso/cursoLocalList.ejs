@@ -456,6 +456,15 @@ try {
 } catch(e) {
     console.error('Error Flatpickr:', e);
 }
+// Evitar que Flatpickr interfiera con otros toques en mobile
+document.addEventListener('touchstart', function(e) {
+    if (!e.target.closest('.flatpickr-calendar') && 
+        !e.target.closest('#fechaInicioCurso') && 
+        !e.target.closest('#fechaFinCurso')) {
+        if (fpInicio) fpInicio.close();
+        if (fpFin) fpFin.close();
+    }
+}, { passive: true });
 
         // ─── Helpers ─────────────────────────────────────────────────────────────
         function esTaller(dispositivo) {
@@ -807,9 +816,8 @@ try {
         $('#buscarCursoBase, #filtroDispositivo, #filtroArea, #filtroAnio').on('input change', filtrarYRenderizar);
 
         // ─── Paso 1 → Paso 2 ─────────────────────────────────────────────────────
-        $(document).on('click touchend', '.item-curso-base', function (e) {
-    e.preventDefault();
-    e.stopPropagation();
+        $(document).on('click touchstart', '.item-curso-base', function (e) {
+    if (e.type === 'touchstart') e.preventDefault();
     const d = $(this).data();
     $('#dispositivoSeleccionado').val(d.dispositivo || '');
             $('#cursoBaseId').val(d.id);
