@@ -749,18 +749,19 @@ try {
             }
             cursos.forEach(cb => {
                 $lista.append(`
-                    <button type="button"
-                        class="list-group-item list-group-item-action bg-dark border-secondary item-curso-base"
-                        data-id="${cb._id}"
-                        data-nombre="${cb.nombre}"
-                        data-dispositivo="${cb.dispositivo}"
-                        data-area="${cb.areaNombre}"
-                        data-anioreferencia="${cb.anioReferencia}"
-                        data-idoriginal="${cb.idCursoOriginal}">
-                        <div class="fw-bold text-white">${cb.nombre}</div>
-                        <small class="text-muted">${cb.dispositivo} · ${cb.areaNombre} · ${cb.anioReferencia}</small>
-                    </button>
-                `);
+    <button type="button"
+        class="list-group-item list-group-item-action bg-dark border-secondary item-curso-base"
+        data-id="${cb._id}"
+        data-nombre="${cb.nombre}"
+        data-dispositivo="${cb.dispositivo}"
+        data-area="${cb.areaNombre}"
+        data-anioreferencia="${cb.anioReferencia}"
+        data-idoriginal="${cb.idCursoOriginal}"
+        style="touch-action: manipulation;">
+        <div class="fw-bold text-white" style="pointer-events:none;">${cb.nombre}</div>
+        <small class="text-muted" style="pointer-events:none;">${cb.dispositivo} · ${cb.areaNombre} · ${cb.anioReferencia}</small>
+    </button>
+`);
             });
         }
 
@@ -806,9 +807,11 @@ try {
         $('#buscarCursoBase, #filtroDispositivo, #filtroArea, #filtroAnio').on('input change', filtrarYRenderizar);
 
         // ─── Paso 1 → Paso 2 ─────────────────────────────────────────────────────
-        $(document).on('click touchstart', '.item-curso-base', function () {
-            const d = $(this).data();
-            $('#dispositivoSeleccionado').val(d.dispositivo || '');
+        $(document).on('click touchend', '.item-curso-base', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const d = $(this).data();
+    $('#dispositivoSeleccionado').val(d.dispositivo || '');
             $('#cursoBaseId').val(d.id);
             $('#idCursoOriginal').val(d.idoriginal || '');
             $('#nombrePropuesta').val(d.nombre || '');
