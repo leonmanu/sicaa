@@ -4,6 +4,8 @@
     <%- include('../../partials/head') %>
     <title>SICAA - Mis Cursos</title>
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
 </head>
 <body>
     <%- include('../../partials/navbar') %>
@@ -208,9 +210,10 @@
                         </div>
 
                         <div class="col-6">
-                            <label class="form-label small fw-bold">INICIO CURSADA <small>fecha y hora</small> <span class="text-danger">*</span></label>
-                            <input type="datetime-local" class="form-control bg-dark border-secondary text-white"
-                                   id="fechaInicioCurso" name="fechaInicioCurso" step="300" required>
+                            <label class="form-label small fw-bold">INICIO CURSADA <span class="text-danger">*</span></label>
+                            <!-- dateFormat Y-m-dTH:i guarda ISO en el input real; altFormat muestra "lun 27/03/26 09:00" -->
+                            <input type="text" class="form-control bg-dark border-secondary text-white"
+                                   id="fechaInicioCurso" name="fechaInicioCurso" placeholder="Seleccioná fecha y hora" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label small fw-bold">FORMATO DICTADO <span class="text-danger">*</span></label>
@@ -225,16 +228,19 @@
 
                         <!-- BLOQUE FORMADORES -->
                         <div class="col-12" id="bloqueFormadores">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label small fw-bold mb-0">FORMADOR/A <span class="text-danger">*</span></label>
-                                <button type="button" id="btnAgregarFormador"
-                                        class="btn btn-sm btn-outline-info py-0 px-2"
-                                        style="font-size: 0.75rem;">
-                                    <i class="bi bi-person-plus me-1"></i>+ Invitado
-                                </button>
-                            </div>
+                            <label class="form-label small fw-bold mb-1">FORMADOR/A <span class="text-danger">*</span></label>
 
-                            <!-- Selector de alcance: oculto hasta agregar primer invitado -->
+                            <div id="listaFormadores">
+                                <!-- Formador principal -->
+                                <div class="formador-row mb-1" data-index="0" data-cargo-id="">
+                                    <input type="text"
+                                           class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
+                                           id="formadorAbc" name="formadorAbc"
+                                           maxlength="40" placeholder="Apellido, Nombre"
+                                           value="<%= formadore %>" required>
+                                </div>
+                            </div>
+ <!-- Selector de alcance: oculto hasta agregar primer invitado -->
                             <div id="wrapperAlcance" class="d-none mb-2">
                                 <div class="btn-group btn-group-sm w-100" role="group">
                                     <input type="radio" class="btn-check" name="alcanceFormadores" id="alcanceLocal" value="local" checked>
@@ -245,17 +251,16 @@
                                     <label class="btn btn-outline-secondary" for="alcanceTodos">Todos</label>
                                 </div>
                             </div>
-
-                            <div id="listaFormadores">
-                                <!-- Formador principal (siempre presente, sin botón eliminar) -->
-                                <div class="formador-row mb-2" data-index="0" data-cargo-id="">
-                                    <input type="text"
-                                           class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
-                                           id="formadorAbc" name="formadorAbc"
-                                           maxlength="40" placeholder="Apellido, Nombre"
-                                           value="<%= formadore %>" required>
-                                </div>
+                            <!-- Botón invitar: debajo del input principal -->
+                            <div class="mt-1 mb-1">
+                                <button type="button" id="btnAgregarFormador"
+                                        class="btn btn-sm btn-outline-info py-0 px-2"
+                                        style="font-size: 0.75rem;">
+                                    <i class="bi bi-person-plus me-1"></i>+ Invitado
+                                </button>
                             </div>
+
+                           
 
                             <div id="wrapperCharCount" class="d-none mt-1">
                                 <div class="d-flex justify-content-between mb-1" style="font-size: 0.7rem;">
@@ -323,8 +328,8 @@
                                                 </div>
                                                 <div class="col-6">
                                                     <label class="form-label small fw-bold">FIN CURSADA <span class="text-danger">*</span></label>
-                                                    <input type="datetime-local" class="form-control bg-dark border-secondary text-white"
-                                                           id="fechaFinCurso" name="fechaFinCurso" required>
+                                                    <input type="text" class="form-control bg-dark border-secondary text-white"
+                                                           id="fechaFinCurso" name="fechaFinCurso" placeholder="Se calcula automáticamente" required>
                                                 </div>
                                                 <div class="col-6">
                                                     <label class="form-label small fw-bold">NIVEL <span class="text-danger">*</span></label>
@@ -382,6 +387,8 @@
 
     <%- include('../../partials/scripts') %>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script>
     $(document).ready(function () {
 
@@ -403,7 +410,46 @@
             'Extensión CIIE':           { encuentros: 1, horas: 2, cohorte: false }
         };
 
-        // ─── Helpers generales ────────────────────────────────────────────────────
+        // ─── Flatpickr ───────────────────────────────────────────────────────────
+        // dateFormat guarda ISO en el input real; altFormat muestra formato amigable
+        const fpOpts = {
+    locale: 'es',
+    enableTime: true,
+    dateFormat: 'Y-m-dTH:i',
+    altInput: true,
+    altFormat: 'D d/m/y H:i',
+    minTime: '06:00',
+    maxTime: '22:00',
+    minuteIncrement: 5,
+    defaultHour: 18,
+    defaultMinute: 30,
+    // Botón de confirmar
+    closeOnSelect: false,
+    onReady: function(selectedDates, dateStr, instance) {
+        const btn = document.createElement('button');
+        btn.textContent = 'Confirmar';
+        btn.className = 'btn btn-sm btn-success w-100 mt-2';
+        btn.addEventListener('click', function() { instance.close(); });
+        instance.calendarContainer.appendChild(btn);
+    }
+};
+
+        const fpInicio = flatpickr('#fechaInicioCurso', {
+            ...fpOpts,
+            onChange: function(selectedDates) {
+                if (!selectedDates[0]) return;
+                const d = selectedDates[0];
+                // Día de dictado
+                const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                $('#drupalDiaDictado').val(dias[d.getDay()]);
+                // Fecha fin
+                recalcularFechaFin(d);
+            }
+        });
+
+        const fpFin = flatpickr('#fechaFinCurso', fpOpts);
+
+        // ─── Helpers ─────────────────────────────────────────────────────────────
         function esTaller(dispositivo) {
             return dispositivo && dispositivo.toLowerCase().includes('taller');
         }
@@ -421,30 +467,23 @@
             return Math.max(...delAnio.map(c => c.cohorte)) + 1;
         }
 
-        function formatDateTimeLocal(d) {
-            const yyyy = d.getFullYear();
-            const mm   = String(d.getMonth() + 1).padStart(2, '0');
-            const dd   = String(d.getDate()).padStart(2, '0');
-            const hh   = String(d.getHours()).padStart(2, '0');
-            const mi   = String(d.getMinutes()).padStart(2, '0');
-            return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
-        }
+        // Calcula la fecha fin como objeto Date y la setea en fpFin
+        function recalcularFechaFin(fechaInicioDate) {
+            const dispositivo = $('#dispositivoSeleccionado').val();
+            const n = parseInt($('#cantidadEncuentros').val()) || 1;
+            const h = parseFloat($('#cantidadHoras').val()) || 0;
 
-        function diaDeSemana(fechaStr) {
-            if (!fechaStr) return '';
-            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-            const d = new Date(fechaStr.includes('T') ? fechaStr : fechaStr + 'T00:00');
-            return dias[d.getDay()];
-        }
+            if (!fechaInicioDate) {
+                // Intentar leer de fpInicio si no se pasa el date
+                const selected = fpInicio.selectedDates[0];
+                if (!selected) return;
+                fechaInicioDate = selected;
+            }
 
-        function calcularFechaFin(dispositivo, fechaInicioStr, encuentros, horas) {
-            if (!fechaInicioStr) return '';
-            const n = parseInt(encuentros) || 1;
-            const h = parseFloat(horas) || 0;
-            const d = new Date(fechaInicioStr.includes('T') ? fechaInicioStr : fechaInicioStr + 'T00:00');
+            const d = new Date(fechaInicioDate);
             d.setDate(d.getDate() + (n - 1) * 7);
             if (h > 0) d.setMinutes(d.getMinutes() + h * 60);
-            return formatDateTimeLocal(d);
+            fpFin.setDate(d, true);
         }
 
         // ─── Recálculos ───────────────────────────────────────────────────────────
@@ -460,35 +499,17 @@
             } else {
                 $('#cohorte').val(proximaCohorte($('#anio').val()));
             }
-            const fechaInicio = $('#fechaInicioCurso').val();
-            if (fechaInicio) {
-                const fin = calcularFechaFin(dispositivo, fechaInicio, encuentros, horas);
-                if (fin) $('#fechaFinCurso').val(fin);
+            // Recalcular fecha fin si ya hay fecha inicio
+            if (fpInicio.selectedDates[0]) {
+                recalcularFechaFin(fpInicio.selectedDates[0]);
             }
         }
 
-        function recalcularDesdeEncuentros() {
-            const dispositivo = $('#dispositivoSeleccionado').val();
-            const encuentros  = $('#cantidadEncuentros').val();
-            const horas       = $('#cantidadHoras').val();
-            const fechaInicio = $('#fechaInicioCurso').val();
-            $('#drupalPuntaje').val(calcularPuntaje(dispositivo, encuentros));
-            const fin = calcularFechaFin(dispositivo, fechaInicio, encuentros, horas);
-            if (fin) $('#fechaFinCurso').val(fin);
-        }
+        $('#cantidadEncuentros, #cantidadHoras').on('change input', function () {
+            $('#drupalPuntaje').val(calcularPuntaje($('#dispositivoSeleccionado').val(), $('#cantidadEncuentros').val()));
+            recalcularFechaFin();
+        });
 
-        function recalcularDesdeFechaInicio() {
-            const dispositivo = $('#dispositivoSeleccionado').val();
-            const encuentros  = $('#cantidadEncuentros').val();
-            const horas       = $('#cantidadHoras').val();
-            const fechaInicio = $('#fechaInicioCurso').val();
-            $('#drupalDiaDictado').val(diaDeSemana(fechaInicio));
-            const fin = calcularFechaFin(dispositivo, fechaInicio, encuentros, horas);
-            if (fin) $('#fechaFinCurso').val(fin);
-        }
-
-        $('#cantidadEncuentros, #cantidadHoras').on('change input', recalcularDesdeEncuentros);
-        $('#fechaInicioCurso').on('change input', recalcularDesdeFechaInicio);
         $('#anio').on('change input', function () {
             const regla = REGLAS[$('#dispositivoSeleccionado').val()];
             if (!regla || regla.cohorte) $('#cohorte').val(proximaCohorte($(this).val()));
@@ -497,8 +518,9 @@
         // ─── Widget formadores ────────────────────────────────────────────────────
         const MAX_FORMADORES = 3;
         const MAX_CHARS = 40;
-        let agentesDelCiie  = [];  // para el campo principal
-        let agentesInvitados = []; // para los invitados
+        let agentesDelCiie   = [];
+        let agentesInvitados = [];
+        let nombreCompletoOriginal = ''; // para restaurar al eliminar invitados
 
         $('#modalAltaCurso').on('show.bs.modal', function () {
             if (agentesDelCiie.length > 0) return;
@@ -555,7 +577,6 @@
             $('#btnAgregarFormador').prop('disabled', contarFormadores() >= MAX_FORMADORES);
         }
 
-        // Sugerencias para el campo principal (solo nombre)
         function mostrarSugerencias(agentes, $input) {
             $input = $($input);
             $input.closest('.formador-row').find('.dropdown-formadores').remove();
@@ -582,7 +603,6 @@
             $(document).one('click', function () { $drop.remove(); });
         }
 
-        // Sugerencias para invitados (nombre + área + ciie + badge de cargo)
         function mostrarSugerenciasInvitado(agentes, $input) {
             $input = $($input);
             $input.closest('.formador-row').find('.dropdown-formadores').remove();
@@ -608,10 +628,9 @@
                 const $fila = $input.closest('.formador-row');
                 $input.val($(this).data('abreviado'));
                 $fila.attr('data-cargo-id', $(this).data('cargo-id'));
-                // Mostrar badge con info del cargo debajo del input
                 $fila.find('.cargo-badge').remove();
-                const area  = $(this).data('area');
-                const ciie  = $(this).data('ciie');
+                const area = $(this).data('area');
+                const ciie = $(this).data('ciie');
                 if (area || ciie) {
                     $fila.append(`<div class="cargo-badge text-info mt-1" style="font-size:0.7rem;"><i class="bi bi-person-badge me-1"></i>${[area, ciie].filter(Boolean).join(' · ')}</div>`);
                 }
@@ -624,11 +643,11 @@
         function agregarFilaFormador() {
             const index = contarFormadores();
 
-            // Al agregar el primer invitado: abreviar principal y mostrar selector de alcance
             if (index === 1) {
+                // Guardar nombre completo original antes de abreviar
                 const $principal = $('#listaFormadores .input-formador').first();
-                const valor = $principal.val().trim();
-                if (valor) $principal.val(abreviarNombre(valor));
+                nombreCompletoOriginal = $principal.val().trim();
+                if (nombreCompletoOriginal) $principal.val(abreviarNombre(nombreCompletoOriginal));
                 $('#wrapperAlcance').removeClass('d-none');
             }
 
@@ -665,7 +684,6 @@
             });
         }
 
-        // Listener del campo principal para autocompletar
         $('#listaFormadores').on('input', '#formadorAbc', function () {
             actualizarCharCount();
             const q = $(this).val().trim().toLowerCase();
@@ -685,7 +703,11 @@
             $(this).closest('.formador-row').remove();
             actualizarBtnAgregar();
             actualizarCharCount();
-            if (contarFormadores() < 2) {
+            // Si volvemos a 1 formador: restaurar nombre completo y ocultar alcance
+            if (contarFormadores() === 1) {
+                if (nombreCompletoOriginal) {
+                    $('#formadorAbc').val(nombreCompletoOriginal);
+                }
                 $('#wrapperAlcance').addClass('d-none');
             }
         });
