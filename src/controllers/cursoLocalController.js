@@ -139,7 +139,7 @@ const postEditarCursoPendiente = async (req, res) => {
 
 const getPorCiie = async (req, res) => {
     try {
-        const ciieId = req.user._id;
+        const ciieId = req.user.referenciaId;
         const cursosLocales = await cursoLocalService.getCursosPorCiieId(ciieId); 
         res.render('pages/curso/cursoLocalList', { 
             cursosLocales,
@@ -232,7 +232,7 @@ const getFlyerCurso = async (req, res) => {
         res.render(vista, { curso, user: req.user });
 
     } catch (error) {
-        console.error('Error al generar flyer:', error.message);
+        console.error('Error al generar flyer:', error);
         res.status(500).send('Error al generar el flyer.');
     }
 };

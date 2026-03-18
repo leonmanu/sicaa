@@ -145,7 +145,7 @@ class CursoLocalService {
 
     async getPorIdOfertaOficial(ofertaId) {
         const cursoLocal = await cursoLocalRepo.getPorIdOfertaOficial(ofertaId)
-        console.log('Curso local encontrado para idOfertaOficial', ofertaId, ':', cursoLocal);y
+        console.log('Curso local encontrado para idOfertaOficial', ofertaId, ':', cursoLocal);
         return cursoLocal;
 
     }
