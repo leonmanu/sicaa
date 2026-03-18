@@ -145,7 +145,7 @@ class CursoLocalService {
 
     async getPorIdOfertaOficial(ofertaId) {
         const cursoLocal = await cursoLocalRepo.getPorIdOfertaOficial(ofertaId)
-        console.log('Curso local encontrado para idOfertaOficial', ofertaId, ':', cursoLocal);
+        console.log('Curso local encontrado para idOfertaOficial', ofertaId, ':', cursoLocal);y
         return cursoLocal;
 
     }
@@ -326,7 +326,12 @@ class CursoLocalService {
 
         let response = await cursoExternoRepo.crearOfertaOficial(payload);
         const ofertasResponse = await cursoExternoRepo.getOfertasDelCursoActivo();
-        const ofertaCreada = ofertasResponse?.data?.aaData?.[0];
+        const todasLasOfertas = ofertasResponse?.data?.aaData || [];
+
+        // La oferta recién creada tiene el id más alto (autoincremental)
+        const ofertaCreada = todasLasOfertas.reduce((max, o) => 
+            parseInt(o[0]) > parseInt(max[0]) ? o : max
+        , todasLasOfertas[0]);
         console.log('Ofertas tras el alta:', ofertasResponse?.data);
         // console.log('Respuesta cruda ABC:', JSON.stringify(response?.data));
         // console.log('Respuesta headers:', response?.headers);
