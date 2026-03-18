@@ -4,6 +4,7 @@ const inscriptoLocalRepo = require('../repos/inscriptoLocalRepo');
 const cursoExternoRepo = require('../repos/cursoExternoRepo');
 const cargoService = require('./cargoService');
 const cursoExternoService = require('./cursoExternoService');
+const inscriptoExternoService = require('./inscriptoExternoService');
 const sesionService = require('./sesionService');
 
 class CursoLocalService {
@@ -161,6 +162,92 @@ class CursoLocalService {
     async getPendientesVinculacionPorCiie(ciieId) {
         const cursosLocales = await cursoLocalRepo.getPendientesVinculacionPorCiie(ciieId);
         return cursosLocales;
+    }
+
+    async getPendientesCalificacionesPorCiie(ciieId) {
+        return await cursoLocalRepo.getPendientesCalificacionesPorCiie(ciieId);
+    }
+
+    async getDetalleCalificacionesCurso(cursoLocalId, usuario = {}) {
+        const curso = await this._getCursoVinculadoDelCiie(cursoLocalId, usuario);
+        const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(curso._id);
+        return { curso, inscriptosLocales };
+    }
+
+    async actualizarCalificacionesYEnviarCurso(cursoLocalId, calificaciones = [], usuario = {}) {
+        const curso = await this._getCursoVinculadoDelCiie(cursoLocalId, usuario);
+
+        if (!Array.isArray(calificaciones) || calificaciones.length === 0) {
+            const err = new Error('No se recibieron calificaciones para guardar.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        await inscriptoLocalRepo.putCalificaciones(calificaciones);
+
+        const datosPendienteEnvio = {
+            estado: 'pendiente_envio',
+            enviadoPor: this._sanitizeString(usuario?.email)
+        };
+        await cursoLocalRepo.actualizarEstadoCalificaciones(curso._id, datosPendienteEnvio);
+
+        const resultadoEnvio = await this._enviarCalificacionesCurso(curso);
+
+        const datosEnviado = {
+            estado: 'enviado',
+            fechaEnvio: new Date(),
+            enviadoPor: this._sanitizeString(usuario?.email)
+        };
+        const cursoActualizado = await cursoLocalRepo.actualizarEstadoCalificaciones(curso._id, datosEnviado);
+
+        return {
+            curso: cursoActualizado,
+            enviados: resultadoEnvio.enviados
+        };
+    }
+
+    async enviarCalificacionesPendientesEnLote(cursoIds = [], usuario = {}) {
+        if (!Array.isArray(cursoIds) || cursoIds.length === 0) {
+            const err = new Error('No se recibieron cursos para enviar calificaciones.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const resumen = {
+            ok: 0,
+            error: 0,
+            detalles: []
+        };
+
+        for (const cursoId of cursoIds) {
+            try {
+                const curso = await this._getCursoVinculadoDelCiie(cursoId, usuario);
+                const resultadoEnvio = await this._enviarCalificacionesCurso(curso);
+
+                await cursoLocalRepo.actualizarEstadoCalificaciones(curso._id, {
+                    estado: 'enviado',
+                    fechaEnvio: new Date(),
+                    enviadoPor: this._sanitizeString(usuario?.email)
+                });
+
+                resumen.ok += 1;
+                resumen.detalles.push({
+                    cursoId: String(curso._id),
+                    nombrePropuesta: curso.nombrePropuesta,
+                    enviados: resultadoEnvio.enviados,
+                    success: true
+                });
+            } catch (error) {
+                resumen.error += 1;
+                resumen.detalles.push({
+                    cursoId: String(cursoId),
+                    success: false,
+                    error: error.message
+                });
+            }
+        }
+
+        return resumen;
     }
 
     async getOfertasOficialesDisponibles() {
@@ -443,6 +530,83 @@ class CursoLocalService {
         const [fecha] = fechaStr.split(' ');
         const [dia, mes, anio] = fecha.split('-');
         return new Date(anio, mes - 1, dia);
+    }
+
+    async _getCursoVinculadoDelCiie(cursoLocalId, usuario = {}) {
+        const cursoId = this._sanitizeObjectId(cursoLocalId);
+        if (!cursoId) {
+            const err = new Error('El campo cursoLocalId es obligatorio.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const curso = await cursoLocalRepo.getPorId(cursoId);
+        if (!curso) {
+            const err = new Error('Curso local no encontrado.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        const mismoCiie = String(curso.ciieId?._id || curso.ciieId) === String(usuario?.referenciaId);
+        if (!mismoCiie) {
+            const err = new Error('No tenes permisos para gestionar este curso.');
+            err.statusCode = 403;
+            throw err;
+        }
+
+        if (this._sanitizeString(curso.estado) !== 'vinculado') {
+            const err = new Error('Solo se pueden enviar calificaciones de cursos vinculados.');
+            err.statusCode = 409;
+            throw err;
+        }
+
+        if (!this._sanitizeString(curso.idOfertaOficial) || !this._sanitizeString(curso.idCursoOriginal)) {
+            const err = new Error('El curso no tiene los datos oficiales necesarios para enviar calificaciones.');
+            err.statusCode = 409;
+            throw err;
+        }
+
+        return curso;
+    }
+
+    async _enviarCalificacionesCurso(curso) {
+        const inscriptos = await inscriptoLocalRepo.getPorCursoId(curso._id);
+        if (!inscriptos || inscriptos.length === 0) {
+            const err = new Error('El curso no tiene inscriptos locales para enviar.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const pendientes = inscriptos.filter(i => this._sanitizeString(i.calificacion) && i.calificacion !== 'Sin Calificar');
+        if (pendientes.length === 0) {
+            const err = new Error('No hay calificaciones cargadas para enviar a ABC.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const sinCalificar = inscriptos.filter(i => !this._sanitizeString(i.calificacion) || i.calificacion === 'Sin Calificar');
+        if (sinCalificar.length > 0) {
+            const err = new Error('Hay inscriptos sin calificar. Completá las calificaciones antes de enviar.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        for (const inscripto of pendientes) {
+            const nota = this._mapCalificacionAbc(inscripto.calificacion);
+            await inscriptoExternoService.cambiarNota(
+                this._sanitizeString(inscripto.idInscripcionOficial),
+                nota,
+                this._sanitizeString(curso.idCursoOriginal)
+            );
+        }
+
+        return { enviados: pendientes.length };
+    }
+
+    _mapCalificacionAbc(calificacion) {
+        const value = this._sanitizeString(calificacion);
+        if (!value) return '';
+        return value;
     }
 
     _sanitizeString(value) {

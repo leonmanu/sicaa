@@ -78,6 +78,25 @@ class CursoLocalRepo {
         }
     }
 
+    async getPendientesCalificacionesPorCiie(ciieId) {
+        try {
+            return await CursoLocal.find({
+                ciieId: new mongoose.Types.ObjectId(ciieId),
+                estado: 'vinculado',
+                $or: [
+                    { 'calificaciones.estado': { $exists: false } },
+                    { 'calificaciones.estado': { $ne: 'enviado' } }
+                ]
+            })
+                .populate(populateCargoConOcupante)
+                .sort({ anio: -1, cohorte: -1, createdAt: -1 })
+                .lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getPendientesCalificacionesPorCiie:', error.message);
+            throw error;
+        }
+    }
+
     async vincularConOfertaOficial(cursoId, dataActualizada) {
         try {
             return await CursoLocal.findByIdAndUpdate(
@@ -104,6 +123,21 @@ class CursoLocalRepo {
                 .lean();
         } catch (error) {
             console.error('Error en CursoLocalRepo.actualizarPendiente:', error.message);
+            throw error;
+        }
+    }
+
+    async actualizarEstadoCalificaciones(cursoId, dataCalificaciones) {
+        try {
+            return await CursoLocal.findByIdAndUpdate(
+                new mongoose.Types.ObjectId(cursoId),
+                { $set: { calificaciones: dataCalificaciones } },
+                { new: true }
+            )
+                .populate(populateCargoConOcupante)
+                .lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.actualizarEstadoCalificaciones:', error.message);
             throw error;
         }
     }

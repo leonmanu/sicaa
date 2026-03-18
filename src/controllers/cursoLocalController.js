@@ -89,6 +89,82 @@ const getVincularConSitioOficial = async (req, res) => {
     }
 }
 
+const getCalificacionesPendientes = async (req, res) => {
+    try {
+        const ciieId = req.user.referenciaId;
+        const cursosPendientes = await cursoLocalService.getPendientesCalificacionesPorCiie(ciieId);
+
+        res.render('pages/ciie/calificacionesList', {
+            cursosPendientes,
+            user: req.user,
+            title: 'Envío de Calificaciones'
+        });
+    } catch (error) {
+        console.error('Error al cargar vista de calificaciones pendientes:', error.message);
+        req.flash('error', 'No se pudo cargar la vista de calificaciones.');
+        res.redirect('/ciie/dashboard');
+    }
+}
+
+const getCalificacionesCursoDetail = async (req, res) => {
+    try {
+        const { cursoLocalId } = req.params;
+        const { curso, inscriptosLocales } = await cursoLocalService.getDetalleCalificacionesCurso(cursoLocalId, req.user);
+
+        res.render('pages/ciie/calificacionesCursoDetail', {
+            curso,
+            inscriptosLocales,
+            user: req.user,
+            title: 'Detalle de Calificaciones'
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudo cargar el detalle de calificaciones.';
+        console.error('Error en getCalificacionesCursoDetail:', message);
+        req.flash('error', message);
+        if (status === 403 || status === 404 || status === 409) {
+            return res.redirect('/ciie/calificaciones');
+        }
+        return res.redirect('/ciie/dashboard');
+    }
+}
+
+const postEnviarCalificacionesLote = async (req, res) => {
+    try {
+        const { cursoIds } = req.body;
+        const resultado = await cursoLocalService.enviarCalificacionesPendientesEnLote(cursoIds, req.user);
+        return res.status(200).json({
+            success: true,
+            message: 'Proceso de envío ejecutado.',
+            resultado
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudo enviar el lote de calificaciones.';
+        console.error('Error en postEnviarCalificacionesLote:', message);
+        return res.status(status).json({ success: false, error: message });
+    }
+}
+
+const postGuardarYEnviarCalificacionesCurso = async (req, res) => {
+    try {
+        const { cursoLocalId } = req.params;
+        const { calificaciones } = req.body;
+
+        const resultado = await cursoLocalService.actualizarCalificacionesYEnviarCurso(cursoLocalId, calificaciones, req.user);
+        return res.status(200).json({
+            success: true,
+            message: 'Calificaciones enviadas y curso actualizado.',
+            resultado
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudo guardar y enviar las calificaciones.';
+        console.error('Error en postGuardarYEnviarCalificacionesCurso:', message);
+        return res.status(status).json({ success: false, error: message });
+    }
+}
+
 const postVincularConSitioOficial = async (req, res) => {
     try {
         const curso = await cursoLocalService.vincularCursoConSitioOficial(req.body, req.user);
@@ -247,8 +323,12 @@ module.exports = {
     getPorCiie,
     viewFormAltaPorCargoClaveCiieClave,
     getVincularConSitioOficial,
+    getCalificacionesPendientes,
+    getCalificacionesCursoDetail,
     postVincularConSitioOficial,
     postEditarCursoPendiente,
     postCrearYVincularConSitioOficial,
+    postEnviarCalificacionesLote,
+    postGuardarYEnviarCalificacionesCurso,
     getFlyerCurso
 }

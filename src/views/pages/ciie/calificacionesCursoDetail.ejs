@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Detalle de Calificaciones</title>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container py-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-award me-2 text-info"></i><%= curso.nombrePropuesta || 'Curso' %>
+                </h2>
+                <p class="text-muted mb-0">
+                    Oferta oficial: <strong><%= curso.idOfertaOficial || '-' %></strong> | <%= curso.anio || '-' %> / C<%= curso.cohorte ?? 0 %>
+                </p>
+            </div>
+            <a href="/ciie/calificaciones" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Volver a pendientes
+            </a>
+        </div>
+
+        <div class="card bg-dark border-secondary shadow-sm mb-3">
+            <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <span class="badge bg-secondary me-2"><%= curso.cargoId?.areaId?.nombre || 'Area sin definir' %></span>
+                    <% if (curso.calificaciones?.estado === 'enviado') { %>
+                        <span class="badge bg-success">Estado: enviado</span>
+                    <% } else if (curso.calificaciones?.estado === 'pendiente_envio') { %>
+                        <span class="badge bg-info text-dark">Estado: pendiente_envio</span>
+                    <% } else { %>
+                        <span class="badge bg-warning text-dark">Estado: sin_cargar</span>
+                    <% } %>
+                </div>
+                <button id="btnGuardarYEnviar" class="btn btn-info text-dark fw-bold">
+                    <i class="bi bi-send-check me-1"></i>Guardar y enviar al ABC
+                </button>
+            </div>
+        </div>
+
+        <div class="card bg-dark border-secondary shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="tablaCalificacionesCurso" class="table table-dark table-hover align-middle mb-0">
+                        <thead class="small text-uppercase text-muted">
+                            <tr>
+                                <th>Apellido y nombre</th>
+                                <th>DNI</th>
+                                <th>Email</th>
+                                <th style="min-width: 240px;">Calificacion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (inscriptosLocales && inscriptosLocales.length > 0) { %>
+                                <% inscriptosLocales.forEach(inscripto => { %>
+                                    <tr>
+                                        <td><%= (inscripto.apellido || '') + ', ' + (inscripto.nombres || '') %></td>
+                                        <td><%= inscripto.dni || '-' %></td>
+                                        <td><small class="text-info"><%= inscripto.emailAlternativo || inscripto.email || '-' %></small></td>
+                                        <td>
+                                            <select
+                                                class="form-select form-select-sm bg-dark border-secondary text-white select-calificacion"
+                                                data-id-inscripcion="<%= inscripto.idInscripcionOficial %>">
+                                                <% const opciones = ['Sin Calificar', 'Aprobado', 'Desaprobado', 'Ausente', 'Aprobó', 'Asistió', 'No acreditó', 'Baja de Inscripción']; %>
+                                                <% opciones.forEach(opcion => { %>
+                                                    <option value="<%= opcion %>" <%= (inscripto.calificacion === opcion ? 'selected' : '') %>><%= opcion %></option>
+                                                <% }) %>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted">
+                                        No hay inscriptos locales para este curso.
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function buildPayloadCalificaciones() {
+            return $('.select-calificacion').map(function () {
+                return {
+                    idInscripcionOficial: $(this).data('id-inscripcion'),
+                    calificacion: $(this).val()
+                };
+            }).get();
+        }
+
+        $(document).ready(function () {
+            $('#tablaCalificacionesCurso').DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                pageLength: 25,
+                order: [[0, 'asc']],
+                columnDefs: [{ orderable: false, targets: [3] }]
+            });
+
+            $('#btnGuardarYEnviar').on('click', async function () {
+                const calificaciones = buildPayloadCalificaciones();
+
+                if (!calificaciones.length) {
+                    Swal.fire('Atencion', 'No hay calificaciones para enviar.', 'warning');
+                    return;
+                }
+
+                const sinCalificar = calificaciones.filter(c => c.calificacion === 'Sin Calificar').length;
+                if (sinCalificar > 0) {
+                    Swal.fire('Atencion', 'Hay cursantes sin calificar. Completá todas las calificaciones antes de enviar.', 'warning');
+                    return;
+                }
+
+                const confirm = await Swal.fire({
+                    icon: 'question',
+                    title: 'Confirmar envio',
+                    text: 'Se guardarán las calificaciones en MongoDB y luego se enviarán al ABC.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Si, guardar y enviar',
+                    cancelButtonText: 'Cancelar'
+                });
+
+                if (!confirm.isConfirmed) return;
+
+                const btn = $(this);
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Procesando...');
+
+                try {
+                    const response = await fetch('/ciie/calificaciones/<%= curso._id %>/enviar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ calificaciones })
+                    });
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        throw new Error(result.error || 'No se pudo guardar y enviar las calificaciones.');
+                    }
+
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Calificaciones enviadas',
+                        text: `Se enviaron ${result.resultado?.enviados || 0} calificaciones al ABC.`
+                    });
+
+                    window.location.href = '/ciie/calificaciones';
+                } catch (error) {
+                    Swal.fire('Error', error.message, 'error');
+                    btn.prop('disabled', false).html('<i class="bi bi-send-check me-1"></i>Guardar y enviar al ABC');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
