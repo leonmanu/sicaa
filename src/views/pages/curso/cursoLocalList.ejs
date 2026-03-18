@@ -11,7 +11,13 @@
         #tablaCursosCargo th {
             vertical-align: middle;
         }
-
+        .flatpickr-input.flatpickr-mobile,
+.flatpickr-input[readonly] {
+    pointer-events: none;
+}
+.flatpickr-input.flatpickr-input ~ input {
+    pointer-events: auto;
+}
         .dropdown-formadores {
             max-height: 260px;
             overflow-y: auto;
@@ -157,27 +163,44 @@
                                         </td>
                                         <td class="text-center pe-4">
                                             <% if (c.estado === 'vinculado') { %>
-                                                <div class="btn-group" role="group">
-                                                    <a href="/inscripto/curso/<%= c.idOfertaOficial %>" class="btn btn-lg btn-outline-primary" title="Ver alumnos">
-                                                        <i class="bi bi-people-fill"></i>
-                                                    </a>
-                                                    <button class="btn btn-lg btn-outline-secondary"
-                                                            onclick="copyToClipboard('<%= c.enlaceInscripcion %>')"
-                                                            title="Copiar link de inscripción">
-                                                        <i class="bi bi-link-45deg"></i>
-                                                    </button>
-                                                    <button class="btn btn-lg btn-outline-danger disabled" title="Desvincular">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                    <a href="/curso/flyer/<%= c.idOfertaOficial %>" 
-                                                        class="btn btn-lg btn-outline-warning" 
-                                                        title="Ver flyer" target="_blank">
-                                                            <i class="bi bi-image"></i>
-                                                        </a>
-                                                </div>
-                                            <% } else { %>
-                                                <span class="badge bg-secondary">En proceso de alta...</span>
-                                            <% } %>
+    <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-three-dots-vertical"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+            <li>
+                <a class="dropdown-item text-white" href="/inscripto/curso/<%= c.idOfertaOficial %>">
+                    <i class="bi bi-people-fill me-2 text-primary"></i>Ver alumnos
+                </a>
+            </li>
+            <li>
+                <button class="dropdown-item text-white" onclick="copyToClipboard('<%= c.enlaceInscripcion %>')">
+                    <i class="bi bi-link-45deg me-2 text-info"></i>Copiar enlace
+                </button>
+            </li>
+            <li>
+                <a class="dropdown-item text-white" href="/curso/flyer/<%= c.idOfertaOficial %>" target="_blank">
+                    <i class="bi bi-image me-2 text-warning"></i>Ver flyer
+                </a>
+            </li>
+            <li><hr class="dropdown-divider border-secondary"></li>
+            <li>
+                <button class="dropdown-item text-white btn-editar-curso" 
+                        data-id="<%= c._id %>">
+                    <i class="bi bi-pencil me-2 text-success"></i>Editar
+                </button>
+            </li>
+            <li>
+                <button class="dropdown-item text-danger disabled">
+                    <i class="bi bi-trash me-2"></i>Desvincular
+                </button>
+            </li>
+        </ul>
+    </div>
+<% } else { %>
+    <span class="badge bg-secondary">En proceso de alta...</span>
+<% } %>
                                         </td>
                                     </tr>
                                 <% }); %>
@@ -488,26 +511,21 @@
 
         // ─── Flatpickr ───────────────────────────────────────────────────────────
         // dateFormat guarda ISO en el input real; altFormat muestra formato amigable
-        const fpOpts = {
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+const fpOpts = {
     locale: 'es',
     enableTime: true,
     dateFormat: 'Y-m-dTH:i',
-    altInput: true,
+    altInput: !isMobile,        // ← sin altInput en mobile
     altFormat: 'D d/m/y H:i',
     minTime: '06:00',
     maxTime: '22:00',
     minuteIncrement: 5,
     defaultHour: 18,
     defaultMinute: 30,
-    // Botón de confirmar
-    closeOnSelect: false,
-    onReady: function(selectedDates, dateStr, instance) {
-        const btn = document.createElement('button');
-        btn.textContent = 'Confirmar';
-        btn.className = 'btn btn-sm btn-success w-100 mt-2';
-        btn.addEventListener('click', function() { instance.close(); });
-        instance.calendarContainer.appendChild(btn);
-    }
+    closeOnSelect: true,        // ← en mobile cerrar al seleccionar
+    static: true
 };
 
         const fpInicio = flatpickr('#fechaInicioCurso', {
