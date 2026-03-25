@@ -45,6 +45,13 @@ const cursoSchema = new mongoose.Schema({
         fechaEnvio: Date,
         enviadoPor: String
     },
+    impresionDocumentos: {
+        certificadosImpresos: { type: Boolean, default: false },
+        actaImpresa: { type: Boolean, default: false },
+        fechaCertificadosImpresos: Date,
+        fechaActaImpresa: Date,
+        actualizadoPor: String
+    },
 
     // Publicación en sitio visual Drupal
     publicacionDrupal: {

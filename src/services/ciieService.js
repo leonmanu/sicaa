@@ -53,6 +53,14 @@ class CiieService {
             throw error;
         }
     }
+
+    async getPorId(id) {
+        try {
+            return await ciieRepo.getPorId(id)
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 
 module.exports = new CiieService();

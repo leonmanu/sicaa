@@ -35,9 +35,20 @@
                         <span class="badge bg-warning text-dark">Estado: sin_cargar</span>
                     <% } %>
                 </div>
-                <button id="btnGuardarYEnviar" class="btn btn-info text-dark fw-bold">
-                    <i class="bi bi-send-check me-1"></i>Guardar y enviar al ABC
-                </button>
+                <div class="d-flex flex-wrap gap-2 justify-content-end">
+                    <a href="/ciie/calificaciones/<%= curso.idOfertaOficial %>/documentos?tipo=certificados" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-patch-check me-1"></i>Ver certificados
+                    </a>
+                    <a href="/ciie/calificaciones/<%= curso.idOfertaOficial %>/documentos?tipo=acta" class="btn btn-outline-warning btn-sm">
+                        <i class="bi bi-journal-text me-1"></i>Ver acta
+                    </a>
+                    <a href="/ciie/calificaciones/<%= curso.idOfertaOficial %>/documentos?tipo=ambos" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-collection me-1"></i>Ver ambos
+                    </a>
+                    <button id="btnGuardarYEnviar" class="btn btn-info text-dark fw-bold">
+                        <i class="bi bi-send-check me-1"></i>Guardar y enviar al ABC
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -135,7 +146,7 @@
                 btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Procesando...');
 
                 try {
-                    const response = await fetch('/ciie/calificaciones/<%= curso._id %>/enviar', {
+                    const response = await fetch('/ciie/calificaciones/<%= curso.idOfertaOficial %>/enviar', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ calificaciones })

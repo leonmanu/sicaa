@@ -3,3 +3,4 @@ google-credentials.json
 .env.local
 *.env
 nomenclatura.txt
+node_modules/

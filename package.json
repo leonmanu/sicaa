@@ -26,6 +26,7 @@
     "node-fetch": "^2.7.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "pdfreader": "^3.0.8",
     "tough-cookie": "^6.0.0"
   }
 }

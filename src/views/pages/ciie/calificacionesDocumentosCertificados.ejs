@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Certificados</title>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ─── Pantalla ───────────────────────────────────── */
+        body { background: #eef1f5 !important; }
+        
+        .contenedor-nombre-curso {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .cert-wrapper {
+            background: white;
+            border: 1.5px solid #0f9db0;
+            border-radius: 12px;
+            margin: 20px auto;
+            max-width: 800px;
+            overflow: hidden;
+            transition: opacity 0.2s;
+            color: #1a1a1a;
+            position: relative;
+        }
+        .cert-wrapper.deseleccionado { opacity: 0.35; }
+        
+        .cert-selector-bar {
+            background: #1a2a3a;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: #aac;
+        }
+
+        /* ─── Diseño del Certificado ────────────────────── */
+        .cert-page {
+            padding: 25px 35px 10px;
+            position: relative;
+        }
+
+        .cert-page::before {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            border: 2px solid #0b6b77;
+            pointer-events: none;
+        }
+        .cert-page::after {
+            content: '';
+            position: absolute;
+            inset: 14px;
+            border: 0.5px solid #cde8ec;
+            pointer-events: none;
+        }
+
+        .cert-inner { position: relative; z-index: 1; }
+
+        .cert-ref {
+            font-size: 9px;
+            color: #666;
+            text-align: right;
+            margin-bottom: 10px;
+        }
+
+        .cert-cuerpo {
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            text-align: justify;
+        }
+        
+        .cert-nombre {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0b6b77;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .cert-nombre-curso {
+            font-size: 22px;
+            font-family: 'Crimson Pro', serif;
+            font-style: italic;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .cert-lugar {
+            font-size: 13px;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .cert-firmas {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 25px;
+            padding-bottom: 10px;
+        }
+
+        .firma-bloque { text-align: center; width: 40%; }
+        .firma-linea { border-top: 1px solid #333; margin-bottom: 5px; }
+        .firma-label { font-size: 10px; color: #666; }
+
+        .cert-footer {
+            padding: 15px 0 25px;
+            display: flex;
+            justify-content: center;
+        }
+        .cert-header-logo { height: 60px; width: auto; object-fit: contain; }
+
+        /* ─── Impresión ──────────────────────────────────── */
+        @media print {
+            @page {
+                size: A4;
+                margin: 0; /* Importante: margen cero para control total */
+            }
+            .container {
+                width: 100% !important;
+                max-width: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            body { background: white !important; margin: 0; padding: 0; }
+            .no-print, .navbar, .cert-selector-bar, .card { display: none !important; }
+
+            .cert-wrapper {
+                /* Mitad exacta de una A4 (297mm / 2) */
+                height: 148.5mm; 
+                width: 210mm;
+                margin: 0 !important;
+                border: none !important;
+                border-radius: 0 !important;
+                display: flex;
+                flex-direction: column;
+                page-break-inside: avoid;
+                box-sizing: border-box;
+                position: relative;
+            }
+
+            /* Línea divisoria (Solo para el primer certificado de cada hoja) */
+            .cert-wrapper:nth-child(odd)::after {
+                content: "";
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                border-bottom: 1px dashed #ccc; /* Línea gris suave para corte */
+                z-index: 10;
+            }
+
+            .cert-wrapper:nth-child(2n) {
+                page-break-after: always;
+            }
+
+            .cert-page {
+                flex: 1;
+                padding: 10mm 15mm 18mm !important;
+            }
+
+            .cert-page::before { inset: 8mm !important; border-width: 1.5pt !important; -webkit-print-color-adjust: exact; }
+            .cert-page::after { inset: 9.5mm !important; -webkit-print-color-adjust: exact; }
+
+            .cert-footer {
+                height: 30mm;
+                padding: 0 0 20mm 0;
+                align-items: center;
+            }
+
+            .cert-header-logo {
+                height: 20mm !important;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .cert-cuerpo { font-size: 12pt !important; }
+            .cert-nombre-curso { font-size: 16pt !important; }
+        }
+    </style>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container py-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 no-print">
+            <div>
+                <h2 class="fw-bold mb-1"><i class="bi bi-patch-check me-2 text-success"></i>Certificados</h2>
+                <p class="text-muted mb-0">Seleccioná los certificados a imprimir.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-light btn-sm" id="btnSelTodos">Seleccionar todos</button>
+                <button class="btn btn-success fw-bold" id="btnImprimir">
+                    <i class="bi bi-printer me-1"></i>Imprimir <span class="badge bg-white text-success ms-1" id="contadorSeleccionados">0</span>
+                </button>
+                <a href="/ciie/calificaciones" class="btn btn-outline-secondary btn-sm">Volver</a>
+            </div>
+        </div>
+
+        <% if (cursosDocumentos && cursosDocumentos.length > 0) { %>
+            <% cursosDocumentos.forEach(data => { %>
+                <div class="card bg-dark border-secondary mb-4 no-print">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0 text-white"><%= data.curso?.nombrePropuesta %></h5>
+                            <small class="text-muted">Oferta: <%= data.curso?.idOfertaOficial %></small>
+                        </div>
+                        <button class="btn btn-outline-success btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="certificados">
+                            Marcar impresos
+                        </button>
+                    </div>
+                </div>
+
+                <div class="certs-container">
+                    <% data.certificados.forEach((item, index) => { %>
+                        <div class="cert-wrapper" data-cert-id="cert-<%= data.curso?.idOfertaOficial %>-<%= index %>">
+                            
+                            <div class="cert-selector-bar no-print">
+                                <input type="checkbox" class="form-check-input check-cert" 
+                                       id="chk-<%= data.curso?.idOfertaOficial %>-<%= index %>" 
+                                       data-cert-id="cert-<%= data.curso?.idOfertaOficial %>-<%= index %>" checked>
+                                <label for="chk-<%= data.curso?.idOfertaOficial %>-<%= index %>">
+                                    <strong><%= item.nombreCompleto %></strong> (DNI <%= item.dni %>)
+                                </label>
+                            </div>
+
+                            <div class="cert-page">
+                                <div class="cert-inner">
+                                    <div class="cert-ref">
+                                        <small>
+                                            <%= data.administrativos?.cursoClave.toUpperCase() %> •  
+                                        <%= data.curso?.anio %> CH <%= data.curso?.cohorte %>
+                                        </small>
+                                    </div>
+
+                                    <div class="cert-cuerpo">
+                                        <p style="text-align:center;">
+                                            Se deja constancia que <span class="cert-nombre"><%= item.nombreCompleto %></span>,<br>
+                                            DNI: <strong><%= item.dni %></strong>, cursó y aprobó la propuesta formativa:
+                                        </p>
+
+                                        <div class="contenedor-nombre-curso">
+                                            <span class="cert-nombre-curso"><%= data.curso?.nombrePropuesta %></span>
+                                        </div>
+
+                                        <p>
+                                            Proyecto N°: <strong><%= data.administrativos?.proyecto %></strong>, 
+                                            carga horaria de <strong><%= data.administrativos?.horas %> hs. reloj</strong>,
+                                            desde el <%= new Date(data.curso.fechaInicioCurso).toLocaleDateString('es-AR') %>
+                                            hasta el <%= new Date(data.curso.fechaFinCurso).toLocaleDateString('es-AR') %>.
+                                        </p>
+                                        <p>
+                                            Resolución N° <%= data.administrativos?.resolucion %>, 
+                                            Dictamen N° <%= data.administrativos?.dictamen %>.
+                                        </p>
+                                    </div>
+
+                                    <div class="cert-lugar">
+                                        <%= data.institucion?.distrito %> (<%= data.institucion?.localidad %>), <%= new Date(data.curso.fechaFinCurso).toLocaleDateString('es-AR', {day:'numeric', month:'long', year:'numeric'}) %>.
+                                    </div>
+                                    <br>
+                                    <div class="cert-firmas">
+                                        <div class="firma-bloque">
+                                            <div class="firma-linea"></div>
+                                            <div class="firma-label">Form. <%= data.curso?.formadorAbc %></div>
+                                        </div>
+                                        <div class="firma-bloque">
+                                            <div class="firma-linea"></div>
+                                            <div class="firma-label">Director/a CIIE</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="cert-footer">
+                                <img src="/img/logo-pba2.png" alt="Logo" class="cert-header-logo">
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            <% }) %>
+        <% } %>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+    <script>
+        $(document).ready(function () {
+            const actualizarContador = () => $('#contadorSeleccionados').text($('.check-cert:checked').length);
+            actualizarContador();
+
+            $(document).on('change', '.check-cert', function () {
+                const $wrapper = $(`[data-cert-id="${$(this).data('cert-id')}"]`);
+                this.checked ? $wrapper.removeClass('deseleccionado') : $wrapper.addClass('deseleccionado');
+                actualizarContador();
+            });
+
+            $('#btnSelTodos').on('click', () => {
+                const todos = $('.check-cert').length === $('.check-cert:checked').length;
+                $('.check-cert').prop('checked', !todos).trigger('change');
+            });
+
+            $('#btnImprimir').on('click', () => window.print());
+        });
+    </script>
+</body>
+</html>

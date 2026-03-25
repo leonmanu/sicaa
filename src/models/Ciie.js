@@ -11,6 +11,7 @@ const CiieSchema = new mongoose.Schema({
     clave: { type: String, required: true, unique: true },
     nombre: { type: String, required: true },
     distrito: { type: String, required: true },
+    localidad: { type: String, required: true },
     region: { type: String, required: true },
     sede: { type: String, required: false },
     direccion: String,

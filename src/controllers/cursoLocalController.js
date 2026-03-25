@@ -100,7 +100,24 @@ const getCalificacionesPendientes = async (req, res) => {
             title: 'Envío de Calificaciones'
         });
     } catch (error) {
-        console.error('Error al cargar vista de calificaciones pendientes:', error.message);
+        console.error('Error al cargar vista de calificaciones pendientes:', error);
+        req.flash('error', 'No se pudo cargar la vista de calificaciones.');
+        res.redirect('/ciie/dashboard');
+    }
+}
+
+const getCalificaciones = async (req, res) => {
+    try {
+        const ciieId = req.user.referenciaId;
+        const cursosPendientes = await cursoLocalService.getCalificacionesPorCiie(ciieId);
+
+        res.render('pages/ciie/calificacionesList', {
+            cursosPendientes,
+            user: req.user,
+            title: 'Envío de Calificaciones'
+        });
+    } catch (error) {
+        console.error('Error al cargar vista de calificaciones pendientes:', error);
         req.flash('error', 'No se pudo cargar la vista de calificaciones.');
         res.redirect('/ciie/dashboard');
     }
@@ -108,8 +125,8 @@ const getCalificacionesPendientes = async (req, res) => {
 
 const getCalificacionesCursoDetail = async (req, res) => {
     try {
-        const { cursoLocalId } = req.params;
-        const { curso, inscriptosLocales } = await cursoLocalService.getDetalleCalificacionesCurso(cursoLocalId, req.user);
+        const { idOfertaOficial } = req.params;
+        const { curso, inscriptosLocales } = await cursoLocalService.getDetalleCalificacionesCurso(idOfertaOficial, req.user);
 
         res.render('pages/ciie/calificacionesCursoDetail', {
             curso,
@@ -148,10 +165,10 @@ const postEnviarCalificacionesLote = async (req, res) => {
 
 const postGuardarYEnviarCalificacionesCurso = async (req, res) => {
     try {
-        const { cursoLocalId } = req.params;
+        const { idOfertaOficial } = req.params;
         const { calificaciones } = req.body;
 
-        const resultado = await cursoLocalService.actualizarCalificacionesYEnviarCurso(cursoLocalId, calificaciones, req.user);
+        const resultado = await cursoLocalService.actualizarCalificacionesYEnviarCurso(idOfertaOficial, calificaciones, req.user);
         return res.status(200).json({
             success: true,
             message: 'Calificaciones enviadas y curso actualizado.',
@@ -161,6 +178,104 @@ const postGuardarYEnviarCalificacionesCurso = async (req, res) => {
         const status = error.statusCode || 500;
         const message = error.message || 'No se pudo guardar y enviar las calificaciones.';
         console.error('Error en postGuardarYEnviarCalificacionesCurso:', message);
+        return res.status(status).json({ success: false, error: message });
+    }
+}
+
+const postEnviarCalificacionesCurso = async (req, res) => {
+    try {
+        const { idOfertaOficial } = req.params;
+        const resultado = await cursoLocalService.enviarCalificacionesCursoPorOferta(idOfertaOficial, req.user);
+        return res.status(200).json({
+            success: true,
+            message: 'Curso enviado correctamente.',
+            resultado
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudo enviar el curso.';
+        console.error('Error en postEnviarCalificacionesCurso:', message);
+        return res.status(status).json({ success: false, error: message });
+    }
+}
+
+const getCalificacionesDocumentosCurso = async (req, res) => {
+    try {
+        const { idOfertaOficial } = req.params;
+        const tipo = String(req.query.tipo || 'ambos').toLowerCase();
+        const documentoCurso = await cursoLocalService.getDocumentosCurso(idOfertaOficial, req.user);
+        const cursosDocumentos = [documentoCurso];
+
+        const vista = tipo === 'certificados'
+            ? 'pages/ciie/calificacionesDocumentosCertificados'
+            : tipo === 'acta'
+                ? 'pages/ciie/calificacionesDocumentosActa'
+                : 'pages/ciie/calificacionesDocumentosAmbos';
+
+        return res.render(vista, {
+            cursosDocumentos,
+            user: req.user,
+            title: 'Documentos del curso'
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudieron obtener los documentos.';
+        console.error('Error en getCalificacionesDocumentosCurso:', message);
+        req.flash('error', message);
+        if (status === 400 || status === 403 || status === 404 || status === 409) {
+            return res.redirect('/ciie/certificados');
+        }
+        return res.redirect('/ciie/dashboard');
+    }
+}
+
+const getCalificacionesDocumentosLote = async (req, res) => {
+    try {
+        const tipo = String(req.query.tipo || 'ambos').toLowerCase();
+        const rawIds = String(req.query.cursoIds || '');
+        const idOfertas = rawIds.split(',').map(id => id.trim()).filter(Boolean);
+        const cursosDocumentos = await cursoLocalService.getDocumentosCursosLote(idOfertas, req.user);
+        // DEBUG CORRECTO:
+        
+
+        const vista = tipo === 'certificados'
+            ? 'pages/ciie/calificacionesDocumentosCertificados'
+            : tipo === 'acta'
+                ? 'pages/ciie/calificacionesDocumentosActa'
+                : 'pages/ciie/calificacionesDocumentosAmbos';
+
+        return res.render(vista, {
+            cursosDocumentos,
+            user: req.user,
+            title: 'Documentos por lote'
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudieron obtener los documentos del lote.';
+        console.error('Error en getCalificacionesDocumentosLote:', error);
+        req.flash('error', message);
+        if (status === 400 || status === 403 || status === 404 || status === 409) {
+            return res.redirect('/ciie/certificados');
+        }
+        return res.redirect('/ciie/dashboard');
+    }
+}
+
+const postMarcarImpresionDocumentos = async (req, res) => {
+    try {
+        const { idOfertaOficial } = req.params;
+        const { tipo } = req.body || {};
+        const curso = await cursoLocalService.marcarImpresionDocumentos(idOfertaOficial, tipo, req.user);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Estado de impresión actualizado.',
+            curso
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudo actualizar el estado de impresión.';
+        console.error('Error en postMarcarImpresionDocumentos:', message);
         return res.status(status).json({ success: false, error: message });
     }
 }
@@ -323,12 +438,17 @@ module.exports = {
     getPorCiie,
     viewFormAltaPorCargoClaveCiieClave,
     getVincularConSitioOficial,
+    getCalificaciones,
     getCalificacionesPendientes,
     getCalificacionesCursoDetail,
+    getCalificacionesDocumentosCurso,
+    getCalificacionesDocumentosLote,
     postVincularConSitioOficial,
     postEditarCursoPendiente,
     postCrearYVincularConSitioOficial,
     postEnviarCalificacionesLote,
     postGuardarYEnviarCalificacionesCurso,
+    postEnviarCalificacionesCurso,
+    postMarcarImpresionDocumentos,
     getFlyerCurso
 }

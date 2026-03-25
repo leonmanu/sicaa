@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Certificados y Actas</title>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container py-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-collection me-2 text-info"></i>Certificados y Actas
+                </h2>
+                <p class="text-muted mb-0">Vista combinada para uno o varios cursos.</p>
+            </div>
+            <a href="/ciie/calificaciones" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Volver a calificaciones
+            </a>
+        </div>
+
+        <% if (cursosDocumentos && cursosDocumentos.length > 0) { %>
+            <% cursosDocumentos.forEach(data => { %>
+                <div class="card bg-dark border-secondary shadow-sm mb-4">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h5 class="mb-1"><%= data.curso?.nombrePropuesta || 'Curso' %></h5>
+                            <small class="text-muted">
+                                Oferta: <%= data.curso?.idOfertaOficial || '-' %>
+                                | Formador: <%= data.curso?.formadorAbc || 'Sin formador' %>
+                            </small>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <% if (data.curso?.impresionDocumentos?.certificadosImpresos) { %>
+                                <span class="badge bg-success">Certificados impresos</span>
+                            <% } else { %>
+                                <span class="badge bg-secondary">Certificados pendientes</span>
+                            <% } %>
+
+                            <% if (data.curso?.impresionDocumentos?.actaImpresa) { %>
+                                <span class="badge bg-success">Acta impresa</span>
+                            <% } else { %>
+                                <span class="badge bg-secondary">Acta pendiente</span>
+                            <% } %>
+
+                            <button class="btn btn-outline-success btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="certificados">
+                                <i class="bi bi-printer me-1"></i>Marcar certificados
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="acta">
+                                <i class="bi bi-printer me-1"></i>Marcar acta
+                            </button>
+                            <button class="btn btn-outline-info btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="ambos">
+                                <i class="bi bi-printer me-1"></i>Marcar ambos
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2 small mb-3 text-muted">
+                            <div class="col-md-2">Resolución: <strong class="text-light"><%= data.administrativos?.resolucion || '-' %></strong></div>
+                            <div class="col-md-2">Proyecto: <strong class="text-light"><%= data.administrativos?.proyecto || '-' %></strong></div>
+                            <div class="col-md-2">Dictamen: <strong class="text-light"><%= data.administrativos?.dictamen || '-' %></strong></div>
+                            <div class="col-md-2">Puntaje: <strong class="text-light"><%= data.administrativos?.puntaje || '-' %></strong></div>
+                            <div class="col-md-2">Horas: <strong class="text-light"><%= data.administrativos?.horas || '-' %></strong></div>
+                        </div>
+
+                        <h6 class="fw-bold text-success mt-2">Certificados</h6>
+                        <div class="table-responsive mb-3">
+                            <table class="table table-dark table-hover align-middle mb-0">
+                                <thead class="small text-uppercase text-muted">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Apellido y nombre</th>
+                                        <th>DNI</th>
+                                        <th>Resultado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (data.certificados && data.certificados.length > 0) { %>
+                                        <% data.certificados.forEach((item, index) => { %>
+                                            <tr>
+                                                <td><%= index + 1 %></td>
+                                                <td><%= item.nombreCompleto || '-' %></td>
+                                                <td><%= item.dni || '-' %></td>
+                                                <td><span class="badge bg-success"><%= item.calificacion || 'Aprobado' %></span></td>
+                                            </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4 text-muted">No hay certificados para mostrar.</td>
+                                        </tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h6 class="fw-bold text-warning mt-2">Acta</h6>
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover align-middle mb-0">
+                                <thead class="small text-uppercase text-muted">
+                                    <tr>
+                                        <th>Orden</th>
+                                        <th>Apellido y nombre</th>
+                                        <th>DNI</th>
+                                        <th>Resultado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (data.acta && data.acta.length > 0) { %>
+                                        <% data.acta.forEach(item => { %>
+                                            <tr>
+                                                <td><%= item.orden %></td>
+                                                <td><%= item.nombreCompleto || '-' %></td>
+                                                <td><%= item.dni || '-' %></td>
+                                                <td>
+                                                    <% if (item.calificacion === 'Aprobado') { %>
+                                                        <span class="badge bg-success">Aprobado</span>
+                                                    <% } else if (item.calificacion === 'Ausente') { %>
+                                                        <span class="badge bg-warning text-dark">Ausente</span>
+                                                    <% } else if (item.calificacion === 'Desaprobado') { %>
+                                                        <span class="badge bg-danger">Desaprobado</span>
+                                                    <% } else { %>
+                                                        <span class="badge bg-secondary"><%= item.calificacion || 'Sin Calificar' %></span>
+                                                    <% } %>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4 text-muted">No hay filas para mostrar en el acta.</td>
+                                        </tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <div class="alert alert-secondary">No hay cursos para mostrar.</div>
+        <% } %>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        async function marcarImpresion(cursoId, tipo) {
+            try {
+                const response = await fetch(`/ciie/calificaciones/${cursoId}/documentos/impresion`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tipo })
+                });
+                const result = await response.json();
+                if (!result.success) throw new Error(result.error || 'No se pudo guardar el estado.');
+                await Swal.fire('Listo', 'Estado de impresión actualizado.', 'success');
+                window.location.reload();
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            }
+        }
+
+        $(document).on('click', '.btn-marcar-impreso', async function () {
+            const cursoId = $(this).data('curso-id');
+            const tipo = $(this).data('tipo');
+            const confirm = await Swal.fire({
+                icon: 'question',
+                title: 'Confirmar impresión',
+                text: 'Se guardará el estado de impresión del documento.',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, guardar',
+                cancelButtonText: 'Cancelar'
+            });
+            if (!confirm.isConfirmed) return;
+            await marcarImpresion(cursoId, tipo);
+        });
+    </script>
+</body>
+</html>

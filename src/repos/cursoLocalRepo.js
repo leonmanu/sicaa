@@ -13,13 +13,16 @@ const populateCargoBase = {
 const populateCargoConOcupante = {
     path: 'cargoId',
     populate: [
-        { path: 'areaId' },
+        { path: 'areaId' }, // Trae el nombre del área
         {
-            path: 'ocupante',
+            path: 'ocupante', // Virtual que apunta a Asignación
             match: { estado: 'Activo' },
             populate: {
-                path: 'usuarioId',
-                populate: { path: 'referenciaId' }
+                path: 'usuarioId', // Salta al modelo Usuario
+                populate: { 
+                    path: 'referenciaId', // Salta al modelo Persona
+                    model: 'Persona' // Especificamos el modelo por ser refPath
+                }
             }
         }
     ]
@@ -40,8 +43,8 @@ class CursoLocalRepo {
     async getPorIdOfertaOficial(ofertaId) {
         try {
             return await CursoLocal.findOne({ idOfertaOficial: ofertaId })
-                .populate(populateCargoBase)
-                .lean();
+                .populate(populateCargoConOcupante)
+                .lean({ virtuals: true });
         } catch (error) {
             console.error('Error en CursoLocalRepo.getPorIdOfertaOficial:', error.message);
             throw error;
@@ -69,9 +72,9 @@ class CursoLocalRepo {
                     { idOfertaOficial: '' }
                 ]
             })
-                .populate(populateCargoConOcupante)
-                .sort({ createdAt: -1 })
-                .lean();
+            .populate(populateCargoConOcupante)
+            .sort({ createdAt: -1 })
+            .lean({ virtuals: true }); // IMPORTANTE: permite ver 'ocupante' con lean
         } catch (error) {
             console.error('Error en CursoLocalRepo.getPendientesVinculacionPorCiie:', error.message);
             throw error;
@@ -87,6 +90,21 @@ class CursoLocalRepo {
                     { 'calificaciones.estado': { $exists: false } },
                     { 'calificaciones.estado': { $ne: 'enviado' } }
                 ]
+            })
+                .populate(populateCargoConOcupante)
+                .sort({ anio: -1, cohorte: -1, createdAt: -1 })
+                .lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getPendientesCalificacionesPorCiie:', error.message);
+            throw error;
+        }
+    }
+
+    async getCalificacionesPorCiie(ciieId) {
+        try {
+            return await CursoLocal.find({
+                ciieId: new mongoose.Types.ObjectId(ciieId),
+                estado: 'vinculado'
             })
                 .populate(populateCargoConOcupante)
                 .sort({ anio: -1, cohorte: -1, createdAt: -1 })
@@ -158,7 +176,7 @@ class CursoLocalRepo {
             return await CursoLocal.find({ ciieId: new mongoose.Types.ObjectId(ciieId) })
                 .populate(populateCargoConOcupante)
                 .sort({ anio: -1 })
-                .lean();
+                .lean({ virtuals: true });
         } catch (error) {
             console.error('Error en CursoLocalRepo.getPorCiieId:', error.message);
             throw error;

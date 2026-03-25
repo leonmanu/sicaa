@@ -6,6 +6,9 @@ const cargoService = require('./cargoService');
 const cursoExternoService = require('./cursoExternoService');
 const inscriptoExternoService = require('./inscriptoExternoService');
 const sesionService = require('./sesionService');
+const certificadoExternoService = require('./certificadoExternoService');
+const ciieRepo = require('../repos/ciieRepo');
+const ciieService = require('./ciieService');
 
 class CursoLocalService {
 
@@ -168,14 +171,90 @@ class CursoLocalService {
         return await cursoLocalRepo.getPendientesCalificacionesPorCiie(ciieId);
     }
 
-    async getDetalleCalificacionesCurso(cursoLocalId, usuario = {}) {
-        const curso = await this._getCursoVinculadoDelCiie(cursoLocalId, usuario);
+    async getCalificacionesPorCiie(ciieId) {
+        const cursos = await cursoLocalRepo.getCalificacionesPorCiie(ciieId);
+        if (!cursos || cursos.length === 0) return [];
+
+        const cursoIds = cursos.map(c => c._id);
+        const inscriptos = await inscriptoLocalRepo.getPorListaDeCursos(cursoIds);
+
+        return cursos.map(curso => {
+            const delCurso = inscriptos.filter(i => String(i.cursoId) === String(curso._id));
+            const cantidadSinCalificar = delCurso.filter(i => {
+                const calificacion = this._sanitizeString(i.calificacion);
+                return !calificacion || calificacion === 'Sin Calificar';
+            }).length;
+
+            return {
+                ...curso,
+                cantidadInscriptos: delCurso.length,
+                cantidadSinCalificar
+            };
+        });
+    }
+
+    async getDetalleCalificacionesCurso(idOfertaOficial, usuario = {}) {
+        const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
         const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(curso._id);
         return { curso, inscriptosLocales };
     }
 
-    async actualizarCalificacionesYEnviarCurso(cursoLocalId, calificaciones = [], usuario = {}) {
-        const curso = await this._getCursoVinculadoDelCiie(cursoLocalId, usuario);
+    async getDocumentosCurso(idOfertaOficial, usuario = {}) {
+        const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
+        const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(curso._id);
+        return this._buildDocumentosCurso(curso, inscriptosLocales, cursoLocal);
+    }
+
+    async getDocumentosCursosLote(idOfertasOficiales = [], usuario = {}) {
+    if (!Array.isArray(idOfertasOficiales) || idOfertasOficiales.length === 0) {
+        const err = new Error('No se recibieron cursos para consultar documentos.');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const cursosDocumentos = []; // Cambiamos el nombre para mayor claridad
+
+    for (const idOfertaOficial of idOfertasOficiales) {
+        // 1. Datos que vienen del "vinculador" (probablemente scraping/api abc)
+        const cursoAbc = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
+        
+        // 2. Datos que vienen de TU base de datos (con el populate del cargo y persona)
+        const cursoDb = await cursoLocalRepo.getPorIdOfertaOficial(idOfertaOficial);
+        const ciie = await ciieService.getPorId(cursoDb.ciieId);
+        console.log('Curso local encontrado para idOfertaOficial', idOfertaOficial, ':', cursoDb);
+        // 3. Inscriptos
+        const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(cursoAbc._id);
+
+        // IMPORTANTE: Aquí enviamos 'cursoDb' que es el que tiene el cargoId populado
+        // Si _buildDocumentosCurso espera el curso, asegúrate de pasarle el de la DB
+        cursosDocumentos.push(await this._buildDocumentosCurso(cursoAbc, inscriptosLocales, cursoDb, ciie));
+    }
+
+    return cursosDocumentos;
+}
+
+    async marcarImpresionDocumentos(idOfertaOficial, tipo = 'ambos', usuario = {}) {
+        const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
+        const tipoNormalizado = this._normalizeTipoDocumento(tipo);
+        const dataImpresion = {
+            'impresionDocumentos.actualizadoPor': this._sanitizeString(usuario?.email)
+        };
+
+        if (tipoNormalizado === 'certificados' || tipoNormalizado === 'ambos') {
+            dataImpresion['impresionDocumentos.certificadosImpresos'] = true;
+            dataImpresion['impresionDocumentos.fechaCertificadosImpresos'] = new Date();
+        }
+
+        if (tipoNormalizado === 'acta' || tipoNormalizado === 'ambos') {
+            dataImpresion['impresionDocumentos.actaImpresa'] = true;
+            dataImpresion['impresionDocumentos.fechaActaImpresa'] = new Date();
+        }
+
+        return await cursoLocalRepo.actualizarImpresionDocumentos(curso._id, dataImpresion);
+    }
+
+    async actualizarCalificacionesYEnviarCurso(idOfertaOficial, calificaciones = [], usuario = {}) {
+        const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
 
         if (!Array.isArray(calificaciones) || calificaciones.length === 0) {
             const err = new Error('No se recibieron calificaciones para guardar.');
@@ -206,8 +285,24 @@ class CursoLocalService {
         };
     }
 
-    async enviarCalificacionesPendientesEnLote(cursoIds = [], usuario = {}) {
-        if (!Array.isArray(cursoIds) || cursoIds.length === 0) {
+    async enviarCalificacionesCursoPorOferta(idOfertaOficial, usuario = {}) {
+        const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
+        const resultadoEnvio = await this._enviarCalificacionesCurso(curso);
+
+        const cursoActualizado = await cursoLocalRepo.actualizarEstadoCalificaciones(curso._id, {
+            estado: 'enviado',
+            fechaEnvio: new Date(),
+            enviadoPor: this._sanitizeString(usuario?.email)
+        });
+
+        return {
+            curso: cursoActualizado,
+            enviados: resultadoEnvio.enviados
+        };
+    }
+
+    async enviarCalificacionesPendientesEnLote(idOfertasOficiales = [], usuario = {}) {
+        if (!Array.isArray(idOfertasOficiales) || idOfertasOficiales.length === 0) {
             const err = new Error('No se recibieron cursos para enviar calificaciones.');
             err.statusCode = 400;
             throw err;
@@ -219,9 +314,9 @@ class CursoLocalService {
             detalles: []
         };
 
-        for (const cursoId of cursoIds) {
+        for (const idOfertaOficial of idOfertasOficiales) {
             try {
-                const curso = await this._getCursoVinculadoDelCiie(cursoId, usuario);
+                const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
                 const resultadoEnvio = await this._enviarCalificacionesCurso(curso);
 
                 await cursoLocalRepo.actualizarEstadoCalificaciones(curso._id, {
@@ -232,15 +327,16 @@ class CursoLocalService {
 
                 resumen.ok += 1;
                 resumen.detalles.push({
-                    cursoId: String(curso._id),
+                    idOfertaOficial: this._sanitizeString(curso.idOfertaOficial),
                     nombrePropuesta: curso.nombrePropuesta,
+                    area: curso?.cargoId?.areaId?.nombre || 'Sin area',
                     enviados: resultadoEnvio.enviados,
                     success: true
                 });
             } catch (error) {
                 resumen.error += 1;
                 resumen.detalles.push({
-                    cursoId: String(cursoId),
+                    idOfertaOficial: String(idOfertaOficial),
                     success: false,
                     error: error.message
                 });
@@ -569,6 +665,43 @@ class CursoLocalService {
         return curso;
     }
 
+    async _getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario = {}) {
+        const oferta = this._sanitizeString(idOfertaOficial);
+        if (!oferta) {
+            const err = new Error('El idOfertaOficial es obligatorio.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const curso = await cursoLocalRepo.getPorIdOfertaOficial(oferta);
+        if (!curso) {
+            const err = new Error('Curso local no encontrado para la oferta oficial.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        const mismoCiie = String(curso.ciieId?._id || curso.ciieId) === String(usuario?.referenciaId);
+        if (!mismoCiie) {
+            const err = new Error('No tenes permisos para gestionar este curso.');
+            err.statusCode = 403;
+            throw err;
+        }
+
+        if (this._sanitizeString(curso.estado) !== 'vinculado') {
+            const err = new Error('Solo se pueden gestionar documentos y calificaciones de cursos vinculados.');
+            err.statusCode = 409;
+            throw err;
+        }
+
+        if (!this._sanitizeString(curso.idOfertaOficial) || !this._sanitizeString(curso.idCursoOriginal)) {
+            const err = new Error('El curso no tiene los datos oficiales necesarios para continuar.');
+            err.statusCode = 409;
+            throw err;
+        }
+
+        return curso;
+    }
+
     async _enviarCalificacionesCurso(curso) {
         const inscriptos = await inscriptoLocalRepo.getPorCursoId(curso._id);
         if (!inscriptos || inscriptos.length === 0) {
@@ -603,10 +736,121 @@ class CursoLocalService {
         return { enviados: pendientes.length };
     }
 
+    async _buildDocumentosCurso(curso, inscriptosLocales = [], cursoLocal, ciie) {
+        const externos = await certificadoExternoService.obtenerCertificado(curso.idOfertaOficial);
+        const metadatos = externos?.parsed?.metadatos || {};
+        const propuesta = externos?.parsed?.propuesta || this._sanitizeString(curso.nombrePropuesta);
+        // Extraemos los datos del formador de TU base de datos (cursoLocal)
+        const persona = cursoLocal?.cargoId?.ocupante?.usuarioId?.referenciaId;
+        const nombreCompletoLocal = persona ? `${persona.apellido}, ${persona.nombre}` : null;
+        // Extraemos la clave del cargo (ej: 'artm-1') y el nombre del área
+        const claveCargo = cursoLocal?.cargoId?.clave || 'Sin clave';
+        const nombreArea = cursoLocal?.cargoId?.areaId?.nombre || 'Área no definida';
+        const cohorte = cursoLocal?.cohorte || ''
+
+        const certificados = inscriptosLocales
+            .filter(i => this._esAprobado(i.calificacion))
+            .map(i => ({
+                nombreCompleto: this._buildNombreCompleto(i),
+                dni: this._sanitizeString(i.dni),
+                calificacion: this._normalizarResultado(i.calificacion),
+                idInscripcionOficial: this._sanitizeString(i.idInscripcionOficial)
+            }));
+
+        const acta = inscriptosLocales
+            .map(i => ({
+                nombreCompleto: this._buildNombreCompleto(i),
+                dni: this._sanitizeString(i.dni),
+                calificacion: this._normalizarResultado(i.calificacion),
+                idInscripcionOficial: this._sanitizeString(i.idInscripcionOficial)
+            }))
+            .sort((a, b) => (a.nombreCompleto || '').localeCompare((b.nombreCompleto || ''), 'es'))
+            .map((fila, index) => ({ ...fila, orden: index + 1 }));
+
+        return {
+            curso: {
+                _id: curso._id,
+                idOfertaOficial: curso.idOfertaOficial,
+                idCursoOriginal: curso.idCursoOriginal,
+                nombrePropuesta: curso.nombrePropuesta,
+                anio: curso.anio,
+                cohorte: cohorte || curso.cohorte,
+                fechaInicioCurso: curso.fechaInicioCurso,
+                fechaFinCurso: curso.fechaFinCurso,
+                dispositivo: curso.dispositivo,
+                formadorAbc: nombreCompletoLocal || curso.formadorAbc,
+                claveCargo: claveCargo, // <--- NUEVA PROPIEDAD
+                areaNombre: nombreArea,  // <--- NUEVA PROPIEDAD
+                impresionDocumentos: curso.impresionDocumentos || {}
+            },
+            administrativos: {
+                resolucion: metadatos.resolucion,
+                proyecto: metadatos.proyecto,
+                dictamen: metadatos.dictamen,
+                puntaje: metadatos.puntaje,
+                horas: metadatos.horas,
+                cursoClave: cursoLocal.cargoId.clave,
+                propuesta
+            },
+            institucion:{
+                distrito: ciie.distrito,
+                localidad: ciie.localidad
+            },
+            certificados,
+            acta
+        };
+    }
+
     _mapCalificacionAbc(calificacion) {
         const value = this._sanitizeString(calificacion);
         if (!value) return '';
         return value;
+    }
+
+    _buildNombreCompleto(inscripto = {}) {
+        const apellido = this._sanitizeString(inscripto.apellido) || '';
+        const nombres = this._sanitizeString(inscripto.nombres) || '';
+        return `${apellido}, ${nombres}`.replace(/(^\s*,\s*)|(\s+,\s*$)/g, '').trim();
+    }
+
+    _esAprobado(calificacion) {
+        const value = this._sanitizeString(calificacion) || '';
+        const normalizado = value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+        return ['aprobado', 'aprobo', 'asistio'].includes(normalizado);
+    }
+
+    _normalizarResultado(calificacion) {
+        const value = this._sanitizeString(calificacion);
+        if (!value) return 'Sin Calificar';
+
+        const normalizado = value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+
+        const mapa = {
+            aprobado: 'Aprobado',
+            aprobo: 'Aprobado',
+            desaprobado: 'Desaprobado',
+            desaprobo: 'Desaprobado',
+            ausente: 'Ausente',
+            asistio: 'Aprobado'
+        };
+
+        return mapa[normalizado] || value;
+    }
+
+    _normalizeTipoDocumento(tipo) {
+        const value = (this._sanitizeString(tipo) || 'ambos').toLowerCase();
+        if (value === 'certificados' || value === 'acta' || value === 'ambos') {
+            return value;
+        }
+        const err = new Error('Tipo de documento invalido.');
+        err.statusCode = 400;
+        throw err;
     }
 
     _sanitizeString(value) {

@@ -163,6 +163,7 @@ class CargoRepo {
             .populate('areaId')
             .lean();
     }
+    
 
     async getPorClave(clave) {
         return await Cargo.findOne({ clave })

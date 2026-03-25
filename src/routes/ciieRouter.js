@@ -16,8 +16,13 @@ const {
     postEditarCursoPendiente,
     getCalificacionesPendientes,
     getCalificacionesCursoDetail,
+    getCalificacionesDocumentosCurso,
+    getCalificacionesDocumentosLote,
     postEnviarCalificacionesLote,
-    postGuardarYEnviarCalificacionesCurso
+    postEnviarCalificacionesCurso,
+    postGuardarYEnviarCalificacionesCurso,
+    postMarcarImpresionDocumentos,
+    getCalificaciones
 } = require('../controllers/cursoLocalController')
 const { viewInscripto, getExternosPorIdOfertaOficial, vincularCursantes } = require('../controllers/inscriptoController')
 
@@ -39,10 +44,15 @@ router
     .post('/cursos/nuevo/publicar', postCrearYVincularConSitioOficial)
 
     // URL calificaciones
-    .get('/calificaciones', getCalificacionesPendientes)
-    .get('/calificaciones/:cursoLocalId', getCalificacionesCursoDetail)
+    .get('/calificaciones', getCalificaciones)
+    .get('/certificados', getCalificaciones)
+    .get('/calificaciones/documentos', getCalificacionesDocumentosLote)
+    .get('/calificaciones/:idOfertaOficial', getCalificacionesCursoDetail)
+    .get('/calificaciones/:idOfertaOficial/documentos', getCalificacionesDocumentosCurso)
     .post('/calificaciones/enviar-lote', postEnviarCalificacionesLote)
-    .post('/calificaciones/:cursoLocalId/enviar', postGuardarYEnviarCalificacionesCurso)
+    .post('/calificaciones/:idOfertaOficial/enviar', postGuardarYEnviarCalificacionesCurso)
+    .post('/calificaciones/:idOfertaOficial/enviar-directo', postEnviarCalificacionesCurso)
+    .post('/calificaciones/:idOfertaOficial/documentos/impresion', postMarcarImpresionDocumentos)
 
     .get('/inscriptos/curso/:idOfertaOficial', viewInscripto)
 
