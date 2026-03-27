@@ -17,6 +17,74 @@ const getDashboard = async (req, res) => {
     }
 }
 
+    const getSubDashboard = async (req, res) => {
+        try {
+            const categorias = [
+                {
+                    nombre: 'General',
+                    icono: 'bi-grid-1x2',
+                    color: 'info',
+                    acciones: [
+                        { label: 'Panel principal', href: '/ciie/dashboard', descripcion: 'Resumen operativo del nodo CIIE.' },
+                        { label: 'Accesos por categoria', href: '/ciie/subdashboard', descripcion: 'Vista de accesos directos del sistema.' }
+                    ]
+                },
+                {
+                    nombre: 'Agentes',
+                    icono: 'bi-person-badge',
+                    color: 'primary',
+                    acciones: [
+                        { label: 'Listado de agentes', href: '/ciie/agentes', descripcion: 'Consulta y gestion de agentes.' },
+                        { label: 'Estados pendientes', href: '/ciie/estados-pendientes', descripcion: 'Revision de agentes pendientes.' }
+                    ]
+                },
+                {
+                    nombre: 'Cargos',
+                    icono: 'bi-briefcase',
+                    color: 'warning',
+                    acciones: [
+                        { label: 'Todos los cargos', href: '/cargo/todos', descripcion: 'Listado completo de cargos.' },
+                        { label: 'Cargos ETR', href: '/ciie/cargos/etr', descripcion: 'Gestion de cargos ETR.' },
+                        { label: 'Asignar personal', href: '/ciie/cargo/asignar', descripcion: 'Asignacion de personal por cargo.' }
+                    ]
+                },
+                {
+                    nombre: 'Cursos',
+                    icono: 'bi-journal-bookmark-fill',
+                    color: 'success',
+                    acciones: [
+                        { label: 'Cursos CIIE', href: '/ciie/cursos', descripcion: 'Cursos locales vinculados al nodo.' },
+                        { label: 'Cursos locales (vista general)', href: '/curso/ciie', descripcion: 'Listado amplio de cursos locales.' },
+                        { label: 'Cursos externos', href: '/ciie/curso/externo', descripcion: 'Consulta de ofertas externas.' },
+                        { label: 'Vincular/abrir inscripcion', href: '/ciie/cursos/nuevo', descripcion: 'Vincular oferta oficial o publicar.' },
+                        { label: 'Cursos base', href: '/cursoBase', descripcion: 'Administracion de base de cursos.' },
+                        { label: 'Catalogo externo', href: '/curso/lista', descripcion: 'Consulta de propuestas externas.' }
+                    ]
+                },
+                {
+                    nombre: 'Calificaciones y documentos',
+                    icono: 'bi-award',
+                    color: 'danger',
+                    acciones: [
+                        { label: 'Calificaciones', href: '/ciie/calificaciones', descripcion: 'Gestion y envio de notas.' },
+                        { label: 'Certificados y actas', href: '/ciie/certificados', descripcion: 'Impresion de documentos.' },
+                        { label: 'Planilla aprobados por itinerario', href: '/ciie/certificados/aprobados-itinerario', descripcion: 'Planilla de aprobados por anio e itinerario.' }
+                    ]
+                }
+            ];
+
+            res.render('pages/ciie/subDashboard', {
+                categorias,
+                user: req.user,
+                title: 'SubDashboard CIIE'
+            });
+        } catch (error) {
+            console.error('Error en getSubDashboard:', error);
+            req.flash('error', 'No se pudo cargar el subdashboard.');
+            res.redirect('/ciie/dashboard');
+        }
+    }
+
 const getUsuarioPorModelo = async (req, res) => {
     try{
         const agentes = await usuarioService.getPorModelo('Persona');
@@ -89,6 +157,7 @@ const putAgenteEstado = async (req, res) => {
 
 module.exports = {
     getDashboard,
+        getSubDashboard,
     getUsuarioPorModelo,
     putAgenteEstado,
     getAgentesPendientes

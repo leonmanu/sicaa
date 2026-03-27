@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - SubDashboard CIIE</title>
+    <style>
+        body { background: #eef1f5 !important; }
+        .top-strip {
+            background: linear-gradient(120deg, #0f172a, #1e293b);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            color: #e2e8f0;
+            padding: 20px 24px;
+        }
+        .category-card {
+            border: 1px solid #334155;
+            border-radius: 16px;
+            background: #0f172a;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+            height: 100%;
+        }
+        .category-title {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            padding: 14px 16px;
+        }
+        .category-actions {
+            padding: 14px 16px;
+        }
+        .action-link {
+            display: block;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 12px;
+            padding: 10px 12px;
+            text-decoration: none;
+            color: #e2e8f0;
+            background: rgba(30, 41, 59, 0.55);
+            transition: all 0.2s ease;
+        }
+        .action-link:hover {
+            transform: translateY(-2px);
+            border-color: rgba(56, 189, 248, 0.7);
+            background: rgba(15, 23, 42, 0.9);
+            color: #fff;
+        }
+        .action-link + .action-link { margin-top: 10px; }
+        .action-desc {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container py-5">
+        <div class="top-strip mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h2 class="fw-bold mb-1"><i class="bi bi-compass me-2 text-info"></i>SubDashboard CIIE</h2>
+                    <p class="mb-0 text-secondary">Accesos directos organizados por categoria para llegar a todas las vistas principales.</p>
+                </div>
+                <a href="/ciie/dashboard" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Volver al panel
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <% categorias.forEach(categoria => { %>
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="category-card">
+                        <div class="category-title">
+                            <h5 class="mb-0 text-<%= categoria.color %>">
+                                <i class="bi <%= categoria.icono %> me-2"></i><%= categoria.nombre %>
+                            </h5>
+                        </div>
+                        <div class="category-actions">
+                            <% categoria.acciones.forEach(accion => { %>
+                                <a class="action-link" href="<%= accion.href %>">
+                                    <div class="fw-semibold"><%= accion.label %></div>
+                                    <p class="action-desc"><%= accion.descripcion %></p>
+                                </a>
+                            <% }) %>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+</body>
+</html>

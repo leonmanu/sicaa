@@ -9,6 +9,7 @@ const sesionService = require('./sesionService');
 const certificadoExternoService = require('./certificadoExternoService');
 const ciieRepo = require('../repos/ciieRepo');
 const ciieService = require('./ciieService');
+const encuentroRepo = require('../repos/encuentroRepo');
 
 class CursoLocalService {
 
@@ -191,6 +192,118 @@ class CursoLocalService {
                 cantidadSinCalificar
             };
         });
+    }
+
+    async getItinerariosDisponiblesPorCiie(ciieId) {
+        const itinerarios = await cursoLocalRepo.getItinerariosDisponiblesPorCiie(ciieId);
+        if (!Array.isArray(itinerarios)) return [];
+
+        return itinerarios.map(item => {
+            const anio = this._toNumberOrNull(item.anio);
+            const itinerario = this._toNumberOrNull(item.itinerario);
+            return {
+                anio,
+                itinerario,
+                cantidadCursos: this._toNumberOrNull(item.cantidadCursos) || 0,
+                clave: `${anio}-${itinerario}`,
+                etiqueta: `${anio} - ${itinerario}`
+            };
+        }).filter(item => item.anio !== null && item.itinerario !== null);
+    }
+
+    async getPlanillaAprobadosPorItinerario(ciieId, anio, itinerario) {
+        const anioNum = this._toNumberOrNull(anio);
+        const itinerarioNum = this._toNumberOrNull(itinerario);
+
+        if (anioNum === null || itinerarioNum === null) {
+            const err = new Error('Debes seleccionar un itinerario valido.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const cursos = await cursoLocalRepo.getPorCiieAnioItinerario(ciieId, anioNum, itinerarioNum);
+        if (!cursos || cursos.length === 0) {
+            return {
+                cursos: [],
+                aprobados: [],
+                resumen: {
+                    cantidadCursos: 0,
+                    cantidadAprobados: 0
+                }
+            };
+        }
+
+        const cursoIds = cursos.map(c => c._id);
+        const inscriptos = await inscriptoLocalRepo.getPorListaDeCursos(cursoIds);
+        const cursoPorId = new Map(cursos.map(c => [String(c._id), c]));
+        const encuentros = await encuentroRepo.getPorCursoIds(cursoIds);
+
+        const encuentrosPorCursoId = new Map();
+        for (const encuentro of (encuentros || [])) {
+            const key = String(encuentro.cursoId);
+            if (!encuentrosPorCursoId.has(key)) encuentrosPorCursoId.set(key, []);
+            encuentrosPorCursoId.get(key).push(encuentro);
+        }
+
+        const fechasPorCursoId = new Map();
+        for (const curso of cursos) {
+            const key = String(curso._id);
+            const lista = (encuentrosPorCursoId.get(key) || [])
+                .filter(e => e && e.fecha)
+                .sort((a, b) => {
+                    const na = this._toNumberOrNull(a.numero);
+                    const nb = this._toNumberOrNull(b.numero);
+                    if (na !== null && nb !== null && na !== nb) return na - nb;
+                    return new Date(a.fecha) - new Date(b.fecha);
+                });
+
+            const inicioEncuentro = lista.length > 0 ? this._toDateOrNull(lista[0].fecha) : null;
+            const finEncuentro = lista.length > 0 ? this._toDateOrNull(lista[lista.length - 1].fecha) : null;
+
+            fechasPorCursoId.set(key, {
+                fechaInicioCursada: inicioEncuentro || this._toDateOrNull(curso.fechaInicioCurso),
+                fechaFinCursada: finEncuentro || this._toDateOrNull(curso.fechaFinCurso)
+            });
+        }
+
+        const aprobados = inscriptos
+            .filter(i => this._esAprobado(i.calificacion))
+            .map(i => {
+                const cursoId = String(i.cursoId);
+                const curso = cursoPorId.get(cursoId) || {};
+                const fechasCursada = fechasPorCursoId.get(cursoId) || {};
+                const nombreCompleto = this._buildNombreCompleto(i);
+                const area = curso?.cargoId?.areaId?.nombreCorto || 'Area no definida';
+                const formadorPersona = curso?.cargoId?.ocupante?.usuarioId?.referenciaId;
+                const formador = formadorPersona
+                    ? `${formadorPersona.apellido || ''}, ${formadorPersona.nombre || ''}`.replace(/(^\s*,\s*)|(\s+,\s*$)/g, '').trim()
+                    : (curso.formadorAbc || 'Sin formador');
+
+                return {
+                    nombreCompleto,
+                    dni: this._sanitizeString(i.dni) || '',
+                    curso: this._sanitizeString(curso.nombrePropuesta) || 'Sin propuesta',
+                    area,
+                    formador,
+                    fechaInicioCursada: fechasCursada.fechaInicioCursada || null,
+                    fechaFinCursada: fechasCursada.fechaFinCursada || null
+                };
+            })
+            .sort((a, b) => {
+                const porNombre = (a.nombreCompleto || '').localeCompare((b.nombreCompleto || ''), 'es');
+                if (porNombre !== 0) return porNombre;
+                return (a.curso || '').localeCompare((b.curso || ''), 'es');
+            })
+            .map((fila, index) => ({ ...fila, orden: index + 1 }));
+
+        return {
+            cursos,
+            aprobados,
+            resumen: {
+                cantidadCursos: cursos.length,
+                cantidadAprobados: aprobados.length
+            }
+        };
     }
 
     async getDetalleCalificacionesCurso(idOfertaOficial, usuario = {}) {
@@ -807,11 +920,19 @@ class CursoLocalService {
         return value;
     }
 
-    _buildNombreCompleto(inscripto = {}) {
-        const apellido = this._sanitizeString(inscripto.apellido) || '';
-        const nombres = this._sanitizeString(inscripto.nombres) || '';
-        return `${apellido}, ${nombres}`.replace(/(^\s*,\s*)|(\s+,\s*$)/g, '').trim();
-    }
+_capitalizarNombrePropio(str = '') {
+    return str
+        .toLowerCase()
+        .replace(/(?:^|[\s,\-])(\S)/g, (match, letra) => 
+            match.replace(letra, letra.toUpperCase())
+        );
+}
+
+_buildNombreCompleto(inscripto = {}) {
+    const apellido = this._capitalizarNombrePropio(this._sanitizeString(inscripto.apellido) || '');
+    const nombres  = this._capitalizarNombrePropio(this._sanitizeString(inscripto.nombres)  || '');
+    return `${apellido}, ${nombres}`.replace(/(^\s*,\s*)|(\s+,\s*$)/g, '').trim();
+}
 
     _esAprobado(calificacion) {
         const value = this._sanitizeString(calificacion) || '';

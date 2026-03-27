@@ -14,6 +14,12 @@ class EncuentroRepo {
         }
     }
 
+    async getPorCursoIds(cursoIds = []) {
+        return await Encuentro.find({ 
+            cursoId: { $in: cursoIds } 
+        }).lean();
+    }
+
     async getUnoPorNumeroCursoId(cursoId, numero) {
         try { 
             const encuentro = await Encuentro.findOne({ cursoId: cursoId, numero: numero }).lean();

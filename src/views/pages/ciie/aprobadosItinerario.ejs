@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Planilla de aprobados por itinerario</title>
+    <style>
+        body { background: #eef1f5 !important; }
+        .sheet-card {
+            background: #fff;
+            border: 1px solid #d7deea;
+            border-radius: 16px;
+            box-shadow: 0 10px 28px rgba(18, 36, 64, 0.08);
+            overflow: hidden;
+        }
+        .sheet-header {
+            background: linear-gradient(120deg, #ef7c1f, #f0a53a);
+            color: #fff;
+            padding: 20px 24px;
+        }
+        .sheet-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.93rem;
+            table-layout: fixed;
+        }
+        .sheet-table th, .sheet-table td {
+            border: 1px solid #d9e1ed;
+            padding: 8px 10px;
+            color: #243a57;
+            vertical-align: top;
+        }
+        .sheet-table th {
+            background: #f4f7fb;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.02em;
+        }
+        .sheet-row {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .meta-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+        .curso-small {
+            font-size: 0.82rem;
+            line-height: 1.2;
+        }
+        .area-formador small {
+            display: block;
+            color: #4d637f;
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 8mm;
+            }
+            body { background: #fff !important; }
+            .navbar, .no-print, .btn, .badge { display: none !important; }
+            .container { max-width: none !important; width: 100% !important; padding: 0 !important; }
+            .sheet-card { box-shadow: none !important; border: 0 !important; }
+            .sheet-table { font-size: 11px; }
+            .sheet-table th, .sheet-table td { padding: 5px 6px; }
+        }
+    </style>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container py-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 no-print">
+            <div>
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-table me-2 text-warning"></i>Planilla de aprobados por itinerario
+                </h2>
+                <p class="text-muted mb-0">Selecciona un itinerario real para listar todos los cursantes aprobados.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/ciie/certificados" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Volver a certificados
+                </a>
+                <button class="btn btn-outline-warning btn-sm" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i>Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="card bg-dark border-secondary shadow-sm mb-4 no-print">
+            <div class="card-body">
+                <form action="/ciie/certificados/aprobados-itinerario" method="get" class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label text-light">Itinerario</label>
+                        <select name="itinerarioClave" class="form-select" id="itinerarioClave" <%= itinerarios.length ? '' : 'disabled' %>>
+                            <% if (itinerarios.length === 0) { %>
+                                <option value="">No hay itinerarios disponibles</option>
+                            <% } else { %>
+                                <% itinerarios.forEach(item => { %>
+                                    <% const selected = seleccion && item.anio === seleccion.anio && item.itinerario === seleccion.itinerario; %>
+                                    <option
+                                        value="<%= item.anio %>|<%= item.itinerario %>"
+                                        data-anio="<%= item.anio %>"
+                                        data-itinerario="<%= item.itinerario %>"
+                                        <%= selected ? 'selected' : '' %>>
+                                        <%= item.etiqueta %> (<%= item.cantidadCursos %> curso/s)
+                                    </option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                        <input type="hidden" name="anio" id="anio" value="<%= seleccion?.anio ?? '' %>">
+                        <input type="hidden" name="itinerario" id="itinerario" value="<%= seleccion?.itinerario ?? '' %>">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-warning text-dark fw-bold w-100" <%= itinerarios.length ? '' : 'disabled' %>>
+                            <i class="bi bi-search me-1"></i>Generar planilla
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="meta-box text-dark">
+                            <div class="small">Cursos: <strong><%= planilla?.resumen?.cantidadCursos ?? 0 %></strong></div>
+                            <div class="small">Aprobados: <strong><%= planilla?.resumen?.cantidadAprobados ?? 0 %></strong></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="sheet-card">
+            <div class="sheet-header">
+                <h4 class="mb-1">Planilla de aprobados</h4>
+                <small>
+                    Itinerario:
+                    <strong><%= seleccion ? `${seleccion.anio} - ${seleccion.itinerario}` : 'Sin seleccionar' %></strong>
+                    | Fecha de emisión: <%= new Date().toLocaleDateString('es-AR') %>
+                </small>
+            </div>
+
+            <div class="p-3 bg-white text-dark">
+                <% if (planilla && planilla.aprobados && planilla.aprobados.length > 0) { %>
+                    <div class="table-responsive">
+                        <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px; color: black;">
+    <thead>
+        <tr style="background-color: #f2f2f2;">
+            <th style="border: 1px solid black; width: 1%; padding: 4px;">N°</th>
+            <th style="border: 1px solid black; width: 12%; padding: 4px;">Cursante</th>
+            <th style="border: 1px solid black; width: 5%; padding: 4px;">DNI</th>
+            <th style="border: 1px solid black; width: 25%; padding: 4px;">Capacitación</th>
+            <th style="border: 1px solid black; width: 3%; padding: 4px;">I-F</th>
+            <th style="border: 1px solid black; width: 10%; padding: 4px;">Área / Form</th>
+            <th style="border: 1px solid black; padding: 4px;">Firma</th>
+            <th style="border: 1px solid black; padding: 4px;">Fecha</th>
+            <th style="border: 1px solid black; padding: 4px;">Obs.</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% if (planilla && planilla.aprobados) { %>
+            <% planilla.aprobados.forEach(item => { %>
+                <tr style="page-break-inside: avoid;">
+                    <td style="border: 1px solid black; text-align: center; padding: 4px;"><%= item.orden %></td>
+                    <td style="border: 1px solid black; padding: 4px; font-weight: bold;"><%= item.nombreCompleto || '-' %></td>
+                    <td style="border: 1px solid black; text-align: center; padding: 4px;"><%= item.dni || '-' %></td>
+                    <td style="border: 1px solid black; padding: 4px; line-height: 1.1;">
+                        <div style="max-height: 35px; overflow: hidden;"><%= item.curso || '-' %></div>
+                    </td>
+                    <td style="border: 1px solid black; text-align: center; padding: 4px; font-size: 9px; line-height: 1.1;">
+                        <%= item.fechaInicioCursada ? new Date(item.fechaInicioCursada).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit'}) : '' %>
+                        <br>
+                        <%= item.fechaFinCursada ? new Date(item.fechaFinCursada).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit'}) : '' %>
+                    </td>
+                    <td style="border: 1px solid black; padding: 4px;">
+                        <%= item.area || '-' %> <br>
+                        <%= (item.formador || '-').split(',').length > 1
+                            ? item.formador.split(',')[0].trim() + ', ' +
+                            item.formador.split(',')[1].trim().split(' ').filter(Boolean).map(n => n[0].toUpperCase() + '.').join(' ')
+                            : item.formador || '-' %>
+                    </td>
+
+                    <td style="border: 1px solid black;"></td>
+                    <td style="border: 1px solid black;"></td>
+                    <td style="border: 1px solid black;"></td>
+                </tr>
+            <% }) %>
+        <% } %>
+    </tbody>
+</table>
+                    </div>
+                <% } else { %>
+                    <div class="alert alert-secondary mb-0">
+                        No hay cursantes aprobados para el itinerario seleccionado.
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+    <script>
+        (function () {
+            const select = document.getElementById('itinerarioClave');
+            const anioInput = document.getElementById('anio');
+            const itinerarioInput = document.getElementById('itinerario');
+
+            function syncHiddenFields() {
+                if (!select || !select.value) {
+                    anioInput.value = '';
+                    itinerarioInput.value = '';
+                    return;
+                }
+                const [anio, itinerario] = select.value.split('|');
+                anioInput.value = anio || '';
+                itinerarioInput.value = itinerario || '';
+            }
+
+            if (select) {
+                select.addEventListener('change', syncHiddenFields);
+                syncHiddenFields();
+            }
+        })();
+    </script>
+</body>
+</html>

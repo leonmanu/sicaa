@@ -115,6 +115,59 @@ class CursoLocalRepo {
         }
     }
 
+    async getItinerariosDisponiblesPorCiie(ciieId) {
+        try {
+            return await CursoLocal.aggregate([
+                {
+                    $match: {
+                        ciieId: new mongoose.Types.ObjectId(ciieId),
+                        estado: 'vinculado',
+                        anio: { $type: 'number' },
+                        itinerario: { $type: 'number' }
+                    }
+                },
+                {
+                    $group: {
+                        _id: {
+                            anio: '$anio',
+                            itinerario: '$itinerario'
+                        },
+                        cantidadCursos: { $sum: 1 }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        anio: '$_id.anio',
+                        itinerario: '$_id.itinerario',
+                        cantidadCursos: 1
+                    }
+                },
+                { $sort: { anio: -1, itinerario: 1 } }
+            ]);
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getItinerariosDisponiblesPorCiie:', error.message);
+            throw error;
+        }
+    }
+
+    async getPorCiieAnioItinerario(ciieId, anio, itinerario) {
+        try {
+            return await CursoLocal.find({
+                ciieId: new mongoose.Types.ObjectId(ciieId),
+                estado: 'vinculado',
+                anio,
+                itinerario
+            })
+                .populate(populateCargoConOcupante)
+                .sort({ nombrePropuesta: 1, createdAt: -1 })
+                .lean({ virtuals: true });
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getPorCiieAnioItinerario:', error.message);
+            throw error;
+        }
+    }
+
     async vincularConOfertaOficial(cursoId, dataActualizada) {
         try {
             return await CursoLocal.findByIdAndUpdate(

@@ -5,7 +5,7 @@ const router = express.Router();
 
 
 
-const { getDashboard,  getUsuarioPorModelo, putAgenteEstado, getAgentesPendientes} = require('../controllers/ciieController');
+const { getDashboard, getSubDashboard, getUsuarioPorModelo, putAgenteEstado, getAgentesPendientes} = require('../controllers/ciieController');
 const {vistaAsignacionCiie, vistaCargosEtr} = require('../controllers/cargoController');
 const {getCursos} = require('../controllers/cursoExternoController');
 const {
@@ -22,13 +22,15 @@ const {
     postEnviarCalificacionesCurso,
     postGuardarYEnviarCalificacionesCurso,
     postMarcarImpresionDocumentos,
-    getCalificaciones
+    getCalificaciones,
+    getPlanillaAprobadosItinerario
 } = require('../controllers/cursoLocalController')
 const { viewInscripto, getExternosPorIdOfertaOficial, vincularCursantes } = require('../controllers/inscriptoController')
 
 router
     // url cii
     .get('/dashboard', getDashboard)
+    .get('/subdashboard', getSubDashboard)
     .get('/agentes', getUsuarioPorModelo)
     .post('/agente/cambiar-estado/:dni', putAgenteEstado)
     .get('/estados-pendientes', getAgentesPendientes)
@@ -46,6 +48,7 @@ router
     // URL calificaciones
     .get('/calificaciones', getCalificaciones)
     .get('/certificados', getCalificaciones)
+    .get('/certificados/aprobados-itinerario', getPlanillaAprobadosItinerario)
     .get('/calificaciones/documentos', getCalificacionesDocumentosLote)
     .get('/calificaciones/:idOfertaOficial', getCalificacionesCursoDetail)
     .get('/calificaciones/:idOfertaOficial/documentos', getCalificacionesDocumentosCurso)

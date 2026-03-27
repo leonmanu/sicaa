@@ -15,6 +15,7 @@ const cursoSchema = new mongoose.Schema({
     // Tiempos
     anio: Number,
     cohorte: { type: Number, default: 0 },
+    itinerario: { type: Number, default: 0 },
     fechaInicioInscripcion: Date,
     fechaFinInscripcion: Date,
     fechaInicioCurso: Date,
