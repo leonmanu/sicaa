@@ -483,21 +483,19 @@
                             </div>
                         </div>
                         <div class="panel-orange-inner">
-                            <% if (curso.encuentros && curso.encuentros.length > 0) { 
-                                const primerEnc = new Date(curso.encuentros[0].fecha);
-                                const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
-                                
-                                // 1. Formateamos la lista de fechas: "20/03, 27/03, 03/04"
-                                const listaFechas = curso.encuentros.map(enc => {
-                                    const d = new Date(enc.fecha);
-                                    const dia = String(d.getUTCDate()).padStart(2, '0');
-                                    const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
-                                    return `${dia}/${mes}`;
-                                }).join(', ');
+    <% if (curso.encuentros && curso.encuentros.length > 0) { 
+        const primerEnc = new Date(curso.encuentros[0].fecha);
+        const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+        
+        const listaFechas = curso.encuentros.map(enc => {
+            const d = new Date(enc.fecha);
+            const dia = String(d.getUTCDate()).padStart(2, '0');
+            const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+            return `${dia}/${mes}`;
+        }).join(', ');
 
-                                // 2. Formateamos la hora del primer encuentro: "18:00 hs"
-                                const hora = `${String(primerEnc.getHours()).padStart(2,'0')}:${String(primerEnc.getMinutes()).padStart(2,'0')} hs.`;
-                            %>
+        const hora = `${String(primerEnc.getUTCHours()).padStart(2,'0')}:${String(primerEnc.getUTCMinutes()).padStart(2,'0')} hs.`;
+    %>
         <div class="dia-semana" style="font-weight: 800; font-size: 1.2rem; margin-bottom: 4px;">
             <%= dias[primerEnc.getUTCDay()] %>
         </div>
@@ -507,14 +505,14 @@
         </div>
 
         <div class="hora-badge" id="ed-hora" contenteditable="true">
-                <%= hora %>
+            <%= hora %>
         </div>
     <% } else { %>
         <div class="fecha-linea">SIN FECHAS</div>
     <% } %>
     <div class="distrito-strip" id="ed-distrito" contenteditable="true">
-                    <%= curso.cargoId?.ciieId.distrito %>, Bs.As
-                </div>
+        <%= curso.cargoId?.ciieId.distrito %>, Bs.As
+    </div>
 </div>
                 
 
