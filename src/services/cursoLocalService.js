@@ -1598,6 +1598,175 @@ _buildNombreCompleto(inscripto = {}) {
         if (!Array.isArray(fechas)) return [];
         return fechas.map(f => new Date(f)).filter(d => !isNaN(d.getTime()));
     }
+
+    // ─── Obtener cursos para flyers con filtros ───────────────────────────────
+    async getCursosParaFlyers(filtros = {}) {
+        const {
+            itinerario,
+            areaNombre,
+            estado,
+            nivel,
+            dispositivo,
+            ciieId
+        } = filtros;
+
+        // Construir query base
+        const query = {};
+
+        // Filtro por CIIE si se proporciona
+        if (ciieId) {
+            query.ciieId = this._sanitizeObjectId(ciieId);
+        }
+
+        // Filtro por itinerario
+        if (itinerario !== undefined && itinerario !== null && itinerario !== '') {
+            query.itinerario = this._toNumberOrNull(itinerario);
+        }
+
+        // Filtro por estado
+        if (estado && estado !== '') {
+            query.estado = estado;
+        }
+
+        // Filtro por dispositivo (tipo de flyer)
+        if (dispositivo && dispositivo !== '') {
+            if (dispositivo === 'taller') {
+                query.dispositivo = { $regex: /^Taller/i };
+            } else if (dispositivo === 'seminario') {
+                query.dispositivo = { $regex: /^Seminario/i };
+            } else if (dispositivo === 'extension') {
+                query.dispositivo = 'Extensión CIIE';
+            } else {
+                query.dispositivo = dispositivo;
+            }
+        }
+
+        // Obtener cursos con populate
+        const cursos = await CursoLocal.find(query)
+            .populate({
+                path: 'cargoId',
+                populate: {
+                    path: 'areaId',
+                    select: 'nombre nombreCorto nivel'
+                }
+            })
+            .populate('ciieId', 'nombre clave')
+            .sort({ anio: -1, itinerario: -1, 'cargoId.areaId.nombre': 1 })
+            .lean();
+
+        // Aplicar filtros adicionales que requieren datos populados
+        let cursosFiltrados = cursos;
+
+        if (areaNombre && areaNombre !== '') {
+            cursosFiltrados = cursosFiltrados.filter(curso =>
+                curso.cargoId?.areaId?.nombre?.toLowerCase().includes(areaNombre.toLowerCase()) ||
+                curso.cargoId?.areaId?.nombreCorto?.toLowerCase().includes(areaNombre.toLowerCase())
+            );
+        }
+
+        if (nivel && nivel !== '') {
+            cursosFiltrados = cursosFiltrados.filter(curso =>
+                curso.cargoId?.areaId?.nivel === nivel
+            );
+        }
+
+        // Cargar encuentros para cada curso
+        const cursosConEncuentros = await Promise.all(
+            cursosFiltrados.map(async (curso) => {
+                const encuentros = await encuentroRepo.getPorCursoId(curso._id);
+                return {
+                    ...curso,
+                    encuentros: encuentros || []
+                };
+            })
+        );
+
+        return cursosConEncuentros;
+    }
+    // %%% Obtener cursos para flyers con filtros %%%%%%%%%%%%%%%%%%%%%%%%%%%
+    async getCursosParaFlyers(filtros = {}) {
+        const {
+            itinerario,
+            areaNombre,
+            estado,
+            nivel,
+            dispositivo,
+            ciieId
+        } = filtros;
+
+        // Construir query base
+        const query = {};
+
+        // Filtro por CIIE si se proporciona
+        if (ciieId) {
+            query.ciieId = this._sanitizeObjectId(ciieId);
+        }
+
+        // Filtro por itinerario
+        if (itinerario !== undefined && itinerario !== null && itinerario !== '') {
+            query.itinerario = this._toNumberOrNull(itinerario);
+        }
+
+        // Filtro por estado
+        if (estado && estado !== '') {
+            query.estado = estado;
+        }
+
+        // Filtro por dispositivo (tipo de flyer)
+        if (dispositivo && dispositivo !== '') {
+            if (dispositivo === 'taller') {
+                query.dispositivo = { $regex: /^Taller/i };
+            } else if (dispositivo === 'seminario') {
+                query.dispositivo = { $regex: /^Seminario/i };
+            } else if (dispositivo === 'extension') {
+                query.dispositivo = 'Extensión CIIE';
+            } else {
+                query.dispositivo = dispositivo;
+            }
+        }
+
+        // Obtener cursos con populate
+        const cursos = await CursoLocal.find(query)
+            .populate({
+                path: 'cargoId',
+                populate: {
+                    path: 'areaId',
+                    select: 'nombre nombreCorto nivel'
+                }
+            })
+            .populate('ciieId', 'nombre clave')
+            .sort({ anio: -1, itinerario: -1, 'cargoId.areaId.nombre': 1 })
+            .lean();
+
+        // Aplicar filtros adicionales que requieren datos populados
+        let cursosFiltrados = cursos;
+
+        if (areaNombre && areaNombre !== '') {
+            cursosFiltrados = cursosFiltrados.filter(curso =>
+                curso.cargoId?.areaId?.nombre?.toLowerCase().includes(areaNombre.toLowerCase()) ||
+                curso.cargoId?.areaId?.nombreCorto?.toLowerCase().includes(areaNombre.toLowerCase())
+            );
+        }
+
+        if (nivel && nivel !== '') {
+            cursosFiltrados = cursosFiltrados.filter(curso =>
+                curso.cargoId?.areaId?.nivel === nivel
+            );
+        }
+
+        // Cargar encuentros para cada curso
+        const cursosConEncuentros = await Promise.all(
+            cursosFiltrados.map(async (curso) => {
+                const encuentros = await encuentroRepo.getPorCursoId(curso._id);
+                return {
+                    ...curso,
+                    encuentros: encuentros || []
+                };
+            })
+        );
+
+        return cursosConEncuentros;
+    }
 }
 
 module.exports = new CursoLocalService();

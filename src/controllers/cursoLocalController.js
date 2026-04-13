@@ -537,6 +537,43 @@ const getFlyerCurso = async (req, res) => {
     }
 };
 
+const getFlyersList = async (req, res) => {
+    try {
+        // Obtener filtros de query params
+        const filtros = {
+            itinerario: req.query.itinerario,
+            areaNombre: req.query.area,
+            estado: req.query.estado,
+            nivel: req.query.nivel,
+            dispositivo: req.query.dispositivo,
+            ciieId: req.user?.referenciaId // Filtrar por CIIE del usuario
+        };
+
+        const cursos = await cursoLocalService.getCursosParaFlyers(filtros);
+
+        // Obtener opciones para los filtros
+        const itinerariosDisponibles = await cursoLocalService.getItinerariosDisponiblesPorCiie(req.user?.referenciaId);
+        const areasDisponibles = [...new Set(cursos.map(c => c.cargoId?.areaId?.nombre).filter(Boolean))].sort();
+        const nivelesDisponibles = [...new Set(cursos.map(c => c.cargoId?.areaId?.nivel).filter(Boolean))].sort();
+        const estadosDisponibles = ['pendiente', 'vinculado', 'modificacion_pendiente', 'eliminacion_pendiente', 'dormido'];
+
+        res.render('pages/flyer/flyersList', {
+            cursos,
+            filtros,
+            itinerariosDisponibles,
+            areasDisponibles,
+            nivelesDisponibles,
+            estadosDisponibles,
+            user: req.user,
+            title: 'Flyers de Cursos'
+        });
+
+    } catch (error) {
+        console.error('Error al obtener lista de flyers:', error);
+        res.status(500).send('Error al cargar la lista de flyers.');
+    }
+};
+
 const deleteCurso = async (req, res) => {
     try {
         const cursoLocalId = req.params.id;
@@ -648,6 +685,7 @@ module.exports = {
     postEnviarCalificacionesCurso,
     postMarcarImpresionDocumentos,
     getFlyerCurso,
+    getFlyersList,
     deleteCurso,
     getCursoById,
     putCurso,

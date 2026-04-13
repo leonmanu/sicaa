@@ -3,120 +3,135 @@
 
 <head>
     <%- include('../../partials/head') %>
-        <title>SICAA - Mis Cursos</title>
-        <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
-        <style>
-            #tablaCursosCargo td,
-            #tablaCursosCargo th {
-                vertical-align: middle;
-            }
+    <title>SICAA - Mis Cursos</title>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        #tablaCursosCargo td,
+        #tablaCursosCargo th { vertical-align: middle; }
 
-            .flatpickr-input.flatpickr-mobile,
-            .flatpickr-input[readonly] {
-                pointer-events: none;
-            }
+        .dropdown-formadores { max-height: 260px; overflow-y: auto; }
 
-            .flatpickr-input.flatpickr-input~input {
-                pointer-events: auto;
-            }
+        /* ─── Modal copiado ─────────────────────────── */
+        .copy-field {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 0.7rem 0.9rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .copy-field:hover { border-color: rgba(0,173,197,0.4); background: rgba(0,173,197,0.06); }
+        .copy-field.copied { border-color: rgba(0,197,120,0.5); background: rgba(0,197,120,0.06); }
 
-            .dropdown-formadores {
-                max-height: 260px;
-                overflow-y: auto;
-            }
+        .copy-field-body { flex: 1; min-width: 0; }
+        .copy-field-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 0.2rem;
+        }
+        .copy-field-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .copy-field-value.is-link { color: #00ADC5; font-size: 0.8rem; }
 
-            @media (max-width: 767.98px) {
-                .container.py-5 {
-                    padding-top: 1rem !important;
-                    padding-bottom: 1rem !important;
-                }
+        .btn-copy-field {
+            flex-shrink: 0;
+            width: 30px;
+            height: 30px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 7px;
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 0.8rem;
+            padding: 0;
+        }
+        .btn-copy-field:hover { background: #00ADC5; border-color: #00ADC5; color: white; }
+        .btn-copy-field.ok { background: #00c578; border-color: #00c578; color: white; }
 
-                #btnAltaCurso {
-                    width: 100%;
-                }
+        .copy-section-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #00ADC5;
+            margin: 1rem 0 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .copy-section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(0,173,197,0.2);
+        }
 
-                #tablaCursosCargo {
-                    min-width: 760px;
-                }
+        .btn-copy-all {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #F47920;
+            border-radius: 8px;
+            background: transparent;
+            color: #F47920;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+        .btn-copy-all:hover { background: #F47920; color: white; }
+        .btn-copy-all.ok { background: #00c578; border-color: #00c578; color: white; }
 
-                #tablaCursosCargo .btn-group {
-                    display: grid;
-                    grid-template-columns: repeat(2, minmax(0, 1fr));
-                    gap: 0.35rem;
-                }
-
-                #tablaCursosCargo .btn-group .btn {
-                    font-size: 0.8rem;
-                    padding: 0.3rem 0.4rem;
-                    width: 100%;
-                }
-
-                #modalSeleccionarBase .sticky-top {
-                    position: static !important;
-                }
-
-                #modalAltaCurso .col-6,
-                #modalAltaCurso .col-8,
-                #modalAltaCurso .col-4 {
-                    width: 100%;
-                }
-
-                #modalAltaCurso .form-control,
-                #modalAltaCurso .form-select,
-                #modalSeleccionarBase .form-control,
-                #modalSeleccionarBase .form-select {
-                    font-size: 16px;
-                }
-
-                #modalAltaCurso .modal-footer {
-                    flex-direction: column-reverse;
-                    gap: 0.5rem;
-                }
-
-                #modalAltaCurso .modal-footer .btn {
-                    width: 100%;
-                }
-
-                #modalAltaCurso .dropdown-formadores,
-                #modalSeleccionarBase .dropdown-formadores {
-                    left: 0;
-                    right: 0;
-                    min-width: 100% !important;
-                }
-            }
-        </style>
+        @media (max-width: 767.98px) {
+            .container.py-5 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+            #btnAltaCurso { width: 100%; }
+            #tablaCursosCargo { min-width: 760px; }
+        }
+    </style>
 </head>
 
 <body>
     <%- include('../../partials/navbar') %>
-        <%- include('../../partials/msj') %>
+    <%- include('../../partials/msj') %>
 
-            <div class="container py-5">
-                <div class="row mb-4">
-                    <div class="col-md-8">
-                        <nav aria-label="breadcrumb">
-                            <ol class="breadcrumb mb-2">
-                                <li class="breadcrumb-item"><a href="/usuario/mis-cargos"
-                                        class="text-decoration-none">Mis Cargos</a></li>
-                                <li class="breadcrumb-item active" aria-current="page">Gestión de Cursos</li>
-                            </ol>
-                        </nav>
-                        <h2 class="fw-bold mb-1">
-                            <i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>
-                            <%= cargo?.areaId?.nombre || 'Área General' %> * <small>
-                                    <% formador=cargo?.ocupante?.usuarioId?.referenciaId?.apellido+', '+cargo?.ocupante?.usuarioId?.referenciaId?.nombre %></small>
+    <div class="container py-5">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a href="/usuario/mis-cargos" class="text-decoration-none">Mis Cargos</a></li>
+                        <li class="breadcrumb-item active">Gestión de Cursos</li>
+                    </ol>
+                </nav>
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>
+                    <%= cargo?.areaId?.nombre || 'Área General' %> *
+                    <small><% formador = cargo?.ocupante?.usuarioId?.referenciaId?.apellido + ', ' + cargo?.ocupante?.usuarioId?.referenciaId?.nombre %></small>
                 </h2>
                 <p class="text-muted mb-0">
-                    <span class="badge bg-secondary me-2"><%=ciieClave%> <%= cargo.ciieId?.nombre || '' %></span>
+                    <span class="badge bg-secondary me-2"><%= ciieClave %> <%= cargo.ciieId?.nombre || '' %></span>
                     <span class="badge bg-outline-info border border-info text-info">Clave Cargo: <%= cargo.clave %></span>
                 </p>
-            </div>
-            <div class="col-md-4 text-md-end d-flex align-items-end justify-content-md-end mt-3 mt-md-0">
-                <button id="btnAltaCurso" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalSeleccionarBase">
-                    <i class="bi bi-plus-circle me-1"></i> Alta de curso
-                </button>
             </div>
         </div>
 
@@ -124,7 +139,7 @@
             <div class="col-md-3">
                 <div class="card bg-dark border-secondary shadow-sm">
                     <div class="card-body py-2 px-3">
-                        <small class="text-muted text-uppercase d-block" style="font-size: 0.7rem;">Cursos vinculados</small>
+                        <small class="text-muted text-uppercase d-block" style="font-size:0.7rem;">Cursos vinculados</small>
                         <span class="h4 fw-bold mb-0"><%= cursosLocales.length %></span>
                     </div>
                 </div>
@@ -137,642 +152,327 @@
                     <table id="tablaCursosCargo" class="table table-dark table-hover align-middle mb-0">
                         <thead class="bg-black text-muted small text-uppercase">
                             <tr>
-                                <th class="cursor-pointer">
-    ITI <i class="bi bi-arrow-down-up small ms-1"></i>
-    <div id="contenedor-filtro-iti" class="mt-2">
-        </div>
-</th>
-                                <% if(usuario.tipo == ' institucion'){ %>
-                                        <th>Área</th>
-                                        <% } %>
-                                            <th>Áreas</th>
-                                            <th>Propuesta</th>
-                                            <th>Inicio</th>
-
-                                            <th>Dispositivo</th>
-                                            <th>Enlaces</th>
-                                            <th class="text-center pe-4">Acciones</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                                <% if (cursosLocales && cursosLocales.length> 0) { %>
-                                                    <% cursosLocales.forEach(c=> { %>
-                                                        <tr>
-                                                            <td class="fw-bold text-info">
-                                                                <%= c.anio %> • I<%= c.itinerario %>
-                                                            </td>
-                                                            <% if(usuario.tipo=='institucion' ){ %>
-                                                                <td>
-                                                                    <b>
-                                                                        <%= c.cargoId.areaId?.nombre
-                                                                            || 'Área General' %>
-                                                                    </b>
-                                                                    <br>
-                                                                    <small>
-                                                                        <%= c.formadorAbc %>
-                                                                    </small>
-                                                                </td>
-                                                                <% } %>
-                                                                    <td>
-                                                                        <div class="text-wrap col-propuesta-texto" style="max-width: 400px;">
-                                                                            <%= c.dispositivo ? c.dispositivo.trim().split(' ')[0].toUpperCase() : '' %> • 
-                                                                            <%= c.nombrePropuesta %>
-                                                                            [<%= c.cargoId.clave %>]
-                                                                        </div>
-                                                                    </td>
-
-                                                                    <td>
-                                                                        <% if (c.encuentros && c.encuentros.length> 0) {
-                                                                            %>
-                                                                            <small class="text-muted">
-                                                                                <% const fecha=new
-                                                                                    Date(c.encuentros[0].fecha); %>
-                                                                                    <% const opciones={ month: '2-digit'
-                                                                                        , day: '2-digit' }; %>
-                                                                                        <%= fecha.toLocaleDateString('es-AR',
-                                                                                            opciones) %>
-                                                                            </small>
-                                                                            <% } else { %>
-                                                                                <small class="text-muted">-</small>
-                                                                                <% } %>
-                                                                    </td>
-
-                                                                    <td>
-                                                                        <small class="text-muted">
-                                                                            <%= c.dispositivo %>
-                                                                        </small>
-                                                                        <br>
-                                                                        <% const coloresEstado={ 'pendiente'
-                                                                            : 'bg-warning text-dark' , 'vinculado'
-                                                                            : 'bg-success' , 'modificacion_pendiente'
-                                                                            : 'bg-info text-dark'
-                                                                            , 'eliminacion_pendiente' : 'bg-danger'
-                                                                            , 'dormido' : 'bg-secondary' }; const
-                                                                            etiquetasEstado={ 'pendiente' : 'Pendiente'
-                                                                            , 'vinculado' : 'Vinculado'
-                                                                            , 'modificacion_pendiente'
-                                                                            : 'Modif. Pendiente'
-                                                                            , 'eliminacion_pendiente' : 'Baja Pendiente'
-                                                                            , 'dormido' : 'Dormido' }; %>
-                                                                            <div class="mb-1">
-                                                                                <span
-                                                                                    class="badge rounded-pill <%= coloresEstado[c.estado] || 'bg-light text-dark' %>"
-                                                                                    style="font-size: 0.7rem;">
-                                                                                    <%= etiquetasEstado[c.estado] ||
-                                                                                        c.estado %>
-                                                                                </span>
-                                                                            </div>
-                                                                    </td>
-                                                                    <td class="text-center pe-4">
-    <% if (c.enlaceInscripcion) { %>
-        <a href="<%= c.enlaceInscripcion %>" target="_blank" class="text-decoration-none">
-            <%= c.enlaceInscripcion %>
-        </a>
-    <% } else { %>
-        <span class="text-muted small">No disponible</span>
-    <% } %>
-</td>
-                                                                    <td class="text-center pe-4">
-                                                                        <% if (c.estado==='vinculado' ) { %>
-                                                                            <button
-                                                                                class="dropdown-item text-success btn-editar-pendiente"
-                                                                                data-id="<%= c._id %>">
-                                                                                <i class="bi bi-eye"></i>Editar
-                                                                            </button>
-                                                                            <% } else { %>
-                                                                                <button
-                                                                                    class="dropdown-item text-warning btn-editar-pendiente"
-                                                                                    data-id="<%= c._id %>">
-                                                                                    <i class="bi bi-eye"></i>Editar
-                                                                                </button>
-                                                                                <% } %>
-                                                                    </td>
-                                                        </tr>
-                                                        <% }); %>
-                                                            <% } else { %>
-                                                                <tr>
-                                                                    <td colspan="6" class="text-center py-5">
-                                                                        <p class="text-muted mb-0">No hay cursos
-                                                                            vinculados a este cargo.</p>
-                                                                    </td>
-                                                                </tr>
-                                                                <% } %>
-                                            </tbody>
-                                            </table>
-                    </div>
-                </div>
-            </div>
-            </div>
-
-
-            <!-- MODAL PASO 2 -->
-            <div class="modal fade" id="modalAltaCurso" tabindex="-1" data-bs-backdrop="static">
-                <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-                    <div class="modal-content bg-dark border-success">
-                        <div class="modal-header bg-success bg-opacity-10 border-success">
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="alert alert-dark border border-primary mb-4">
-                                <div class="fw-bold text-white" id="resumenNombreBase"></div>
-                                <small class="text-muted" id="resumenDetalleBase"></small>
-                            </div>
-
-                            <input type="hidden" id="cursoBaseId" name="cursoBaseId">
-                            <input type="hidden" id="idCursoOriginal" name="idCursoOriginal">
-                            <input type="hidden" id="nombrePropuesta" name="nombrePropuesta">
-                            <input type="hidden" id="dispositivo" name="dispositivo">
-                            <input type="hidden" id="dispositivoSeleccionado">
-                            <input type="hidden" id="cursoIdParaEditar">
-                            <!-- ID del curso pendiente que estamos editando -->
-                            <input type="hidden" id="cargoId" name="cargoId" value="<%= cargo._id %>">
-                            <input type="hidden" id="ciieId" name="ciieId" value="<%= cargo.ciieId?._id || '' %>">
-                            <input type="hidden" id="creadoPor" name="creadoPor" value="<%= usuario?.email || '' %>">
-
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label small fw-bold">FECHAS DE ENCUENTROS <span
-                                            class="text-danger">*</span></label>
-                                    <div id="listaFechasEncuentros" class="d-grid gap-2"></div>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label small fw-bold">FORMATO DICTADO <span
-                                            class="text-danger">*</span></label>
-                                    <select id="drupalFormatoDictado" name="drupalFormatoDictado"
-                                        class="form-select bg-dark border-secondary text-white" required>
-                                        <option value="Presencial (237)">Presencial</option>
-                                        <option value="Sincrónico (238)">Bimodal / Sincrónico</option>
-                                        <option value="Virtual (236)">Virtual</option>
-                                        <option value="Asincrónico (239)">Asincrónico</option>
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label small fw-bold">NIVEL <span
-                                            class="text-danger">*</span>
-                                        <small>Destinatarios</small></label>
-                                    <%= cargo?.areaId?.nivel || '' %>
-                                        <input type="text" id="drupalNivel"
-                                            class="form-control bg-dark border-secondary text-white"
-                                            maxlength="120"
-                                            value="<%= cargo?.areaId?.nivel || '' %>" required>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label small fw-bold">MATERIA <span
-                                            class="text-danger">*</span></label>
-                                    <input class="form-control bg-dark border-secondary text-white"
-                                        id="materia" name="materia" min="1" value="" required
-                                        readonly>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label small fw-bold">PUNTAJE</label>
-                                    <input type="number" id="drupalPuntaje"
-                                        class="form-control bg-dark border-secondary text-white"
-                                        step="0.01" min="0">
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label small fw-bold">ENCUENTROS <span
-                                            class="text-danger">*</span></label>
-                                    <input type="number" class="form-control bg-dark border-secondary text-white"
-                                        id="cantidadEncuentros" name="cantidadEncuentros" min="1" value="" required
-                                        readonly>
-                                </div>
+                                <th>ITI <i class="bi bi-arrow-down-up small ms-1"></i>
+                                    <div id="contenedor-filtro-iti" class="mt-2"></div>
+                                </th>
                                 
-                                <div class="col-6">
-                                    <label class="form-label small fw-bold">HORA (todos los encuentros) <span
-                                            class="text-danger">*</span></label>
-                                    <input type="time" class="form-control bg-dark border-secondary text-white"
-                                        id="horaEncuentro" name="horaEncuentro" value="18:00" required>
-                                </div>
-
-                               
-
-
-                                <!-- BLOQUE FORMADORES -->
-                                <div class="col-12" id="bloqueFormadores">
-                                    <label class="form-label small fw-bold mb-1">FORMADOR/A <span
-                                            class="text-danger">*</span></label>
-
-                                    <div id="listaFormadores">
-                                        <!-- Formador principal -->
-                                        <div class="formador-row mb-1" data-index="0" data-cargo-id="">
-                                            <input type="text"
-                                                class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
-                                                id="formadorAbc" name="formadorAbc" maxlength="40"
-                                                placeholder="Apellido, Nombre" value="<%= formador %>" required>
+                                <th>Áreas</th>
+                                <th>Propuesta</th>
+                                <th>Inicio</th>
+                                <th>Dispositivo</th>
+                                <th>Enlaces</th>
+                                <th class="text-center pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (cursosLocales && cursosLocales.length > 0) { %>
+                                <% cursosLocales.forEach(c => { %>
+                                <tr>
+                                    <td class="fw-bold text-info"><%= c.anio %> • I<%= c.itinerario %></td>
+                                    <% if (usuario.tipo == 'institucion') { %>
+                                    <td>
+                                        <b><%= c.cargoId.areaId?.nombre || 'Área General' %></b><br>
+                                        <small><%= c.formadorAbc %></small>
+                                    </td>
+                                    <% } %>
+                                    <td>
+                                        <div class="text-wrap col-propuesta-texto" style="max-width:400px;">
+                                            <%= c.dispositivo ? c.dispositivo.trim().split(' ')[0].toUpperCase() : '' %> •
+                                            <%= c.nombrePropuesta %> [<%= c.cargoId.clave %>]
                                         </div>
-                                    </div>
-                                    <!-- Selector de alcance: oculto hasta agregar primer invitado -->
-                                    <div id="wrapperAlcance" class="d-none mb-2">
-                                        <div class="btn-group btn-group-sm w-100" role="group">
-                                            <input type="radio" class="btn-check" name="alcanceFormadores"
-                                                id="alcanceLocal" value="local" checked>
-                                            <label class="btn btn-outline-secondary" for="alcanceLocal">Este
-                                                CIIE</label>
-                                            <input type="radio" class="btn-check" name="alcanceFormadores"
-                                                id="alcanceRegional" value="regional">
-                                            <label class="btn btn-outline-secondary"
-                                                for="alcanceRegional">Regional</label>
-                                            <input type="radio" class="btn-check" name="alcanceFormadores"
-                                                id="alcanceTodos" value="todos">
-                                            <label class="btn btn-outline-secondary" for="alcanceTodos">Todos</label>
-                                        </div>
-                                    </div>
-                                    <!-- Botón invitar: debajo del input principal -->
-                                    <div class="mt-1 mb-1">
-                                        <button type="button" id="btnAgregarFormador"
-                                            class="btn btn-sm btn-outline-info py-0 px-2" style="font-size: 0.75rem;">
-                                            <i class="bi bi-person-plus me-1"></i>+ Invitado
+                                    </td>
+                                    <td>
+                                        <% if (c.encuentros && c.encuentros.length > 0) { %>
+                                            <small class="text-muted">
+                                                <% const fecha = new Date(c.encuentros[0].fecha); %>
+                                                <%= fecha.toLocaleDateString('es-AR', { month:'2-digit', day:'2-digit' }) %>
+                                            </small>
+                                        <% } else { %>
+                                            <small class="text-muted">-</small>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted"><%= c.dispositivo %></small><br>
+                                        <% const coloresEstado = {
+                                            'pendiente':'bg-warning text-dark','vinculado':'bg-success',
+                                            'modificacion_pendiente':'bg-info text-dark',
+                                            'eliminacion_pendiente':'bg-danger','dormido':'bg-secondary'
+                                        };
+                                        const etiquetasEstado = {
+                                            'pendiente':'Pendiente','vinculado':'Vinculado',
+                                            'modificacion_pendiente':'Modif. Pendiente',
+                                            'eliminacion_pendiente':'Baja Pendiente','dormido':'Dormido'
+                                        }; %>
+                                        <span class="badge rounded-pill <%= coloresEstado[c.estado] || 'bg-light text-dark' %>" style="font-size:0.7rem;">
+                                            <%= etiquetasEstado[c.estado] || c.estado %>
+                                        </span>
+                                    </td>
+                                    <td class="text-center pe-4">
+                                        <% if (c.enlaceInscripcion) { %>
+                                            <a href="<%= c.enlaceInscripcion %>" target="_blank" class="text-decoration-none">
+                                                <i class="bi bi-link-45deg"></i> Ver enlace
+                                            </a>
+                                        <% } else { %>
+                                            <span class="text-muted small">No disponible</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="text-center pe-4">
+                                        <button class="btn btn-sm btn-outline-info btn-ver-curso" data-id="<%= c._id %>">
+                                            <i class="bi bi-clipboard-data me-1"></i>Ver datos
                                         </button>
-                                    </div>
-
-
-
-                                    <div id="wrapperCharCount" class="d-none mt-1">
-                                        <div class="d-flex justify-content-between mb-1" style="font-size: 0.7rem;">
-                                            <span class="text-muted">Caracteres usados al combinar</span>
-                                            <span id="charCountLabel" class="fw-bold">0 / 40</span>
-                                        </div>
-                                        <div class="progress" style="height: 4px;">
-                                            <div id="charCountBar" class="progress-bar bg-success" role="progressbar"
-                                                style="width: 0%"></div>
-                                        </div>
-                                        <div id="charCountWarning" class="text-danger d-none mt-1"
-                                            style="font-size: 0.7rem;">
-                                            <i class="bi bi-exclamation-triangle me-1"></i>Superaste el límite de 40
-                                            caracteres.
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <hr>
-
-                                <!-- ACORDEÓN -->
-                                <div class="col-12 mt-2">
-                                    <div class="accordion" id="acordeonCamposOpcionalesCurso">
-                                        <div class="accordion-item bg-dark border-secondary">
-                                            <h2 class="accordion-header">
-                                                <button class="accordion-button collapsed bg-dark text-white"
-                                                    type="button" data-bs-toggle="collapse"
-                                                    data-bs-target="#collapseDrupalCurso">
-                                                    <b>MÁS DATOS...</b>
-                                                </button>
-                                            </h2>
-                                            <div id="collapseDrupalCurso" class="accordion-collapse collapse"
-                                                data-bs-parent="#acordeonCamposOpcionalesCurso">
-                                                <div class="accordion-body">
-                                                    <div class="row g-3">
-
-                                                        <div class="col-6">
-                                                            <label class="form-label small fw-bold">HORAS <span
-                                                                    class="text-danger">*</span></label>
-                                                            <input type="number"
-                                                                class="form-control bg-dark border-secondary text-white"
-                                                                id="cantidadHoras" name="cantidadHoras" min="1" value=""
-                                                                required>
-                                                        </div>
-                                                        <div class="col-6">
-                                                            <label class="form-label small fw-bold">CUPO <span
-                                                                    class="text-danger">*</span></label>
-                                                            <input type="number"
-                                                                class="form-control bg-dark border-secondary text-white"
-                                                                id="cupo" name="cupo" min="1" value="30" required>
-                                                        </div>
-                                                        
-                                                        <div class="col-6">
-                                                            <label class="form-label small fw-bold">DÍA DICTADO <span
-                                                                    class="text-danger">*</span></label>
-                                                            <select id="drupalDiaDictado" name="drupalDiaDictado"
-                                                                class="form-select bg-dark border-secondary text-white"
-                                                                required>
-                                                                <option value="Lunes">Lunes</option>
-                                                                <option value="Martes">Martes</option>
-                                                                <option value="Miércoles">Miércoles</option>
-                                                                <option value="Jueves">Jueves</option>
-                                                                <option value="Viernes">Viernes</option>
-                                                                <option value="Sábado">Sábado</option>
-                                                            </select>
-                                                        </div>
-                                                        
-                                                        <div class="col-6">
-                                                            <label class="form-label small fw-bold">ALCANCE <span
-                                                                    class="text-danger">*</span></label>
-                                                            <select id="alcance" name="alcance"
-                                                                class="form-select bg-dark border-secondary text-white"
-                                                                required>
-                                                                <option value="1" selected>Este CIIE</option>
-                                                                <option value="2">Regional</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="col-12">
-                                                            <label class="form-label small fw-bold">TÍTULO
-                                                                FORMULARIO</label>
-                                                            <input type="text"
-                                                                class="form-control bg-dark border-secondary text-white"
-                                                                id="tituloFormulario" name="tituloFormulario"
-                                                                maxlength="200">
-                                                        </div>
-                                                        <div class="col-8">
-                                                            <label class="form-label small fw-bold">SEDE <span
-                                                                    class="text-danger">*</span></label>
-                                                            <input type="text" id="drupalSede"
-                                                                class="form-control bg-dark border-secondary text-white"
-                                                                maxlength="120"
-                                                                value="CIIE G. de Laferrere - Monseñor López May N° 3250"
-                                                                required>
-                                                        </div>
-                                                        <div class="col-4">
-                                                            <label class="form-label small fw-bold">ORGANIZA <span
-                                                                    class="text-danger">*</span></label>
-                                                            <input type="text" id="drupalOrganiza"
-                                                                class="form-control bg-dark border-secondary text-white"
-                                                                maxlength="120" value="DFDP" required>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div><!-- /row -->
-                        </div><!-- /modal-body -->
-
-                        <div class="modal-footer border-success">
-                            <button type="button" class="btn btn-outline-secondary" id="btnVolver">
-                                <i class="bi bi-arrow-left me-1"></i>Volver
-                            </button>
-                            <button type="button" class="btn btn-success fw-bold px-4" id="btnGuardarCurso">
-                                <i class="bi bi-check-circle me-1"></i>Crear Curso
-                            </button>
-                        </div>
-                    </div>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <p class="text-muted mb-0">No hay cursos vinculados a este cargo.</p>
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <%- include('../../partials/scripts') %>
-                <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-                <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-                <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
-                <script>
-                    $(document).ready(function () {
-                        // Inicializar DataTable
-    const table = $('#tablaCursosCargo').DataTable({
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-        },
-        responsive: true,
-        paging: false,    // DESACTIVA la paginación para mostrar todo
-        info: false,      // Opcional: quita el texto "Mostrando X de X entradas"
-        dom: 'rt',        // Solo muestra el procesamiento (r) y la tabla (t)
-        initComplete: function () {
-            // Lógica para el filtro ITI (mantener igual que antes)
-            this.api().columns(0).every(function () {
-                var column = this;
-                var select = $('<select class="form-select form-select-sm bg-dark text-white border-secondary"><option value="">Todos los ITI</option></select>')
-                    .appendTo('#contenedor-filtro-iti')
-                    .on('change', function () {
-                        var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                        column.search(val ? '^' + val + '$' : '', true, false).draw();
+    <!-- ══════════ MODAL COPIADO RÁPIDO ══════════ -->
+    <div class="modal fade" id="modalCopiarCurso" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content bg-dark border-secondary">
+                <div class="modal-header border-secondary py-2">
+                    <div>
+                        <h6 class="mb-0 fw-bold text-white">
+                            <i class="bi bi-clipboard-data me-2 text-info"></i>Datos del curso
+                        </h6>
+                        <small class="text-muted">Click en cualquier campo para copiar</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body" id="modalCopiarBody">
+                    <!-- se rellena por JS -->
+                </div>
+
+                <div class="modal-footer border-secondary py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    $(document).ready(function () {
+
+        // ─── DataTable ────────────────────────────────────
+        const table = $('#tablaCursosCargo').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            responsive: true,
+            paging: false,
+            info: false,
+            dom: 'rt',
+            initComplete: function () {
+                this.api().columns(0).every(function () {
+                    var column = this;
+                    var select = $('<select class="form-select form-select-sm bg-dark text-white border-secondary"><option value="">Todos los ITI</option></select>')
+                        .appendTo('#contenedor-filtro-iti')
+                        .on('change', function () {
+                            var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                            column.search(val ? '^' + val + '$' : '', true, false).draw();
+                        });
+                    column.data().unique().sort().each(function (d) {
+                        const cleanText = d.replace(/<[^>]*>?/gm, '').trim();
+                        if (cleanText) select.append('<option value="' + cleanText + '">' + cleanText + '</option>');
                     });
-
-                column.data().unique().sort().each(function (d) {
-                    const cleanText = d.replace(/<[^>]*>?/gm, '').trim();
-                    if(cleanText) select.append('<option value="' + cleanText + '">' + cleanText + '</option>');
+                    $(select).click(function (e) { e.stopPropagation(); });
                 });
-                
-                $(select).click(function(e) { e.stopPropagation(); });
-            });
-        }
-    });
-                        const formadorOriginal = "<%= formador %>";
-                        // Evento para el botón de Alta de curso
+            }
+        });
 
-                        // ─── Datos desde EJS ─────────────────────────────────────────────────
-                        const cursosExistentes = JSON.parse('<%- JSON.stringify(cursosLocales.map(c => ({ anio: c.anio, itinerario: c.itinerario, dispositivo: c.dispositivo }))) %>');
+        // ─── Reglas por dispositivo ───────────────────────
+        const REGLAS = {
+            'Taller en Servicio':       '3 encuentros de 4 horas',
+            'Taller Fuera de Servicio': '5 encuentros de 3 horas',
+            'Seminario':                '3 encuentros de 3 horas',
+            'Extensión CIIE':           '1 encuentro de 2 horas'
+        };
 
-                        // ─── Reglas por dispositivo ───────────────────────────────────────────────
-                        const REGLAS = {
-                            'Taller en Servicio': { encuentros: 3, horas: 4 },
-                            'Taller Fuera de Servicio': { encuentros: 5, horas: 3 },
-                            'Seminario': { encuentros: 3, horas: 3 },
-                            'Extensión CIIE': { encuentros: 1, horas: 2 }
-                        };
+        // ─── Abrir modal con datos del curso ─────────────
+        $(document).on('click', '.btn-ver-curso', function () {
+            const cursoId = $(this).data('id');
+            $.get(`/curso/${cursoId}`)
+                .done(function (c) {
+                    const body = document.getElementById('modalCopiarBody');
+                    body.innerHTML = buildModalContent(c);
+                    bindCopyFields(body);
+                    new bootstrap.Modal(document.getElementById('modalCopiarCurso')).show();
+                })
+                .fail(function () {
+                    Swal.fire('Error', 'No se pudo cargar el curso.', 'error');
+                });
+        });
 
-                        // ─── Helpers ─────────────────────────────────────────────────────────────
-                        function esTaller(dispositivo) {
-                            return dispositivo && dispositivo.toLowerCase().includes('taller');
-                        }
+        // ─── Construir contenido del modal ───────────────
+        function buildModalContent(c) {
+            const dias = ['dom','lun','mar','mié','jue','vie','sáb'];
 
-                        function calcularPuntaje(dispositivo, encuentros) {
-                            if (!esTaller(dispositivo)) return '';
-                            const n = parseInt(encuentros) || 0;
-                            if (n < 3) return '';
-                            return n >= 8 ? 0.48 : 0.44;
-                        }
+            // Nombre propuesta
+            // Nombre propuesta
+const nombreProp = `${c.dispositivo ? c.dispositivo.trim().split(' ')[0].toUpperCase() : ''} • ${c.tituloFormulario || c.nombrePropuesta || '—'} [${c.cargoId?.clave || ''}]`;
 
-                        function proximoItinerario(anio, dispositivo) {
-                            const delAnioDispositivo = cursosExistentes.filter(c => c.anio == anio && c.dispositivo === dispositivo);
-                            if (delAnioDispositivo.length === 0) return 1;
-                            return Math.max(...delAnioDispositivo.map(c => c.itinerario)) + 1;
-                        }
+            // Fecha inicio
+            let fechaInicio = '—';
+            if (c.encuentros && c.encuentros.length > 0) {
+                const d = new Date(c.encuentros[0].fecha);
+fechaInicio = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+            }
 
+            // Formato dictado sin paréntesis
+            const formatoDictado = (c.publicacionDrupal?.formatoDictado || '—').replace(/\s*\(\d+\)/,'');
 
+            // Nivel
+            const nivel = c.publicacionDrupal?.nivel || '—';
 
-                        function parseDateOnly(value) {
-                            if (!value) return null;
-                            const d = new Date(`${value}T00:00:00`);
-                            return Number.isNaN(d.getTime()) ? null : d;
-                        }
+            // Materia / área
+            const materia = c.cargoId?.areaId?.nombre || '—';
 
-                        function getFechasEncuentroInputs() {
-                            return $('#listaFechasEncuentros .input-fecha-encuentro');
-                        }
+            // Puntaje
+            const puntaje = c.publicacionDrupal?.puntaje ? String(c.publicacionDrupal.puntaje) : '—';
 
-                        function contarFechasEncuentro() {
-                            return getFechasEncuentroInputs().length;
-                        }
+            // Encuentros y duración
+            const leyenda = REGLAS[c.dispositivo] || `${c.encuentros?.length || '—'} encuentros`;
 
-                        function getFechasEncuentro() {
-                            return getFechasEncuentroInputs().map(function () {
-                                return $(this).val().trim();
-                            }).get();
-                        }
-
-                        function sugerirSiguienteFecha(fechaBase) {
-                            const base = parseDateOnly(fechaBase);
-                            if (!base) return '';
-                            base.setDate(base.getDate() + 14); // +14 días en lugar de +7
-                            return toDateOnlyLocal(base);
-                        }
-
-                        function actualizarCantidadEncuentrosDesdeFechas() {
-                            const cantidad = contarFechasEncuentro();
-                            $('#cantidadEncuentros').val(cantidad);
-                            $('#drupalPuntaje').val(calcularPuntaje($('#dispositivoSeleccionado').val(), cantidad));
-                        }
-
-                        function actualizarDesdePrimeraFecha() {
-                            const fechas = getFechasEncuentro();
-                            if (!fechas[0]) return;
-
-                            const primeraFecha = parseDateOnly(fechas[0]);
-                            if (!primeraFecha) return;
-
-                            // Calcular día de dictado
-                            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                            $('#drupalDiaDictado').val(dias[primeraFecha.getDay()]);
-
-                            // Recalcular itinerario
-                            $('#itinerario').val(proximoItinerario($('#anio').val(), $('#dispositivoSeleccionado').val()));
-
-                            // Completar las siguientes fechas automáticamente
-                            completarFechasFaltantes();
-                        }
-
-                        function renderFechasEncuentros(fechas = []) {
-    const $lista = $('#listaFechasEncuentros').empty();
-
-    // Tomamos solo la primera fecha del array. Si el array está vacío, usamos un string vacío.
-    const primerFecha = fechas.length > 0 ? fechas[0] : '';
-
-    // Renderizamos una única fila
-    const $fila = $(
-        `<div class="d-flex align-items-center gap-2 fecha-encuentro-row" data-index="1">
-            <span class="badge bg-secondary" style="min-width: 34px;">E1</span>
-            <input type="date" class="form-control bg-dark border-secondary text-white input-fecha-encuentro" 
-                   value="${primerFecha || ''}" required>
-        </div>`
-    );
-
-    $lista.append($fila);
-
-    // Ocultamos el botón de "Agregar fecha" para que no puedan sumar más desde la interfaz
-    $('#btnAgregarFechaEncuentro').hide();
-
-    actualizarCantidadEncuentrosDesdeFechas();
+            // Fechas + horario
+            let diaHorario = '—';
+            if (c.encuentros && c.encuentros.length > 0) {
+    const primerEnc = new Date(c.encuentros[0].fecha);
+    const h = String(primerEnc.getHours()).padStart(2,'0');
+    const m = String(primerEnc.getMinutes()).padStart(2,'0');
+    const fechasStr = c.encuentros.map(enc => {
+        const d = new Date(enc.fecha);
+        return `${dias[d.getDay()]}, ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+    }).join(' • ');
+    diaHorario = `${fechasStr} - ${h}:${m} hs.`;
 }
 
+            // Sede
+            const sede = c.publicacionDrupal?.sede || '—';
 
-                        $(document).on('change input', '.input-fecha-encuentro', function () {
-                            const idx = $(this).closest('.fecha-encuentro-row').index();
-                            actualizarCantidadEncuentrosDesdeFechas();
+            // Cupo
+            const cupo = c.cupo ? String(c.cupo) : '—';
 
-                            // Si es la primera fecha, actualizar día de dictado, itinerario y auto-completar
-                            if (idx === 0) {
-                                actualizarDesdePrimeraFecha();
-                            }
-                        });
+            // Formador
+            const formador = c.formadorAbc || 'A DESIGNAR';
 
-                        renderFechasEncuentros(['']);
+            // Organiza
+            const organiza = c.publicacionDrupal?.organiza || 'DFDP';
 
-                        $('#anio').on('change input', function () {
-                            const dispositivo = $('#dispositivoSeleccionado').val();
-                            $('#itinerario').val(proximoItinerario($(this).val(), dispositivo));
-                        });
+            // Enlace
+            const enlace = c.publicacionDrupal?.enlaceInscripcion || c.enlaceInscripcion || '';
 
+            return `
+                ${section('Identificación')}
+                ${field('Nombre de la propuesta', nombreProp)}
+                ${field('Fecha de inicio', fechaInicio)}
+                ${field('Formato de dictado', formatoDictado)}
+                ${section('Detalles pedagógicos')}
+                ${field('Nivel / Destinatarios', nivel)}
+                ${field('Materia / Área', materia)}
+                ${field('Puntaje', puntaje)}
+                ${field('Encuentros y duración', leyenda)}
+                ${field('Fechas y horario', diaHorario)}
+                ${field('Sede', sede)}
+                ${field('Vacantes / Cupo', cupo)}
 
-                        // ─── Volver ──────────────────────────────────────────────────────────────
-                        $('#btnVolver').click(function () {
-                            $('#modalAltaCurso').modal('hide');
-                            setTimeout(() => $('#modalSeleccionarBase').modal('show'), 400);
-                        });
+                ${section('Responsables')}
+                ${field('Formador/a', formador)}
+                ${field('Organiza', organiza)}
 
-                        $(document).on('input change', '.form-control, .form-select', function () {
-                            $(this).removeClass('is-invalid');
-                        });
+                ${enlace ? section('Inscripción') + fieldLink('Enlace de inscripción', enlace) : ''}
 
-                        // ─── Editar curso pendiente ───────────────────────────────────────────────
-                        $(document).on('click', '.btn-editar-pendiente', function () {
-                            const cursoId = $(this).data('id');
-                            const nombreVisualEnTabla = $(this).closest('tr').find('.col-propuesta-texto').text().trim();
-                            $.get(`/curso/${cursoId}`)
-                                .done(function (curso) {
-                                    // Precarga datos del curso
-                                    $('#cursoBaseId').val(curso.cursoBaseId?._id || '');
-                                    $('#idCursoOriginal').val(curso.idCursoOriginal || '');
-                                    $('#nombrePropuesta').val(curso.nombrePropuesta || '');
-                                    $('#dispositivo').val(curso.dispositivo || '');
-                                    $('#dispositivoSeleccionado').val(curso.dispositivo || '');
-                                    $('#materia').val(curso.cargoId.areaId?.nombre || '');
-                                    
-                                    $('#anio').val(curso.anio || new Date().getFullYear());
-                                    $('#itinerario').val(curso.itinerario || 1);
-                                    $('#drupalFormatoDictado').val(curso.publicacionDrupal?.formatoDictado || '');
+                <button class="btn-copy-all" id="btnCopiarTodo">
+                    <i class="bi bi-clipboard-check"></i> Copiar todo
+                </button>
+            `;
+        }
 
-                                    // Extraer hora del primer encuentro si existe
-                                    let horaEncuentro = '18:00';
-                                    if (curso.encuentros && curso.encuentros.length > 0 && curso.encuentros[0].fecha) {
-                                        const fechaObj = new Date(curso.encuentros[0].fecha);
-                                        const h = String(fechaObj.getHours()).padStart(2, '0');
-                                        const m = String(fechaObj.getMinutes()).padStart(2, '0');
-                                        horaEncuentro = `${h}:${m}`;
-                                    }
-                                    $('#horaEncuentro').val(horaEncuentro);
+        function section(label) {
+            return `<div class="copy-section-label"><i class="bi bi-dot"></i>${label}</div>`;
+        }
 
-                                    $('#cupo').val(curso.cupo || 30);
-                                    $('#cantidadHoras').val(curso.cantidadHoras || '');
-                                    $('#tituloFormulario').val(curso.tituloFormulario || '');
-                                    $('#drupalNivel').val(curso.publicacionDrupal?.nivel || '');
-                                    $('#drupalSede').val(curso.publicacionDrupal?.sede || '');
-                                    $('#drupalOrganiza').val(curso.publicacionDrupal?.organiza || '');
-                                    $('#drupalDiaDictado').val(curso.publicacionDrupal?.diasHorarios || 'Lunes');
-                                    $('#drupalPuntaje').val(curso.publicacionDrupal?.puntaje || '');
-                                    $('#alcance').val(curso.alcance || 1);
+        function field(label, value) {
+            const safe = value.replace(/"/g, '&quot;');
+            return `
+                <div class="copy-field" data-value="${safe}">
+                    <div class="copy-field-body">
+                        <div class="copy-field-label">${label}</div>
+                        <div class="copy-field-value">${value}</div>
+                    </div>
+                    <button class="btn-copy-field" title="Copiar"><i class="bi bi-copy"></i></button>
+                </div>`;
+        }
 
-                                    // Cargar fechas de encuentros
-                                    let fechas = [];
-                                    if (curso.encuentros && curso.encuentros.length > 0) {
-                                        fechas = curso.encuentros.map(e => {
-                                            if (e.fecha) {
-                                                const dateStr = e.fecha instanceof Date ? e.fecha.toISOString().split('T')[0] : e.fecha.split('T')[0];
-                                                return dateStr;
-                                            }
-                                            return '';
-                                        });
-                                    }
-                                    renderFechasEncuentros(fechas.length > 0 ? fechas : ['']);
+        function fieldLink(label, value) {
+            const safe = value.replace(/"/g, '&quot;');
+            return `
+                <div class="copy-field" data-value="${safe}">
+                    <div class="copy-field-body">
+                        <div class="copy-field-label">${label}</div>
+                        <div class="copy-field-value is-link">
+                            <a href="${value}" target="_blank" style="color:#00ADC5;text-decoration:none;">${value}</a>
+                        </div>
+                    </div>
+                    <button class="btn-copy-field" title="Copiar"><i class="bi bi-copy"></i></button>
+                </div>`;
+        }
 
-                                    // Resumen
-                                    $('#resumenNombreBase').text(nombreVisualEnTabla);
+        // ─── Bind eventos de copiado ──────────────────────
+        function bindCopyFields(container) {
+            container.querySelectorAll('.copy-field').forEach(field => {
+                field.addEventListener('click', function (e) {
+                    const btn = this.querySelector('.btn-copy-field');
+                    copyText(this.getAttribute('data-value'), btn, this);
+                });
+            });
 
-                                    // Cargar formadores - limpiar formadores invitados
-                                    $('#listaFormadores').empty();
-                                    $('#listaFormadores').append(`
-                                        <div class="formador-row mb-1" data-index="0" data-cargo-id="">
-                                            <input type="text"
-                                                class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
-                                                id="formadorAbc" name="formadorAbc"
-                                                maxlength="40" placeholder="Apellido, Nombre"
-                                                value="${curso.formadorAbc || ''}" required>
-                                        </div>
-                                `);
-                                    $('#wrapperAlcance').addClass('d-none'); // Ocultar alcance en edición pendiente
-                                    nombreCompletoOriginal = curso.formadorAbc || '';
+            const btnTodo = container.querySelector('#btnCopiarTodo');
+            if (btnTodo) {
+                btnTodo.addEventListener('click', function () {
+                    const lines = [];
+                    container.querySelectorAll('.copy-field').forEach(f => {
+                        const label = f.querySelector('.copy-field-label')?.textContent?.trim();
+                        const val = f.getAttribute('data-value') || '';
+                        if (val && val !== '—') lines.push(`${label}: ${val}`);
+                    });
+                    copyText(lines.join('\n'), this, null);
+                    this.innerHTML = '<i class="bi bi-check2"></i> ¡Copiado todo!';
+                    this.classList.add('ok');
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="bi bi-clipboard-check"></i> Copiar todo';
+                        this.classList.remove('ok');
+                    }, 2000);
+                });
+            }
+        }
 
-                                    // Guardar ID del documento para poder editar
-                                    $('#cursoIdParaEditar').val(cursoId);
+        function copyText(text, btn, field) {
+            navigator.clipboard.writeText(text).then(() => {
+                if (btn) {
+                    btn.innerHTML = '<i class="bi bi-check2"></i>';
+                    btn.classList.add('ok');
+                }
+                if (field) field.classList.add('copied');
+                setTimeout(() => {
+                    if (btn) { btn.innerHTML = '<i class="bi bi-copy"></i>'; btn.classList.remove('ok'); }
+                    if (field) field.classList.remove('copied');
+                }, 1800);
+            });
+        }
 
-                                    // Cambiar texto del botón a "Actualizar"
-                                    $('#btnGuardarCurso').data('edit-mode', 'true').html('<i class="bi bi-check-circle me-1"></i>Actualizar Curso');
-
-                                    $('#modalAltaCurso').modal('show');
-                                })
-                                .fail(function () {
-                                    Swal.fire('Error', 'No se pudo cargar el curso.', 'error');
-                                });
-                        });
-
-                        // ─── Auto-abrir modal de edición si viene con parámetro editar ─────────────────────
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const cursoIdParaEditar = urlParams.get('editar');
-                        if (cursoIdParaEditar) {
-                            // Simular clic en el botón de editar del curso
-                            $(`.btn-editar-pendiente[data-id="${cursoIdParaEditar}"]`).trigger('click');
-                        }
-
-                    }); // fin document.ready
-
-                </script>
+    }); // fin ready
+    </script>
 </body>
-
 </html>

@@ -12,6 +12,7 @@ const {
     getPorCiieDrupal,
     viewFormAltaPorCargoClaveCiieClave,
     getFlyerCurso,
+    getFlyersList,
     deleteCurso,
     getCursoById,
     getCursoByIdEdit,
@@ -25,6 +26,7 @@ router
     .get('/mi-cursos', asegurarRegistro, getMisCursos)
     .get('/ciie', asegurarRegistro, getPorCiie)
     .get('/drupal', asegurarRegistro, getPorCiieDrupal)
+    .get('/flyers', asegurarRegistro, getFlyersList)
     .get('/flyer/:ofertaId', getFlyerCurso)
     .post('/alta', asegurarRegistro, post)
     .post('/vincularLocal', asegurarRegistro, vincularCurso)

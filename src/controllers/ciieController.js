@@ -58,7 +58,8 @@ const getDashboard = async (req, res) => {
                         { label: 'Cursos externos', href: '/ciie/curso/externo', descripcion: 'Consulta de ofertas externas.' },
                         { label: 'Vincular/abrir inscripcion', href: '/ciie/cursos/nuevo', descripcion: 'Vincular oferta oficial o publicar.' },
                         { label: 'Cursos base', href: '/cursoBase', descripcion: 'Administracion de base de cursos.' },
-                        { label: 'Catalogo externo', href: '/curso/lista', descripcion: 'Consulta de propuestas externas.' }
+                        { label: 'Catalogo externo', href: '/curso/lista', descripcion: 'Consulta de propuestas externas.' },
+                        { label: 'Flyers de cursos', href: '/curso/flyers', descripcion: 'Generacion y descarga de flyers.' }
                     ]
                 },
                 {
