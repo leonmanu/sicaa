@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Mis Cursos</title>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        #tablaCursosDocente td,
+        #tablaCursosDocente th {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container py-5">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a href="/usuario/mis-cargos" class="text-decoration-none">Mis Cargos</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Mis Cursos</li>
+                    </ol>
+                </nav>
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>
+                    Mis Cursos
+                </h2>
+                <p class="text-muted mb-0">Vista personal - Consultá con tu CIIE antes de modificar</p>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-dark border-secondary shadow-sm">
+                    <div class="card-body py-2 px-3">
+                        <small class="text-muted text-uppercase d-block" style="font-size: 0.7rem;">Cursos totales</small>
+                        <span class="h4 fw-bold mb-0"><%= cursosPersonales.length %></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 bg-dark text-white">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="tablaCursosDocente" class="table table-dark table-hover align-middle mb-0">
+                        <thead class="bg-black text-muted small text-uppercase">
+                            <tr>
+                                <th>Año</th>
+                                <th>Proposición</th>
+                                <th>Primer Encuentro</th>
+                                <th>Estado</th>
+                                <th class="text-center pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (cursosPersonales && cursosPersonales.length > 0) { %>
+                                <% cursosPersonales.forEach(c => { %>
+                                    <tr>
+                                        <td class="fw-bold text-info"><%= c.anio %> • I<%= c.itinerario %></td>
+                                        <td>
+                                            <b><%= c.nombrePropuesta || 'Sin nombre' %></b><br>
+                                            <small class="text-muted"><%= c.dispositivo || 'Dispositivo' %></small>
+                                        </td>
+                                        <td>
+                                            <% if (c.encuentros && c.encuentros.length > 0 && c.encuentros[0].fecha) { %>
+                                                <%= new Date(c.encuentros[0].fecha).toLocaleDateString() %>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <%= new Date(c.encuentros[0].fecha).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'}) %>
+                                                </small>
+                                            <% } else { %>
+                                                <span class="text-muted">-</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <% if (c.estado === 'pendiente') { %>
+                                                <span class="badge bg-warning text-dark">Pendiente</span>
+                                            <% } else if (c.estado === 'vinculado') { %>
+                                                <span class="badge bg-success">Vinculado</span>
+                                            <% } else if (c.estado === 'modificacion_pendiente') { %>
+                                                <span class="badge bg-info">Cambios Pendientes</span>
+                                            <% } else if (c.estado === 'eliminacion_pendiente') { %>
+                                                <span class="badge bg-danger">Eliminación Pendiente</span>
+                                            <% } else { %>
+                                                <span class="badge bg-secondary"><%= c.estado %></span>
+                                            <% } %>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                                                    <li>
+                                                        <button class="dropdown-item text-info btn-ver-detalles" 
+                                                                data-id="<%= c._id %>">
+                                                            <i class="bi bi-eye me-2"></i>Ver Detalles
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button class="dropdown-item text-warning btn-editar-curso-docente" 
+                                                                data-id="<%= c._id %>">
+                                                            <i class="bi bi-pencil me-2"></i>Editar
+                                                        </button>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <button class="dropdown-item text-danger btn-eliminar-curso-docente" 
+                                                                data-id="<%= c._id %>">
+                                                            <i class="bi bi-trash me-2"></i>Eliminar
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="5" class="text-center py-5">
+                                        <p class="text-muted mb-0">No hay cursos asignados a tus cargos.</p>
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 p-3 bg-dark border border-info rounded">
+            <div class="alert alert-info mb-0" role="alert">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Información:</strong> Cuando edites un curso, quedará pendiente de aprobación por parte de tu CIIE. 
+                Los cambios solo serán efectivos una vez aprobados.
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL VER DETALLES -->
+    <div class="modal fade" id="modalDetallesCurso" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content bg-dark border-primary">
+                <div class="modal-header bg-primary bg-opacity-10 border-primary">
+                    <h5 class="modal-title fw-bold mb-0"><i class="bi bi-info-circle me-2"></i>Detalles del Curso</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="contenidoDetalles">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR CURSO -->
+    <div class="modal fade" id="modalEditarCurso" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+            <div class="modal-content bg-dark border-success">
+                <div class="modal-header bg-success bg-opacity-10 border-success">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0"><i class="bi bi-pencil me-2"></i>Editar Curso</h5>
+                        <small class="text-muted">Los cambios quedarán pendientes de aprobación</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning mb-4 p-3">
+                        <div class="fw-bold text-white" id="resumenNombreCurso"></div>
+                        <small class="text-muted" id="resumenDetalleCurso"></small>
+                    </div>
+
+                    <input type="hidden" id="cursoIdEditar" name="cursoIdEditar">
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">AÑO <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control bg-dark border-secondary text-white"
+                                   id="anioEditar" name="anioEditar" value="<%= new Date().getFullYear() %>" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">ITINERARIO <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control bg-dark border-secondary text-white"
+                                   id="itinerarioEditar" name="itinerarioEditar" value="1" min="1" readonly>
+                        </div>
+
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">FORMATO DICTADO <span class="text-danger">*</span></label>
+                            <select id="drupalFormatoDictadoEditar" name="drupalFormatoDictadoEditar"
+                                    class="form-select bg-dark border-secondary text-white" required>
+                                <option value="Presencial (237)">Presencial</option>
+                                <option value="Sincrónico (238)">Bimodal / Sincrónico</option>
+                                <option value="Virtual (236)">Virtual</option>
+                                <option value="Asincrónico (239)">Asincrónico</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">HORA (todos los encuentros) <span class="text-danger">*</span></label>
+                            <input type="time" class="form-control bg-dark border-secondary text-white"
+                                   id="horaEncuentroEditar" name="horaEncuentroEditar" value="18:00" required>
+                        </div>
+
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">ENCUENTROS <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control bg-dark border-secondary text-white"
+                                   id="cantidadEncuentrosEditar" name="cantidadEncuentrosEditar" min="1" value="" required readonly>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">FECHAS DE ENCUENTROS <span class="text-danger">*</span></label>
+                            <div id="listaFechasEncuentrosEditar" class="d-grid gap-2"></div>
+                            <button type="button" class="btn btn-sm btn-outline-warning mt-2" id="btnAgregarFechaEncuentroEditar">
+                                <i class="bi bi-calendar-plus me-1"></i>Agregar fecha
+                            </button>
+                        </div>
+
+                        <!-- FORMADORES -->
+                        <div class="col-12" id="bloqueFormadoresEditar">
+                            <label class="form-label small fw-bold mb-1">FORMADOR/A <span class="text-danger">*</span></label>
+                            <div id="listaFormadoresEditar">
+                                <div class="formador-row mb-1" data-index="0" data-cargo-id="">
+                                    <input type="text"
+                                           class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
+                                           id="formadorAbcEditar" name="formadorAbcEditar"
+                                           maxlength="40" placeholder="Apellido, Nombre"
+                                           value="" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- CAMPOS OPCIONALES -->
+                        <div class="col-12 mt-2">
+                            <div class="accordion" id="acordeonCamposOpcionalesEditar">
+                                <div class="accordion-item bg-dark border-secondary">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed bg-dark text-white"
+                                                type="button" data-bs-toggle="collapse"
+                                                data-bs-target="#collapseEditarCurso">
+                                            <b>MÁS DATOS...</b>
+                                        </button>
+                                    </h2>
+                                    <div id="collapseEditarCurso" class="accordion-collapse collapse"
+                                         data-bs-parent="#acordeonCamposOpcionalesEditar">
+                                        <div class="accordion-body">
+                                            <div class="row g-3">
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">HORAS <span class="text-danger">*</span></label>
+                                                    <input type="number" class="form-control bg-dark border-secondary text-white"
+                                                           id="cantidadHorasEditar" name="cantidadHorasEditar" min="1" value="" required>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">CUPO <span class="text-danger">*</span></label>
+                                                    <input type="number" class="form-control bg-dark border-secondary text-white"
+                                                           id="cupoEditar" name="cupoEditar" min="1" value="30" required>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">PUNTAJE</label>
+                                                    <input type="number" id="drupalPuntajeEditar"
+                                                           class="form-control bg-dark border-secondary text-white"
+                                                           step="0.01" min="0">
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">DÍA DICTADO <span class="text-danger">*</span></label>
+                                                    <select id="drupalDiaDictadoEditar" name="drupalDiaDictadoEditar"
+                                                            class="form-select bg-dark border-secondary text-white" required>
+                                                        <option value="Lunes">Lunes</option>
+                                                        <option value="Martes">Martes</option>
+                                                        <option value="Miércoles">Miércoles</option>
+                                                        <option value="Jueves">Jueves</option>
+                                                        <option value="Viernes">Viernes</option>
+                                                        <option value="Sábado">Sábado</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">NIVEL <span class="text-danger">*</span></label>
+                                                    <input type="text" id="drupalNivelEditar"
+                                                           class="form-control bg-dark border-secondary text-white"
+                                                           maxlength="120" value="" required>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">ALCANCE <span class="text-danger">*</span></label>
+                                                    <select id="alcanceEditar" name="alcanceEditar"
+                                                            class="form-select bg-dark border-secondary text-white" required>
+                                                        <option value="1" selected>Este CIIE</option>
+                                                        <option value="2">Regional</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label small fw-bold">TÍTULO FORMULARIO</label>
+                                                    <input type="text" class="form-control bg-dark border-secondary text-white"
+                                                           id="tituloFormularioEditar" name="tituloFormularioEditar" maxlength="200">
+                                                </div>
+                                                <div class="col-8">
+                                                    <label class="form-label small fw-bold">SEDE <span class="text-danger">*</span></label>
+                                                    <input type="text" id="drupalSedeEditar"
+                                                           class="form-control bg-dark border-secondary text-white"
+                                                           maxlength="120"
+                                                           value="CIIE G. de Laferrere - Monseñor López May N° 3250" required>
+                                                </div>
+                                                <div class="col-4">
+                                                    <label class="form-label small fw-bold">ORGANIZA <span class="text-danger">*</span></label>
+                                                    <input type="text" id="drupalOrganizaEditar"
+                                                           class="form-control bg-dark border-secondary text-white"
+                                                           maxlength="120" value="DFDP" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success fw-bold" id="btnActualizarCurso">
+                        <i class="bi bi-check-circle me-1"></i>Actualizar Curso
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Ver detalles del curso
+            $(document).on('click', '.btn-ver-detalles', function () {
+                const cursoId = $(this).data('id');
+                $.get(`/curso/${cursoId}`)
+                    .done(function (curso) {
+                        let detalles = `
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Proposición</label>
+                                    <p class="text-white">${curso.nombrePropuesta || '-'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Dispositivo</label>
+                                    <p class="text-white">${curso.dispositivo || '-'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Año</label>
+                                    <p class="text-white">${curso.anio || '-'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Itinerario</label>
+                                    <p class="text-white">${curso.itinerario || '-'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Formador/a</label>
+                                    <p class="text-white">${curso.formadorAbc || '-'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Cupo</label>
+                                    <p class="text-white">${curso.cupo || '-'}</p>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label small fw-bold">Encuentros</label>
+                                    <div class="list-group list-group-sm">
+                                        ${curso.encuentros && curso.encuentros.length > 0 
+                                            ? curso.encuentros.map((e, i) => `
+                                                <div class="list-group-item bg-dark border-secondary text-white py-2">
+                                                    <small>
+                                                        <strong>Encuentro ${i + 1}:</strong> 
+                                                        ${new Date(e.fecha).toLocaleDateString()} 
+                                                        ${new Date(e.fecha).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
+                                                    </small>
+                                                </div>
+                                            `).join('')
+                                            : '<small class="text-muted">Sin encuentros registrados</small>'
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        $('#contenidoDetalles').html(detalles);
+                        $('#modalDetallesCurso').modal('show');
+                    })
+                    .fail(function () {
+                        Swal.fire('Error', 'No se pudo cargar los detalles del curso.', 'error');
+                    });
+            });
+
+            // Editar curso
+            $(document).on('click', '.btn-editar-curso-docente', function () {
+                const cursoId = $(this).data('id');
+
+                // Cargar datos del curso en el modal
+                $.get(`/curso/${cursoId}`)
+                    .done(function (curso) {
+                        // Llenar campos básicos
+                        $('#cursoIdEditar').val(curso._id);
+                        $('#anioEditar').val(curso.anio || new Date().getFullYear());
+                        $('#itinerarioEditar').val(curso.itinerario || 1);
+                        $('#drupalFormatoDictadoEditar').val(curso.drupalFormatoDictado || 'Presencial (237)');
+                        $('#horaEncuentroEditar').val(curso.horaEncuentro || '18:00');
+                        $('#cantidadEncuentrosEditar').val(curso.encuentros?.length || 0);
+                        $('#cantidadHorasEditar').val(curso.cantidadHoras || '');
+                        $('#cupoEditar').val(curso.cupo || 30);
+                        $('#drupalPuntajeEditar').val(curso.drupalPuntaje || '');
+                        $('#drupalDiaDictadoEditar').val(curso.drupalDiaDictado || 'Lunes');
+                        $('#drupalNivelEditar').val(curso.drupalNivel || '');
+                        $('#alcanceEditar').val(curso.alcance || 1);
+                        $('#tituloFormularioEditar').val(curso.tituloFormulario || '');
+                        $('#drupalSedeEditar').val(curso.drupalSede || 'CIIE G. de Laferrere - Monseñor López May N° 3250');
+                        $('#drupalOrganizaEditar').val(curso.drupalOrganiza || 'DFDP');
+
+                        // Formador
+                        $('#formadorAbcEditar').val(curso.formadorAbc || '');
+
+                        // Resumen del curso
+                        $('#resumenNombreCurso').text(curso.nombrePropuesta || 'Sin nombre');
+                        $('#resumenDetalleCurso').text(`${curso.dispositivo || 'Dispositivo'} - ${curso.anio || 'Año'} I${curso.itinerario || 1}`);
+
+                        // Cargar fechas de encuentros
+                        cargarFechasEncuentrosEditar(curso.encuentros || []);
+
+                        // Mostrar modal
+                        $('#modalEditarCurso').modal('show');
+                    })
+                    .fail(function () {
+                        Swal.fire('Error', 'No se pudo cargar la información del curso.', 'error');
+                    });
+            });
+
+            // Función para cargar fechas de encuentros en el modal de edición
+            function cargarFechasEncuentrosEditar(encuentros) {
+                const $lista = $('#listaFechasEncuentrosEditar');
+                $lista.empty();
+
+                if (encuentros.length === 0) {
+                    $lista.append('<small class="text-muted">No hay fechas registradas</small>');
+                    return;
+                }
+
+                encuentros.forEach((encuentro, index) => {
+                    const fecha = new Date(encuentro.fecha);
+                    const fechaFormateada = fecha.toISOString().split('T')[0];
+                    const hora = fecha.toTimeString().split(' ')[0].substring(0, 5);
+
+                    const $div = $(`
+                        <div class="input-group input-group-sm mb-1" data-index="${index}">
+                            <input type="date" class="form-control bg-dark border-secondary text-white fecha-encuentro-editar"
+                                   value="${fechaFormateada}" required>
+                            <button type="button" class="btn btn-outline-danger btn-sm btn-remover-fecha-editar">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    `);
+                    $lista.append($div);
+                });
+            }
+
+            // Agregar nueva fecha de encuentro en edición
+            $(document).on('click', '#btnAgregarFechaEncuentroEditar', function () {
+                const $lista = $('#listaFechasEncuentrosEditar');
+                const index = $lista.children().length;
+
+                const $div = $(`
+                    <div class="input-group input-group-sm mb-1" data-index="${index}">
+                        <input type="date" class="form-control bg-dark border-secondary text-white fecha-encuentro-editar"
+                               value="" required>
+                        <button type="button" class="btn btn-outline-danger btn-sm btn-remover-fecha-editar">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                `);
+                $lista.append($div);
+            });
+
+            // Remover fecha de encuentro en edición
+            $(document).on('click', '.btn-remover-fecha-editar', function () {
+                $(this).closest('.input-group').remove();
+                actualizarCantidadEncuentrosEditar();
+            });
+
+            // Actualizar cantidad de encuentros cuando cambian las fechas
+            $(document).on('change', '.fecha-encuentro-editar', function () {
+                actualizarCantidadEncuentrosEditar();
+            });
+
+            function actualizarCantidadEncuentrosEditar() {
+                const cantidad = $('#listaFechasEncuentrosEditar .fecha-encuentro-editar').filter(function() {
+                    return $(this).val() !== '';
+                }).length;
+                $('#cantidadEncuentrosEditar').val(cantidad);
+            }
+
+            // Actualizar curso
+            $(document).on('click', '#btnActualizarCurso', function () {
+                const cursoId = $('#cursoIdEditar').val();
+
+                // Recopilar datos del formulario
+                const fechasEncuentros = [];
+                $('#listaFechasEncuentrosEditar .fecha-encuentro-editar').each(function() {
+                    const fecha = $(this).val();
+                    if (fecha) {
+                        const fechaCompleta = new Date(fecha + 'T' + $('#horaEncuentroEditar').val());
+                        fechasEncuentros.push(fechaCompleta.toISOString());
+                    }
+                });
+
+                const datosActualizacion = {
+                    anio: parseInt($('#anioEditar').val()),
+                    itinerario: parseInt($('#itinerarioEditar').val()),
+                    drupalFormatoDictado: $('#drupalFormatoDictadoEditar').val(),
+                    horaEncuentro: $('#horaEncuentroEditar').val(),
+                    cantidadEncuentros: parseInt($('#cantidadEncuentrosEditar').val()),
+                    cantidadHoras: parseInt($('#cantidadHorasEditar').val()),
+                    cupo: parseInt($('#cupoEditar').val()),
+                    drupalPuntaje: parseFloat($('#drupalPuntajeEditar').val()) || null,
+                    drupalDiaDictado: $('#drupalDiaDictadoEditar').val(),
+                    drupalNivel: $('#drupalNivelEditar').val(),
+                    alcance: parseInt($('#alcanceEditar').val()),
+                    tituloFormulario: $('#tituloFormularioEditar').val(),
+                    drupalSede: $('#drupalSedeEditar').val(),
+                    drupalOrganiza: $('#drupalOrganizaEditar').val(),
+                    formadorAbc: $('#formadorAbcEditar').val(),
+                    fechasEncuentros: fechasEncuentros
+                };
+
+                // Validar campos requeridos
+                if (!datosActualizacion.anio || !datosActualizacion.drupalFormatoDictado ||
+                    !datosActualizacion.horaEncuentro || !datosActualizacion.cantidadHoras ||
+                    !datosActualizacion.drupalDiaDictado || !datosActualizacion.drupalNivel ||
+                    !datosActualizacion.formadorAbc || fechasEncuentros.length === 0) {
+                    Swal.fire('Error', 'Por favor complete todos los campos requeridos.', 'error');
+                    return;
+                }
+
+                // Enviar actualización
+                $.ajax({
+                    url: `/curso/${cursoId}`,
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify(datosActualizacion),
+                    success: function (response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Curso actualizado',
+                            text: 'Los cambios quedarán pendientes de aprobación.',
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(() => {
+                            $('#modalEditarCurso').modal('hide');
+                            location.reload();
+                        });
+                    },
+                    error: function (xhr) {
+                        const mensaje = xhr.responseJSON?.error || 'No se pudo actualizar el curso.';
+                        Swal.fire('Error', mensaje, 'error');
+                    }
+                });
+            });
+
+            // Eliminar curso
+            $(document).on('click', '.btn-eliminar-curso-docente', function () {
+                const cursoId = $(this).data('id');
+                const $row = $(this).closest('tr');
+                const nombreCurso = $row.find('td:nth-child(2)').text().trim();
+
+                Swal.fire({
+                    title: '¿Eliminar curso?',
+                    html: `<small class="text-muted">Se elim inará "${nombreCurso}" y todos sus encuentros relacionados.</small>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/curso/${cursoId}`,
+                            method: 'DELETE',
+                            success: function () {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Curso eliminado',
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => location.reload());
+                            },
+                            error: function (xhr) {
+                                const mensaje = xhr.responseJSON?.error || 'No se pudo eliminar el curso.';
+                                Swal.fire('Error', mensaje, 'error');
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

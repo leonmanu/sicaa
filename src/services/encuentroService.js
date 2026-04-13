@@ -89,6 +89,105 @@ class encuentroService {
             throw error;
         }
     }
+
+    async actualizarMultiplesEncuentros(cursoId, fechas, modalidad) {
+        try {
+            console.log(`Iniciando actualización de ${fechas.length} encuentros para curso ${cursoId}`);
+            
+            const resultados = [];
+
+            for (let i = 0; i < fechas.length; i++) {
+                const numeroEncuentro = i + 1;
+                const fechaNueva = fechas[i];
+
+                // 1. Buscamos si ya existe el encuentro para ese curso y ese número
+                const encuentroExistente = await encuentroRepo.getUnoPorNumeroCursoId(cursoId, numeroEncuentro);
+
+                if (encuentroExistente) {
+                    // 2. Si existe, lo actualizamos por su ID de encuentro
+                    console.log(`Actualizando encuentro N°${numeroEncuentro} (ID: ${encuentroExistente._id})`);
+                    const actualizado = await encuentroRepo.putPorId(encuentroExistente._id, {
+                        fecha: fechaNueva,
+                        modalidad: modalidad
+                    });
+                    resultados.push(actualizado);
+                } else {
+                    // 3. Si el usuario agregó un encuentro nuevo en la vista, lo creamos
+                    console.log(`Creando nuevo encuentro N°${numeroEncuentro}`);
+                    const nuevo = await encuentroRepo.post({
+                        cursoId: cursoId,
+                        numero: numeroEncuentro,
+                        fecha: fechaNueva,
+                        modalidad: modalidad
+                    });
+                    resultados.push(nuevo);
+                }
+            }
+
+            // Opcional: Manejo de encuentros sobrantes
+            // Si antes había 5 encuentros y ahora el usuario mandó 3, 
+            // podrías agregar lógica aquí para borrar el 4 y 5.
+
+            return resultados;
+        } catch (error) {
+            console.error('Error en actualizarMultiplesEncuentros:', error.message);
+            throw error;
+        }
+    }
+
+    async actualizarDesdeListaFechas(cursoId, listaFechas, modalidad) {
+        try {
+            // 1. Traemos lo que hay en DB para este curso
+            const encuentrosExistentes = await encuentroRepo.getPorCursoId(cursoId);
+            
+            // Importante: Ordenarlos por número para que el índice coincida con el Front
+            encuentrosExistentes.sort((a, b) => a.numero - b.numero);
+
+            const resultados = [];
+
+            // 2. Iteramos sobre el array de fechas que mandó el Front
+            for (let i = 0; i < listaFechas.length; i++) {
+                const fechaNueva = listaFechas[i];
+                const numeroEncuentro = i + 1; // El número se genera por el orden del array
+                
+                const encuentroActual = encuentrosExistentes[i];
+
+                if (encuentroActual) {
+                    // Si existe el encuentro en esa posición, lo actualizamos
+                    console.log(`Actualizando Encuentro N°${numeroEncuentro} con la fecha ${fechaNueva}`);
+                    
+                    const actualizado = await encuentroRepo.putPorId(encuentroActual._id, {
+                        fecha: fechaNueva
+                    });
+                    resultados.push(actualizado);
+                } else {
+                    // Si el array del front es más largo que lo que había en DB, creamos uno nuevo
+                    console.log(`Creando nuevo Encuentro N°${numeroEncuentro}`);
+                    
+                    const nuevo = await encuentroRepo.post({
+                        cursoId: cursoId,
+                        numero: numeroEncuentro,
+                        fecha: fechaNueva,
+                        modalidad: modalidad
+                    });
+                    resultados.push(nuevo);
+                }
+            }
+
+            // 3. Si el usuario eliminó fechas en el Front, borramos los encuentros que sobran
+            if (encuentrosExistentes.length > listaFechas.length) {
+                const encuentrosParaBorrar = encuentrosExistentes.slice(listaFechas.length);
+                for (const enc of encuentrosParaBorrar) {
+                    await encuentroRepo.delPorId(enc._id);
+                }
+            }
+
+            return resultados;
+        } catch (error) {
+            console.error('Error al sincronizar lista de fechas:', error.message);
+            throw error;
+        }
+    }
 }
 
 module.exports = new encuentroService();

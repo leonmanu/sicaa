@@ -10,13 +10,19 @@ const certificadoExternoService = require('./certificadoExternoService');
 const ciieRepo = require('../repos/ciieRepo');
 const ciieService = require('./ciieService');
 const encuentroRepo = require('../repos/encuentroRepo');
+const CursoLocal = require('../models/CursoLocal');
 
 class CursoLocalService {
 
     // ─── Alta desde formulario propio ────────────────────────────────────────
     async post(data = {}, usuario = {}) {
+        console.log('Datos recibidos para alta de curso local:', data);
         const cursoBaseId = this._sanitizeObjectId(data.cursoBaseId);
         const cargoId     = this._sanitizeObjectId(data.cargoId);
+        const fechasEncuentrosNormalizadas = this._normalizeFechasEncuentros(data.fechasEncuentros);
+        const cantidadEncuentrosCalculada = fechasEncuentrosNormalizadas.length > 0
+            ? fechasEncuentrosNormalizadas.length
+            : (this._toNumberOrNull(data.cantidadEncuentros) ?? 1);
 
         if (!cursoBaseId) {
             const err = new Error('El campo cursoBaseId es obligatorio.');
@@ -29,6 +35,16 @@ class CursoLocalService {
             throw err;
         }
 
+        const fechaInicioInscripcion = new Date();
+        fechaInicioInscripcion.setDate(fechaInicioInscripcion.getDate() - 1)
+        fechaInicioInscripcion.setHours(0, 0, 0, 0)
+
+        const anio = this._toNumberOrNull(data.anio) ?? new Date().getFullYear();
+        const dispositivo = this._sanitizeString(data.dispositivo) || 'No especificado';
+        const ciieId = this._sanitizeObjectId(data.ciieId) || this._sanitizeObjectId(usuario?.referenciaId);
+        
+        //const itinerarioCalculado = await this._calcularProximoItinerario(ciieId, anio, dispositivo);
+
         const documento = {
             // Identificadores oficiales
             idOfertaOficial: this._sanitizeString(data.idOfertaOficial), // null hasta que se publique en ABC
@@ -37,18 +53,17 @@ class CursoLocalService {
 
             // Datos de la propuesta
             nombrePropuesta:  this._sanitizeString(data.nombrePropuesta)  || 'Sin nombre',
-            dispositivo:      this._sanitizeString(data.dispositivo)      || 'No especificado',
+            dispositivo:      dispositivo,
             formadorAbc:      this._sanitizeString(data.formadorAbc)      || 'A designar',
             tituloFormulario: this._sanitizeString(data.tituloFormulario) || '',
 
             // Tiempos
-            anio:    this._toNumberOrNull(data.anio)    ?? new Date().getFullYear(),
+            anio:    anio,
             cohorte: this._toNumberOrNull(data.cohorte) ?? 0,
-            fechaInicioInscripcion: this._toDateOrNull(data.fechaInicioInscripcion),
-            fechaFinInscripcion:    this._toDateOrNull(data.fechaFinInscripcion),
-            fechaInicioCurso:       this._toDateOrNull(data.fechaInicioCurso),
-            fechaFinCurso:          this._toDateOrNull(data.fechaFinCurso),
-            cantidadEncuentros: this._toNumberOrNull(data.cantidadEncuentros) ?? 1,
+            itinerario: this._toNumberOrNull(data.itinerario) ?? 0,
+            fechaInicioInscripcion: this._toDateOrNull(fechaInicioInscripcion),
+            fechaFinInscripcion:  this._toDateOrNull(data.fechasEncuentros[0]),
+            cantidadEncuentros: cantidadEncuentrosCalculada,
             cantidadHoras:      this._toNumberOrNull(data.cantidadHoras)      ?? 0,
 
             // Estado y cupos
@@ -63,7 +78,7 @@ class CursoLocalService {
             // Relaciones
             cargoId,
             cursoBaseId,
-            ciieId: this._sanitizeObjectId(data.ciieId) || this._sanitizeObjectId(usuario?._id),
+            ciieId: ciieId,
             cargosInvitados: Array.isArray(data.cargosInvitados)
                 ? data.cargosInvitados.map(id => this._sanitizeObjectId(id)).filter(Boolean)
                 : [],
@@ -82,7 +97,24 @@ class CursoLocalService {
             )
         };
 
-        return await cursoLocalRepo.post(documento);
+        const cursoCreado = await cursoLocalRepo.post(documento);
+
+        try {
+            const fechasEncuentrosFinales = fechasEncuentrosNormalizadas.length > 0
+                ? fechasEncuentrosNormalizadas
+                : this._buildFechasEncuentrosDesdeInicio(this._toDateOrNull(data.fechaInicioCurso), cantidadEncuentrosCalculada);
+
+            await this._crearEncuentrosIniciales(cursoCreado, fechasEncuentrosFinales, data);
+            return cursoCreado;
+        } catch (error) {
+            try {
+                await encuentroRepo.delPorCursoId(cursoCreado._id);
+                await cursoLocalRepo.delPorId(cursoCreado._id);
+            } catch (cleanupError) {
+                console.error('Error en limpieza post-fallo de alta de encuentros:', cleanupError.message);
+            }
+            throw error;
+        }
     }
 
     // ─── Publicar en sitio oficial ABC ───────────────────────────────────────
@@ -130,7 +162,19 @@ class CursoLocalService {
     async getPorCursoClaveCiieClave(cargoClave, ciieClave) {
         const cargo = await cargoService.getPorCargoClaveCiieId(cargoClave, ciieClave);
         const cursosLocales = await cursoLocalRepo.getPorCargoId(cargo._id);
-        return { cursosLocales, cargo };
+        
+        // Cargar encuentros para cada curso
+        const cursosConEncuentros = await Promise.all(
+            cursosLocales.map(async (curso) => {
+                const encuentros = await encuentroRepo.getPorCursoId(curso._id);
+                return {
+                    ...curso,
+                    encuentros: encuentros || []
+                };
+            })
+        );
+        
+        return { cursosLocales: cursosConEncuentros, cargo };
     }
 
     async getCursosPorCiieId(ciieId) {
@@ -138,25 +182,83 @@ class CursoLocalService {
         if (!cursos || cursos.length === 0) return [];
 
         const cursoIds = cursos.map(c => c._id);
-        const inscriptos = await inscriptoLocalRepo.getPorListaDeCursos(cursoIds);
+
+        const [inscriptos, encuentros] = await Promise.all([
+            inscriptoLocalRepo.getPorListaDeCursos(cursoIds),
+            encuentroRepo.getPorCursoIds(cursoIds)
+        ]);
 
         return cursos.map(curso => ({
             ...curso,
             cantidadInscriptos: inscriptos.filter(i =>
                 i.cursoId.toString() === curso._id.toString()
-            ).length
+            ).length,
+            encuentros: encuentros
+                .filter(e => String(e.cursoId) === String(curso._id))
+                .sort((a, b) => a.numero - b.numero)
+        }));
+    }
+
+    async getCursosPorCiieIdDrupal(ciieId) {
+        const cursos = await cursoLocalRepo.getPorCiieId(ciieId);
+        if (!cursos || cursos.length === 0) return [];
+
+        const cursoIds = cursos.map(c => c._id);
+
+        const [inscriptos, encuentros] = await Promise.all([
+            inscriptoLocalRepo.getPorListaDeCursos(cursoIds),
+            encuentroRepo.getPorCursoIds(cursoIds)
+        ]);
+
+        return cursos.map(curso => ({
+            ...curso,
+            cantidadInscriptos: inscriptos.filter(i =>
+                i.cursoId.toString() === curso._id.toString()
+            ).length,
+            encuentros: encuentros
+                .filter(e => String(e.cursoId) === String(curso._id))
+                .sort((a, b) => a.numero - b.numero)
         }));
     }
 
     async getPorIdOfertaOficial(ofertaId) {
         const cursoLocal = await cursoLocalRepo.getPorIdOfertaOficial(ofertaId)
-        console.log('Curso local encontrado para idOfertaOficial', ofertaId, ':', cursoLocal);
-        return cursoLocal;
+        const encuentros = await encuentroRepo.getPorCursoIds(cursoLocal._id);
+        //console.log('encuentros: ', encuentros);
+        //console.log('Curso local encontrado para idOfertaOficial', ofertaId, ':', cursoLocal);
+        return { ...cursoLocal, encuentros };
 
     }
 
     async getPorCargoId(cargoId) {
         return await cursoLocalRepo.getPorCargoId(cargoId);
+    }
+
+    async getCursosPorDocente(usuarioId) {
+        // Obtener los cargos (asignaciones) del docente
+        const asignacionRepo = require('../repos/asignacionRepo');
+        const asignaciones = await asignacionRepo.getByAgente(usuarioId);
+        
+        if (!asignaciones || asignaciones.length === 0) {
+            return [];
+        }
+
+        // Obtener todos los cursos de todos sus cargos
+        const cargoIds = asignaciones.map(a => a.cargoId._id);
+        const cursos = await cursoLocalRepo.getTodosPorCargosIds(cargoIds);
+        
+        // Cargar encuentros para cada curso
+        const cursosConEncuentros = await Promise.all(
+            cursos.map(async (curso) => {
+                const encuentros = await encuentroRepo.getPorCursoId(curso._id);
+                return {
+                    ...curso.toObject(),
+                    encuentros: encuentros || []
+                };
+            })
+        );
+
+        return cursosConEncuentros;
     }
 
     async getTodos() {
@@ -561,6 +663,10 @@ class CursoLocalService {
         }
 
         const cursoLocal = await cursoLocalRepo.getPorId(cursoLocalId);
+        const encuentros = await encuentroRepo.getPorCursoId(cursoLocalId);
+        console.log('Curso local para crear oferta oficial:', cursoLocal);
+        console.log('Encuentros del curso:', encuentros);
+
         if (!cursoLocal) {
             const err = new Error('Curso local no encontrado.');
             err.statusCode = 404;
@@ -607,17 +713,17 @@ class CursoLocalService {
             quees: 'A',
             volver: `ofertas.php?id=${idCursoOriginal}&quees=M&qi=65`,
             anio: String(cursoLocal.anio || new Date().getFullYear()),
-            inicioa: this._toDateTimeLocalString(inicioInscripcion),
-            fina: this._toDateString(finInscripcion),
-            fechaini: this._toDateString(cursoLocal.fechaInicioCurso),
-            fechafin: this._toDateString(cursoLocal.fechaFinCurso),
-            disponible: this._sanitizeString(cursoLocal.disponible) || 'S',
-            cupo: String(cursoLocal.cupo || 0),
-            iddispositivo: idDispositivo,
-            idalcance: String(this._normalizeAlcance(cursoLocal.alcance)),
-            tituloform: this._sanitizeString(cursoLocal.tituloFormulario) || '',
-            numero: String(cursoLocal.cohorte || 0),
-            nombrecapa: this._sanitizeString(cursoLocal.formadorAbc) || ''
+            inicioa: this._toDateTimeLocalString(inicioInscripcion), // que va a ser la fecha de momento con lo mínimo posible de horas y minutos para evitar errores de validación del ABC
+            fina: this._toDateString(finInscripcion), // esta fecha coincide con la del primer encuentro del curso
+            fechaini: this._toDateString(encuentros[0]?.fecha), // esta fecha coincide con la del primer encuentro del curso
+            fechafin: this._toDateString(encuentros[encuentros.length - 1]?.fecha), // esta fecha coincide con la del último encuentro del curso. si es un solo encuentro, va a ser la misma que fechaInicioCurso
+            disponible: this._sanitizeString(cursoLocal.disponible) || 'S', // al principio siempre disponible, luego se puede actualizar desde el localRepo para que se oculte en el sitio oficial
+            cupo: String(Math.round(cursoLocal.cupo * 1.15) || 35),
+            iddispositivo: idDispositivo, // acá va el valor del select
+            idalcance: String(this._normalizeAlcance(cursoLocal.alcance)), // acá va el valor del select
+            tituloform: this._sanitizeString(cursoLocal.tituloFormulario) || '', //
+            numero: String(cursoLocal.itinerario || 0), //aca va el número del itinerario
+            nombrecapa: this._sanitizeString(cursoLocal.formadorAbc) || '' // acá va el nombre del formador que figura en el curso local, si no tiene se puede dejar vacío o poner "A designar"
         });
 
         let response = await cursoExternoRepo.crearOfertaOficial(payload);
@@ -670,7 +776,139 @@ class CursoLocalService {
         };
     }
 
+    // ─── Obtener un curso por ID ────────────────────────────────────────────────
+    async getCursoById(cursoId) {
+        const sanitizedId = this._sanitizeObjectId(cursoId);
+        if (!sanitizedId) {
+            const err = new Error('ID de curso inválido.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const curso = await cursoLocalRepo.getPorId(sanitizedId);
+        if (!curso) {
+            const err = new Error('Curso no encontrado.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        // Cargar encuentros relacionados
+        const encuentros = await encuentroRepo.getPorCursoId(sanitizedId);
+        
+        // Hacer populate del cargo para obtener clave y ciieId
+        const cursoPopulado = await CursoLocal.findById(sanitizedId)
+            .populate({
+                path: 'cargoId',
+                populate: {
+                    path: 'ciieId',
+                    select: 'clave nombre'
+                }
+            })
+            .lean();
+        
+        return {
+            ...cursoPopulado,
+            encuentros: encuentros || []
+        };
+    }
+
+    async getCursoByIdEdit(cursoId) {
+        const sanitizedId = this._sanitizeObjectId(cursoId);
+        if (!sanitizedId) {
+            const err = new Error('ID de curso inválido.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const curso = await cursoLocalRepo.getPorId(sanitizedId);
+        if (!curso) {
+            const err = new Error('Curso no encontrado.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        // Cargar encuentros relacionados
+        const encuentros = await encuentroRepo.getPorCursoId(sanitizedId);
+        
+          
+        return {
+            ...curso,
+            encuentros: encuentros || []
+        };
+    }
+    // ─── Editar curso pendiente (por ID) ────────────────────────────────────────
+async editarCursoPorId(cursoId, data = {}, usuario = {}) {
+    const cursoLocalId = this._sanitizeObjectId(cursoId);
+    if (!cursoLocalId) {
+        const err = new Error('ID de curso inválido.');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const cursoLocal = await cursoLocalRepo.getPorId(cursoLocalId);
+    if (!cursoLocal) {
+        const err = new Error('Curso local no encontrado.');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const dispositivoNuevo = this._sanitizeString(data.dispositivo) || cursoLocal.dispositivo;
+    const anioNuevo = this._toNumberOrNull(data.anio) ?? cursoLocal.anio;
+    let itinerarioFinal = this._toNumberOrNull(data.itinerario);
+
+    if (dispositivoNuevo !== cursoLocal.dispositivo || anioNuevo !== cursoLocal.anio) {
+        itinerarioFinal = await this._calcularProximoItinerario(cursoLocal.ciieId, anioNuevo, dispositivoNuevo);
+    } else if (itinerarioFinal === null) {
+        itinerarioFinal = cursoLocal.itinerario;
+    }
+
+    const formatoDictado = this._sanitizeString(data.drupalFormatoDictado || data.publicacionDrupal?.formatoDictado);
+    const modalidad = this._mapFormatoDictadoAModalidad(formatoDictado);
+
+    // Actualizar encuentros si vienen fechas nuevas
+    if (data.fechasEncuentros && Array.isArray(data.fechasEncuentros) && data.fechasEncuentros.length > 0) {
+        const fechasNormalizadas = this._normalizeFechasEncuentros(data.fechasEncuentros);
+        await encuentroRepo.delPorCursoId(cursoLocalId);
+        for (let i = 0; i < fechasNormalizadas.length; i++) {
+            await encuentroRepo.post({
+                cursoId: cursoLocalId,
+                numero: i + 1,
+                fecha: fechasNormalizadas[i],
+                modalidad
+            });
+        }
+    }
+
+    const update = {
+        dispositivo:        dispositivoNuevo,
+        formadorAbc:        this._sanitizeString(data.formadorAbc) || cursoLocal.formadorAbc,
+        tituloFormulario:   this._sanitizeString(data.tituloFormulario),
+        anio:               anioNuevo,
+        itinerario:         itinerarioFinal,
+        cupo:               this._toNumberOrNull(data.cupo) ?? cursoLocal.cupo,
+        alcance:            this._toNumberOrNull(data.alcance) ?? cursoLocal.alcance,
+        cantidadHoras:      this._toNumberOrNull(data.cantidadHoras),
+        cantidadEncuentros: data.fechasEncuentros?.length || cursoLocal.cantidadEncuentros,
+        publicacionDrupal: {
+            ...cursoLocal.publicacionDrupal,
+            formatoDictado,
+            nivel:        this._sanitizeString(data.drupalNivel       || data.publicacionDrupal?.nivel),
+            sede:         this._sanitizeString(data.drupalSede        || data.publicacionDrupal?.sede),
+            organiza:     this._sanitizeString(data.drupalOrganiza    || data.publicacionDrupal?.organiza),
+            puntaje:      this._toNumberOrNull(data.drupalPuntaje     || data.publicacionDrupal?.puntaje),
+            diasHorarios: this._sanitizeString(data.drupalDiaDictado  || data.publicacionDrupal?.diasHorarios)
+        }
+    };
+
+    Object.keys(update).forEach(key => {
+        if (update[key] === undefined) delete update[key];
+    });
+
+    return await cursoLocalRepo.actualizarPendiente(cursoLocalId, update);
+}
+
     async editarCursoPendiente(data = {}, usuario = {}) {
+        console.log('entró a editarCursoPendiente')
         const cursoLocalId = this._sanitizeObjectId(data.cursoLocalId);
         if (!cursoLocalId) {
             const err = new Error('El campo cursoLocalId es obligatorio.');
@@ -685,29 +923,51 @@ class CursoLocalService {
             throw err;
         }
 
-        const mismoCiie = String(cursoLocal.ciieId?._id || cursoLocal.ciieId) === String(usuario?.referenciaId);
+        const mismoCiie = String(cursoLocal.ciieId || '') === String(usuario?.referenciaId || '');
         if (!mismoCiie) {
             const err = new Error('No tenes permisos para editar este curso.');
             err.statusCode = 403;
             throw err;
         }
 
+        // Si el curso está vinculado, guarda valores previos y cambia estado
         if (this._sanitizeString(cursoLocal.idOfertaOficial)) {
-            const err = new Error('Solo se pueden editar cursos pendientes sin oferta oficial.');
-            err.statusCode = 409;
-            throw err;
+            const update = {
+                estado: 'modificacion_pendiente',
+                datosPrevios: {
+                    dispositivo: cursoLocal.dispositivo,
+                    formadorAbc: cursoLocal.formadorAbc,
+                    tituloFormulario: cursoLocal.tituloFormulario,
+                    anio: cursoLocal.anio,
+                    cupo: cursoLocal.cupo,
+                    alcance: cursoLocal.alcance,
+                    certifica: cursoLocal.certifica,
+                    enlaceInscripcion: cursoLocal.enlaceInscripcion
+                }
+            };
+            return await cursoLocalRepo.actualizarPendiente(cursoLocalId, update);
+        }
+
+        const dispositivoNuevo = this._sanitizeString(data.dispositivo) || cursoLocal.dispositivo;
+        const anioNuevo = this._toNumberOrNull(data.anio) ?? cursoLocal.anio;
+        let itinerarioFinal = this._toNumberOrNull(data.itinerario);
+
+        // Si se cambió dispositivo o año, recalcula itinerario
+        if (dispositivoNuevo !== cursoLocal.dispositivo || anioNuevo !== cursoLocal.anio) {
+            itinerarioFinal = await this._calcularProximoItinerario(cursoLocal.ciieId, anioNuevo, dispositivoNuevo);
+        } else if (itinerarioFinal === null) {
+            itinerarioFinal = cursoLocal.itinerario;
         }
 
         const update = {
-            dispositivo: this._sanitizeString(data.dispositivo),
+            dispositivo: dispositivoNuevo,
             formadorAbc: this._sanitizeString(data.formadorAbc),
             tituloFormulario: this._sanitizeString(data.tituloFormulario),
-            anio: this._toNumberOrNull(data.anio),
+            anio: anioNuevo,
             cohorte: this._toNumberOrNull(data.cohorte),
+            itinerario: itinerarioFinal,
             fechaInicioInscripcion: this._toDateOrNull(data.fechaInicioInscripcion),
             fechaFinInscripcion: this._toDateOrNull(data.fechaFinInscripcion),
-            fechaInicioCurso: this._toDateOrNull(data.fechaInicioCurso),
-            fechaFinCurso: this._toDateOrNull(data.fechaFinCurso),
             disponible: this._sanitizeString(data.disponible),
             cupo: this._toNumberOrNull(data.cupo),
             alcance: this._toNumberOrNull(data.alcance),
@@ -731,6 +991,95 @@ class CursoLocalService {
         }
 
         return await cursoLocalRepo.actualizarPendiente(cursoLocalId, update);
+    }
+
+    async deleteCurso(cursoLocalId, usuario = {}) {
+        const cursoId = this._sanitizeObjectId(cursoLocalId);
+        if (!cursoId) {
+            const err = new Error('El campo cursoLocalId es obligatorio.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const curso = await cursoLocalRepo.getPorId(cursoId);
+        if (!curso) {
+            const err = new Error('Curso local no encontrado.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        // Verificar permisos según tipo de usuario
+        let tienePermiso = false;
+        
+        if (usuario?.tipoModel === 'Ciie') {
+            // Usuario de institución (CIIE)
+            tienePermiso = String(curso.ciieId || '') === String(usuario?.referenciaId || '');
+        } else if (usuario?.tipoModel === 'Persona') {
+            // Usuario docente: debe tener el cargo del curso
+            const asignacionRepo = require('../repos/asignacionRepo');
+            const asignaciones = await asignacionRepo.getByAgente(usuario?._id);
+            const cargoIds = asignaciones.map(a => String(a.cargoId._id));
+            tienePermiso = cargoIds.includes(String(curso.cargoId?._id || curso.cargoId || ''));
+        }
+
+        if (!tienePermiso) {
+            const err = new Error('No tenes permisos para eliminar este curso.');
+            err.statusCode = 403;
+            throw err;
+        }
+
+        // Si el curso está vinculado
+        if (this._sanitizeString(curso.idOfertaOficial)) {
+            const inscriptos = await inscriptoLocalRepo.getPorCursoId(cursoId);
+            if (inscriptos && inscriptos.length > 0) {
+                const err = new Error(`No se puede eliminar: hay ${inscriptos.length} inscriptos. El sistema no permite eliminar cursos con inscriptos del sitio oficial.`);
+                err.statusCode = 409;
+                throw err;
+            }
+
+            // Para usuarios CIIE, eliminar físicamente
+            if (usuario?.tipoModel === 'Ciie') {
+                try {
+                    // 1. Eliminar encuentros asociados
+                    await encuentroRepo.delPorCursoId(cursoId);
+
+                    // 2. Eliminar el curso
+                    await cursoLocalRepo.delPorId(cursoId);
+
+                    return { success: true, message: 'Curso y sus encuentros eliminados correctamente.' };
+                } catch (error) {
+                    console.error('Error al eliminar curso:', error.message);
+                    throw error;
+                }
+            } else {
+                // Para usuarios Persona, cambiar a estado dormido
+                const update = {
+                    estado: 'dormido',
+                    itinerario: 0,
+                    datosPrevios: {
+                        estado: curso.estado,
+                        itinerario: curso.itinerario,
+                        dispositivo: curso.dispositivo,
+                        formadorAbc: curso.formadorAbc
+                    }
+                };
+                return await cursoLocalRepo.actualizarPendiente(cursoId, update);
+            }
+        }
+
+        // Si es pendiente (sin vincular), eliminar físicamente con cascada
+        try {
+            // 1. Eliminar encuentros asociados
+            await encuentroRepo.delPorCursoId(cursoId);
+
+            // 2. Eliminar el curso
+            await cursoLocalRepo.delPorId(cursoId);
+
+            return { success: true, message: 'Curso y sus encuentros eliminados correctamente.' };
+        } catch (error) {
+            console.error('Error al eliminar curso:', error.message);
+            throw error;
+        }
     }
 
     // ─── Helpers privados ────────────────────────────────────────────────────
@@ -1055,6 +1404,72 @@ _buildNombreCompleto(inscripto = {}) {
         return tieneDatos ? publicacion : undefined;
     }
 
+    _normalizeFechasEncuentros(value) {
+        if (!Array.isArray(value)) return [];
+
+        const fechas = value
+            .map(v => this._toDateOrNull(v))
+            .filter(Boolean)
+
+        const fechasUnicas = new Set(fechas.map(f => f.toISOString().split('T')[0]));
+        if (fechasUnicas.size !== fechas.length) {
+            const err = new Error('No se pueden repetir fechas de encuentros.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        return fechas;
+    }
+
+    _buildFechasEncuentrosDesdeInicio(fechaInicioCurso, cantidadEncuentros) {
+        const inicio = this._toDateOrNull(fechaInicioCurso);
+        const cantidad = this._toNumberOrNull(cantidadEncuentros) ?? 0;
+        if (!inicio || cantidad < 1) return [];
+
+        const fechas = [];
+        for (let i = 0; i < cantidad; i += 1) {
+            const d = new Date(inicio);
+            d.setDate(d.getDate() + (i * 7));
+            d.setUTCHours(0, 0, 0, 0);
+            fechas.push(d);
+        }
+        return fechas;
+    }
+
+    _mapFormatoDictadoAModalidad(formatoDictado) {
+        const value = this._sanitizeString(formatoDictado) || '';
+        if (value.includes('Presencial')) return 'Presencial';
+        if (value.includes('Virtual')) return 'Virtual';
+        if (value.includes('Asincrónico')) return 'Virtual';
+        if (value.includes('Sincrónico')) return 'Virtual';
+        return 'Presencial';
+    }
+
+    async _crearEncuentrosIniciales(cursoCreado, fechasEncuentros, data = {}) {
+        if (!cursoCreado?._id) {
+            const err = new Error('No se pudo determinar el curso para crear encuentros.');
+            err.statusCode = 500;
+            throw err;
+        }
+
+        if (!Array.isArray(fechasEncuentros) || fechasEncuentros.length === 0) {
+            const err = new Error('Debes ingresar al menos una fecha de encuentro.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const modalidad = this._mapFormatoDictadoAModalidad(data?.publicacionDrupal?.formatoDictado);
+
+        for (let i = 0; i < fechasEncuentros.length; i += 1) {
+            await encuentroRepo.post({
+                cursoId: cursoCreado._id,
+                numero: i + 1,
+                fecha: fechasEncuentros[i],
+                modalidad
+            });
+        }
+    }
+
     _sanitizeOfertaRaw(value) {
         if (!Array.isArray(value)) return {};
         return {
@@ -1109,6 +1524,35 @@ _buildNombreCompleto(inscripto = {}) {
         return mapa[value] || '0';
     }
 
+    async _calcularProximoItinerario(ciieId, anio, dispositivo) {
+        const anioNum = this._toNumberOrNull(anio);
+        const dispositivoStr = this._sanitizeString(dispositivo);
+        
+        if (anioNum === null || !dispositivoStr) {
+            return 1;
+        }
+
+        const cursosDelDispositivo = await cursoLocalRepo.getPorCiieAnioDispositivo(
+            ciieId,
+            anioNum,
+            dispositivoStr
+        );
+
+        if (!cursosDelDispositivo || cursosDelDispositivo.length === 0) {
+            return 1; // Primer curso de este dispositivo
+        }
+
+        const itinerarios = cursosDelDispositivo
+            .map(c => this._toNumberOrNull(c.itinerario))
+            .filter(it => it !== null);
+
+        if (itinerarios.length === 0) {
+            return 1;
+        }
+
+        return Math.max(...itinerarios) + 1;
+    }
+
     _parseAbcActionResponse(raw) {
         const text = String(raw || '').trim();
         const lower = text.toLowerCase();
@@ -1148,6 +1592,11 @@ _buildNombreCompleto(inscripto = {}) {
             control: undefined,
             mensaje: `Respuesta inesperada de ABC: ${preview}`
         };
+    }
+
+    _normalizeFechasEncuentros(fechas) {
+        if (!Array.isArray(fechas)) return [];
+        return fechas.map(f => new Date(f)).filter(d => !isNaN(d.getTime()));
     }
 }
 

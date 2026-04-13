@@ -99,7 +99,7 @@
                 </nav>
                 <h2 class="fw-bold mb-1">
                     <i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>
-                    <%= cargo?.areaId?.nombre || 'Área General' %> * <small><% formadore = cargo?.ocupante?.usuarioId?.referenciaId?.apellido+', '+cargo?.ocupante?.usuarioId?.referenciaId?.nombre %></small>
+                    <%= cargo?.areaId?.nombre || 'Área General' %> * <small><% formador = cargo?.ocupante?.usuarioId?.referenciaId?.apellido+', '+cargo?.ocupante?.usuarioId?.referenciaId?.nombre %></small>
                 </h2>
                 <p class="text-muted mb-0">
                     <span class="badge bg-secondary me-2"><%=ciieClave%> <%= cargo.ciieId?.nombre || '' %></span>
@@ -130,12 +130,14 @@
                     <table id="tablaCursosCargo" class="table table-dark table-hover align-middle mb-0">
                         <thead class="bg-black text-muted small text-uppercase">
                             <tr>
-                                <th>Cohorte</th>
+                                <th>Iti</th>
                                 <% if(usuario.tipo == 'institucion'){ %>
                                     <th>Área</th>
                                 <% } %>
                                 <th>Propuesta</th>
-                                <th>Inicio Curso</th>
+  
+                                <th>Inicio</th>
+    
                                 <th>Dispositivo</th>
                                 <th class="text-center pe-4">Acciones</th>
                             </tr>
@@ -144,10 +146,10 @@
                             <% if (cursosLocales && cursosLocales.length > 0) { %>
                                 <% cursosLocales.forEach(c => { %>
                                     <tr>
-                                        <td class="fw-bold text-info"><%= c.anio %> • C<%= c.cohorte %></td>
+                                        <td class="fw-bold text-info"><%= c.anio %> • I<%= c.itinerario %></td>
                                         <% if(usuario.tipo == 'institucion'){ %>
                                             <td>
-                                                <b><%= c.cargoId.areaId?.nombreCorto || 'Área General' %></b>
+                                                <b><%= c.cargoId.areaId?.nombreCorto || 'Área General' %></b> <small><%= c.cargoId?.clave || 'clave fallida' %></small>
                                                 <br>
                                                 <small><%= c.formadorAbc %></small>
                                             </td>
@@ -155,11 +157,44 @@
                                         <td>
                                             <div class="text-wrap" style="max-width: 400px;"><%= c.nombrePropuesta %></div>
                                         </td>
-                                        <td>
-                                            <%= c.fechaInicioCurso ? new Date(c.fechaInicioCurso).toLocaleDateString('es-AR') : 'A definir' %>
-                                        </td>
+
+                                            <td>
+                                                <% if (c.encuentros && c.encuentros.length > 0) { %>
+                                                    <small class="text-muted">
+                                                        <% const fecha = new Date(c.encuentros[0].fecha); %>
+                                                        <% const opciones = { month: '2-digit', day: '2-digit' }; %>
+                                                        <%= fecha.toLocaleDateString('es-AR', opciones) %>
+                                                    </small>
+                                                <% } else { %>
+                                                    <small class="text-muted">-</small>
+                                                <% } %>
+                                            </td>
+
                                         <td>
                                             <small class="text-muted"><%= c.dispositivo %></small>
+                                            <br>
+                                            <% 
+                                                const coloresEstado = {
+                                                    'pendiente': 'bg-warning text-dark',
+                                                    'vinculado': 'bg-success',
+                                                    'modificacion_pendiente': 'bg-info text-dark',
+                                                    'eliminacion_pendiente': 'bg-danger',
+                                                    'dormido': 'bg-secondary'
+                                                };
+
+                                                const etiquetasEstado = {
+                                                    'pendiente': 'Pendiente',
+                                                    'vinculado': 'Vinculado',
+                                                    'modificacion_pendiente': 'Modif. Pendiente',
+                                                    'eliminacion_pendiente': 'Baja Pendiente',
+                                                    'dormido': 'Dormido'
+                                                };
+                                                %>
+                                            <div class="mb-1">
+                                                <span class="badge rounded-pill <%= coloresEstado[c.estado] || 'bg-light text-dark' %>" style="font-size: 0.7rem;">
+                                                    <%= etiquetasEstado[c.estado] || c.estado %>
+                                                </span>
+                                            </div>
                                         </td>
                                         <td class="text-center pe-4">
                                             <% if (c.estado === 'vinculado') { %>
@@ -186,27 +221,56 @@
             </li>
             <li><hr class="dropdown-divider border-secondary"></li>
             <li>
-                <button class="dropdown-item text-white btn-editar-curso" 
+                <button class="dropdown-item text-success btn-editar-pendiente" 
                         data-id="<%= c._id %>">
-                    <i class="bi bi-pencil me-2 text-success"></i>Editar
+                    <i class="bi bi-pencil me-2"></i>Editar
                 </button>
             </li>
             <li>
-                <button class="dropdown-item text-danger disabled">
-                    <i class="bi bi-trash me-2"></i>Desvincular
+                <button class="dropdown-item text-danger btn-eliminar-pendiente" 
+                        data-id="<%= c._id %>">
+                    <i class="bi bi-trash me-2"></i>Eliminar
                 </button>
             </li>
         </ul>
     </div>
 <% } else { %>
-    <span class="badge bg-secondary">En proceso de alta...</span>
+    <div class="dropdown">
+        <button class="btn btn-sm btn-outline-warning dropdown-toggle" 
+                type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-three-dots-vertical"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+            <% if (usuario.tipo === 'institucion' && c.estado === 'pendiente') { %>
+            <li>
+                <button class="dropdown-item text-primary btn-vincular-oficial" 
+                        data-curso-clave="<%= c.clave %>">
+                    <i class="bi bi-link-45deg me-2"></i>Vincular al sitio oficial 
+                </button>
+            </li>
+            <li><hr class="dropdown-divider border-secondary"></li>
+            <% } %>
+            <li>
+                <button class="dropdown-item text-success btn-editar-pendiente" 
+                        data-id="<%= c._id %>">
+                    <i class="bi bi-pencil me-2"></i>Editar
+                </button>
+            </li>
+            <li>
+                <button class="dropdown-item text-danger btn-eliminar-pendiente" 
+                        data-id="<%= c._id %>">
+                    <i class="bi bi-trash me-2"></i>Eliminar
+                </button>
+            </li>
+        </ul>
+    </div>
 <% } %>
                                         </td>
                                     </tr>
                                 <% }); %>
                             <% } else { %>
                                 <tr>
-                                    <td colspan="6" class="text-center py-5">
+                                    <td colspan="<%= usuario.tipo === 'institucion' ? 7 : 6 %>" class="text-center py-5">
                                         <p class="text-muted mb-0">No hay cursos vinculados a este cargo.</p>
                                     </td>
                                 </tr>
@@ -291,6 +355,7 @@
                     <input type="hidden" id="nombrePropuesta" name="nombrePropuesta">
                     <input type="hidden" id="dispositivo" name="dispositivo">
                     <input type="hidden" id="dispositivoSeleccionado">
+                    <input type="hidden" id="cursoIdParaEditar"> <!-- ID del curso pendiente que estamos editando -->
                     <input type="hidden" id="cargoId" name="cargoId" value="<%= cargo._id %>">
                     <input type="hidden" id="ciieId" name="ciieId" value="<%= cargo.ciieId?._id || '' %>">
                     <input type="hidden" id="creadoPor" name="creadoPor" value="<%= usuario?.email || '' %>">
@@ -303,17 +368,11 @@
                                    id="anio" name="anio" value="<%= new Date().getFullYear() %>" required>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold">COHORTE <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold">ITINERARIO <span class="text-danger">*</span></label>
                             <input type="number" class="form-control bg-dark border-secondary text-white"
-                                   id="cohorte" name="cohorte" value="1" min="0" required>
+                                   id="itinerario" name="itinerario" value="1" min="1">
                         </div>
 
-                        <div class="col-6">
-                            <label class="form-label small fw-bold">INICIO CURSADA <span class="text-danger">*</span></label>
-                            <!-- dateFormat Y-m-dTH:i guarda ISO en el input real; altFormat muestra "lun 27/03/26 09:00" -->
-                            <input type="text" class="form-control bg-dark border-secondary text-white"
-                                   id="fechaInicioCurso" name="fechaInicioCurso" placeholder="Seleccioná fecha y hora" required>
-                        </div>
                         <div class="col-6">
                             <label class="form-label small fw-bold">FORMATO DICTADO <span class="text-danger">*</span></label>
                             <select id="drupalFormatoDictado" name="drupalFormatoDictado"
@@ -324,6 +383,25 @@
                                 <option value="Asincrónico (239)">Asincrónico</option>
                             </select>
                         </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">HORA (todos los encuentros) <span class="text-danger">*</span></label>
+                            <input type="time" class="form-control bg-dark border-secondary text-white"
+                                   id="horaEncuentro" name="horaEncuentro" value="18:00" required>
+                        </div>
+
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">ENCUENTROS <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control bg-dark border-secondary text-white"
+                                   id="cantidadEncuentros" name="cantidadEncuentros" min="1" value="" required readonly>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">FECHAS DE ENCUENTROS <span class="text-danger">*</span></label>
+                            <div id="listaFechasEncuentros" class="d-grid gap-2"></div>
+                            <button type="button" class="btn btn-sm btn-outline-warning mt-2" id="btnAgregarFechaEncuentro">
+                                <i class="bi bi-calendar-plus me-1"></i>Agregar fecha
+                            </button>
+                        </div>
+                        
 
                         <!-- BLOQUE FORMADORES -->
                         <div class="col-12" id="bloqueFormadores">
@@ -336,7 +414,7 @@
                                            class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
                                            id="formadorAbc" name="formadorAbc"
                                            maxlength="40" placeholder="Apellido, Nombre"
-                                           value="<%= formadore %>" required>
+                                           value="<%= formador %>" required>
                                 </div>
                             </div>
  <!-- Selector de alcance: oculto hasta agregar primer invitado -->
@@ -392,11 +470,7 @@
                                          data-bs-parent="#acordeonCamposOpcionalesCurso">
                                         <div class="accordion-body">
                                             <div class="row g-3">
-                                                <div class="col-6">
-                                                    <label class="form-label small fw-bold">ENCUENTROS <span class="text-danger">*</span></label>
-                                                    <input type="number" class="form-control bg-dark border-secondary text-white"
-                                                           id="cantidadEncuentros" name="cantidadEncuentros" min="1" value="" required>
-                                                </div>
+                                                
                                                 <div class="col-6">
                                                     <label class="form-label small fw-bold">HORAS <span class="text-danger">*</span></label>
                                                     <input type="number" class="form-control bg-dark border-secondary text-white"
@@ -407,7 +481,7 @@
                                                     <input type="number" class="form-control bg-dark border-secondary text-white"
                                                            id="cupo" name="cupo" min="1" value="30" required>
                                                 </div>
-                                                <div class="col-6" id="wrapperPuntaje">
+                                                <div class="col-6">
                                                     <label class="form-label small fw-bold">PUNTAJE</label>
                                                     <input type="number" id="drupalPuntaje"
                                                            class="form-control bg-dark border-secondary text-white"
@@ -426,12 +500,8 @@
                                                     </select>
                                                 </div>
                                                 <div class="col-6">
-                                                    <label class="form-label small fw-bold">FIN CURSADA <span class="text-danger">*</span></label>
-                                                    <input type="text" class="form-control bg-dark border-secondary text-white"
-                                                           id="fechaFinCurso" name="fechaFinCurso" placeholder="Se calcula automáticamente" required>
-                                                </div>
-                                                <div class="col-6">
                                                     <label class="form-label small fw-bold">NIVEL <span class="text-danger">*</span> <small>Destinatarios</small></label>
+                                                    <%= cargo?.areaId?.nivel || '' %>
                                                     <input type="text" id="drupalNivel"
                                                            class="form-control bg-dark border-secondary text-white"
                                                            maxlength="120" value="<%= cargo?.areaId?.nivel || '' %>" required>
@@ -490,58 +560,60 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script>
     $(document).ready(function () {
-
+        const formadorOriginal = "<%= formador %>";
+        // Evento para el botón de Alta de curso
+$('#btnAltaCurso').on('click', function() {
+    // 1. Limpiamos el ID de edición para que el sistema sepa que es un ALTA
+    $('#cursoIdParaEditar').val('');
+    
+    // 2. Reseteamos el formulario (esto limpia casi todo)
+    // Suponiendo que tus inputs están dentro de un contenedor o los limpias manualmente:
+    $('#modalAltaCurso input:not([type=hidden])').val('');
+    $('#modalAltaCurso select').prop('selectedIndex', 0);
+    
+    // 3. Restauramos los valores por defecto que NO deben estar vacíos
+    $('#anio').val(new Date().getFullYear());
+    $('#itinerario').val('1');
+    $('#horaEncuentro').val('18:00');
+    $('#cupo').val('30');
+    $('#drupalNivel').val('<%= cargo?.areaId?.nivel || "" %>');
+    $('#drupalSede').val('CIIE G. de Laferrere - Monseñor López May N° 3250');
+    $('#drupalOrganiza').val('DFDP');
+    $('#drupalFormatoDictado').val('Presencial (237)');
+    
+    // 4. RESTAURAMOS AL FORMADOR ORIGINAL (Lo que pediste)
+    $('#formadorAbc').val(formadorOriginal);
+    
+    // 5. Limpiamos invitados adicionales si existen
+    $('.formador-row:not([data-index="0"])').remove();
+    $('#wrapperCharCount, #wrapperAlcance').addClass('d-none');
+    
+    // 6. Limpiamos la lista de fechas
+    $('#listaFechasEncuentros').empty();
+    
+    // 7. Resetear edit-mode para que sea CREAR no EDITAR
+    $('#btnGuardarCurso').data('edit-mode', 'false').html('<i class="bi bi-check-circle me-1"></i>Crear Curso');
+});
         // ─── DataTable ───────────────────────────────────────────────────────────
-        $('#tablaCursosCargo').DataTable({
-            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
-            responsive: true,
-            order: [[1, 'desc'], [3, 'desc']]
-        });
+        if ($('#tablaCursosCargo tbody tr td[colspan]').length === 0) {
+            // Solo inicializar DataTable si hay cursos (sin row con colspan vacía)
+            $('#tablaCursosCargo').DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                responsive: true,
+                order: [[1, 'desc'], [3, 'desc']]
+            });
+        }
 
-        // ─── Datos desde EJS ─────────────────────────────────────────────────────
-        const cursosExistentes = JSON.parse('<%- JSON.stringify(cursosLocales.map(c => ({ anio: c.anio, cohorte: c.cohorte }))) %>');
+        // ─── Datos desde EJS ─────────────────────────────────────────────────
+        const cursosExistentes = JSON.parse('<%- JSON.stringify(cursosLocales.map(c => ({ anio: c.anio, itinerario: c.itinerario, dispositivo: c.dispositivo }))) %>');
 
         // ─── Reglas por dispositivo ───────────────────────────────────────────────
         const REGLAS = {
-            'Taller en Servicio':       { encuentros: 3, horas: 4, cohorte: true  },
-            'Taller Fuera de Servicio': { encuentros: 5, horas: 3, cohorte: true  },
-            'Seminario':                { encuentros: 3, horas: 3, cohorte: true  },
-            'Extensión CIIE':           { encuentros: 1, horas: 2, cohorte: false }
+            'Taller en Servicio':       { encuentros: 3, horas: 4 },
+            'Taller Fuera de Servicio': { encuentros: 5, horas: 3 },
+            'Seminario':                { encuentros: 3, horas: 3 },
+            'Extensión CIIE':           { encuentros: 1, horas: 2 }
         };
-
-        // ─── Flatpickr ───────────────────────────────────────────────────────────
-        // dateFormat guarda ISO en el input real; altFormat muestra formato amigable
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-const fpOpts = {
-    locale: 'es',
-    enableTime: true,
-    dateFormat: 'Y-m-dTH:i',
-    altInput: !isMobile,        // ← sin altInput en mobile
-    altFormat: 'D d/m/y H:i',
-    minTime: '06:00',
-    maxTime: '22:00',
-    minuteIncrement: 5,
-    defaultHour: 18,
-    defaultMinute: 30,
-    closeOnSelect: true,        // ← en mobile cerrar al seleccionar
-    static: true
-};
-
-        const fpInicio = flatpickr('#fechaInicioCurso', {
-            ...fpOpts,
-            onChange: function(selectedDates) {
-                if (!selectedDates[0]) return;
-                const d = selectedDates[0];
-                // Día de dictado
-                const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                $('#drupalDiaDictado').val(dias[d.getDay()]);
-                // Fecha fin
-                recalcularFechaFin(d);
-            }
-        });
-
-        const fpFin = flatpickr('#fechaFinCurso', fpOpts);
 
         // ─── Helpers ─────────────────────────────────────────────────────────────
         function esTaller(dispositivo) {
@@ -555,58 +627,194 @@ const fpOpts = {
             return n >= 8 ? 0.48 : 0.44;
         }
 
-        function proximaCohorte(anio) {
-            const delAnio = cursosExistentes.filter(c => c.anio == anio);
-            if (delAnio.length === 0) return 1;
-            return Math.max(...delAnio.map(c => c.cohorte)) + 1;
+        function proximoItinerario(anio, dispositivo) {
+            const delAnioDispositivo = cursosExistentes.filter(c => c.anio == anio && c.dispositivo === dispositivo);
+            if (delAnioDispositivo.length === 0) return 1;
+            return Math.max(...delAnioDispositivo.map(c => c.itinerario)) + 1;
         }
 
-        // Calcula la fecha fin como objeto Date y la setea en fpFin
-        function recalcularFechaFin(fechaInicioDate) {
-            const dispositivo = $('#dispositivoSeleccionado').val();
-            const n = parseInt($('#cantidadEncuentros').val()) || 1;
-            const h = parseFloat($('#cantidadHoras').val()) || 0;
+        function toDateOnlyLocal(date) {
+            if (!date) return '';
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
 
-            if (!fechaInicioDate) {
-                // Intentar leer de fpInicio si no se pasa el date
-                const selected = fpInicio.selectedDates[0];
-                if (!selected) return;
-                fechaInicioDate = selected;
+        function parseDateOnly(value) {
+            if (!value) return null;
+            const d = new Date(`${value}T00:00:00`);
+            return Number.isNaN(d.getTime()) ? null : d;
+        }
+
+        function getFechasEncuentroInputs() {
+            return $('#listaFechasEncuentros .input-fecha-encuentro');
+        }
+
+        function contarFechasEncuentro() {
+            return getFechasEncuentroInputs().length;
+        }
+
+        function getFechasEncuentro() {
+            return getFechasEncuentroInputs().map(function () {
+                return $(this).val().trim();
+            }).get();
+        }
+
+        function sugerirSiguienteFecha(fechaBase) {
+            const base = parseDateOnly(fechaBase);
+            if (!base) return '';
+            base.setDate(base.getDate() + 14); // +14 días en lugar de +7
+            return toDateOnlyLocal(base);
+        }
+
+        function actualizarCantidadEncuentrosDesdeFechas() {
+            const cantidad = contarFechasEncuentro();
+            $('#cantidadEncuentros').val(cantidad);
+            $('#drupalPuntaje').val(calcularPuntaje($('#dispositivoSeleccionado').val(), cantidad));
+        }
+
+        function actualizarDesdePrimeraFecha() {
+            const fechas = getFechasEncuentro();
+            if (!fechas[0]) return;
+            
+            const primeraFecha = parseDateOnly(fechas[0]);
+            if (!primeraFecha) return;
+
+            // Calcular día de dictado
+            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            $('#drupalDiaDictado').val(dias[primeraFecha.getDay()]);
+            
+            // Recalcular itinerario
+            $('#itinerario').val(proximoItinerario($('#anio').val(), $('#dispositivoSeleccionado').val()));
+            
+            // Completar las siguientes fechas automáticamente
+            completarFechasFaltantes();
+        }
+
+        function renderFechasEncuentros(fechas = []) {
+            const $lista = $('#listaFechasEncuentros').empty();
+
+            fechas.forEach((fecha, idx) => {
+                const $fila = $(
+                    `<div class="d-flex align-items-center gap-2 fecha-encuentro-row" data-index="${idx + 1}">
+                        <span class="badge bg-secondary" style="min-width: 34px;">E${idx + 1}</span>
+                        <input type="date" class="form-control bg-dark border-secondary text-white input-fecha-encuentro" value="${fecha || ''}" required>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-quitar-fecha" title="Quitar fecha" ${fechas.length === 1 ? 'disabled' : ''}>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>`
+                );
+                $lista.append($fila);
+            });
+
+            if (fechas.length === 0) {
+                renderFechasEncuentros(['']);
+                return;
             }
 
-            const d = new Date(fechaInicioDate);
-            d.setDate(d.getDate() + (n - 1) * 7);
-            if (h > 0) d.setMinutes(d.getMinutes() + h * 60);
-            fpFin.setDate(d, true);
+            actualizarCantidadEncuentrosDesdeFechas();
         }
 
-        // ─── Recálculos ───────────────────────────────────────────────────────────
+        function completarFechasFaltantes() {
+            const fechas = getFechasEncuentro();
+            for (let i = 1; i < fechas.length; i += 1) {
+                if (!fechas[i]) {
+                    fechas[i] = sugerirSiguienteFecha(fechas[i - 1]);
+                }
+            }
+            renderFechasEncuentros(fechas);
+        }
+
+        function sincronizarPrimeraFechaEncuentro(fechaInicioDate) {
+            const fechas = getFechasEncuentro();
+            if (fechas.length === 0) {
+                renderFechasEncuentros([toDateOnlyLocal(fechaInicioDate)]);
+                return;
+            }
+            if (!fechas[0]) {
+                fechas[0] = toDateOnlyLocal(fechaInicioDate);
+                renderFechasEncuentros(fechas);
+            }
+            completarFechasFaltantes();
+        }
+
+        // Esta función ya no se usa directamente desde flatpickr
+        // El cálculo de día de dictado ahora se hace en actualizarDesdePrimeraFecha()
+        function actualizarDesdePrimeraFecha() {
+            const fechas = getFechasEncuentro();
+            if (!fechas[0]) return;
+            
+            const primeraFecha = parseDateOnly(fechas[0]);
+            if (!primeraFecha) return;
+
+            // Calcular día de dictado
+            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            $('#drupalDiaDictado').val(dias[primeraFecha.getDay()]);
+            
+            // Recalcular itinerario
+            $('#itinerario').val(proximoItinerario($('#anio').val(), $('#dispositivoSeleccionado').val()));
+            
+            // Completar las siguientes fechas automáticamente
+            completarFechasFaltantes();
+        }
+
+        // Calcula fechas de encuentros automáticamente cuando se selecciona un curso base
         function recalcularDesdeCursoBase(dispositivo) {
             const regla = REGLAS[dispositivo];
             const encuentros = regla ? regla.encuentros : '';
             const horas      = regla ? regla.horas : '';
-            $('#cantidadEncuentros').val(encuentros);
+            const fechasActuales = getFechasEncuentro();
+            const base = fechasActuales[0] ? fechasActuales[0] : '';
+            const fechasIniciales = [];
+            if (encuentros) {
+                let cursor = base;
+                for (let i = 0; i < encuentros; i += 1) {
+                    fechasIniciales.push(cursor || '');
+                    cursor = sugerirSiguienteFecha(cursor);
+                }
+            }
+            renderFechasEncuentros(fechasIniciales.length > 0 ? fechasIniciales : ['']);
             $('#cantidadHoras').val(horas);
             $('#drupalPuntaje').val(calcularPuntaje(dispositivo, encuentros));
-            if (regla && !regla.cohorte) {
-                $('#cohorte').val(0);
-            } else {
-                $('#cohorte').val(proximaCohorte($('#anio').val()));
-            }
-            // Recalcular fecha fin si ya hay fecha inicio
-            if (fpInicio.selectedDates[0]) {
-                recalcularFechaFin(fpInicio.selectedDates[0]);
-            }
+            // Recalcular itinerario
+            $('#itinerario').val(proximoItinerario($('#anio').val(), dispositivo));
         }
 
-        $('#cantidadEncuentros, #cantidadHoras').on('change input', function () {
+        $('#cantidadHoras').on('change input', function () {
             $('#drupalPuntaje').val(calcularPuntaje($('#dispositivoSeleccionado').val(), $('#cantidadEncuentros').val()));
-            recalcularFechaFin();
         });
 
+        $('#btnAgregarFechaEncuentro').on('click', function () {
+            const fechas = getFechasEncuentro();
+            const ultima = fechas.length > 0 ? fechas[fechas.length - 1] : '';
+            fechas.push(sugerirSiguienteFecha(ultima));
+            renderFechasEncuentros(fechas);
+        });
+
+        $(document).on('click', '.btn-quitar-fecha', function () {
+            const idx = $(this).closest('.fecha-encuentro-row').index();
+            const fechas = getFechasEncuentro();
+            if (fechas.length <= 1) return;
+            fechas.splice(idx, 1);
+            renderFechasEncuentros(fechas);
+        });
+
+        $(document).on('change input', '.input-fecha-encuentro', function () {
+            const idx = $(this).closest('.fecha-encuentro-row').index();
+            actualizarCantidadEncuentrosDesdeFechas();
+            
+            // Si es la primera fecha, actualizar día de dictado, itinerario y auto-completar
+            if (idx === 0) {
+                actualizarDesdePrimeraFecha();
+            }
+        });
+
+        renderFechasEncuentros(['']);
+
         $('#anio').on('change input', function () {
-            const regla = REGLAS[$('#dispositivoSeleccionado').val()];
-            if (!regla || regla.cohorte) $('#cohorte').val(proximaCohorte($(this).val()));
+            const dispositivo = $('#dispositivoSeleccionado').val();
+            $('#itinerario').val(proximoItinerario($(this).val(), dispositivo));
         });
 
         // ─── Widget formadores ────────────────────────────────────────────────────
@@ -891,8 +1099,51 @@ const fpOpts = {
         $('#btnReintentar').click(cargarCursosBase);
         $('#buscarCursoBase, #filtroDispositivo, #filtroArea, #filtroAnio').on('input change', filtrarYRenderizar);
 
+        // ─── Reset del formulario para crear nuevo curso ────────────────────────────
+        function resetearFormularioAltaCurso() {
+            // Limpiar campos ocultos
+            $('#cursoBaseId').val('');
+            $('#idCursoOriginal').val('');
+            $('#nombrePropuesta').val('');
+            $('#dispositivo').val('');
+            $('#dispositivoSeleccionado').val('');
+            $('#cursoIdParaEditar').val(''); // Importante: limpiar ID de edición
+            
+            // Limpiar campos visibles
+            $('#anio').val(new Date().getFullYear());
+            $('#itinerario').val('1');
+            $('#horaEncuentro').val('18:00');
+            $('#drupalFormatoDictado').val('Presencial (237)');
+            $('#cupo').val('30');
+            $('#cantidadEncuentros').val('');
+            $('#cantidadHoras').val('');
+            $('#tituloFormulario').val('');
+            $('#drupalSede').val('CIIE G. de Laferrere - Monseñor López May N° 3250');
+            $('#drupalOrganiza').val('DFDP');
+            $('#drupalDiaDictado').val('');
+            $('#drupalPuntaje').val('');
+            $('#alcance').val('1');
+            
+            // Limpiar formadores
+            
+            $('#wrapperAlcance').addClass('d-none');
+            nombreCompletoOriginal = '';
+            
+            // Limpiar fechas de encuentros
+            renderFechasEncuentros(['']);
+            
+            // Cambiar botón guardado a modo "crear"
+            $('#btnGuardarCurso').data('edit-mode', 'false').html('<i class="bi bi-check-circle me-1"></i>Crear Curso');
+            
+            // Limpiar resumen
+            $('#resumenNombreBase').text('');
+            $('#resumenDetalleBase').text('');
+        }
+
         // ─── Paso 1 → Paso 2 ─────────────────────────────────────────────────────
         $(document).on('click', '.item-curso-base', function () {
+            resetearFormularioAltaCurso();
+            
             const d = $(this).data();
             $('#dispositivoSeleccionado').val(d.dispositivo || '');
             $('#cursoBaseId').val(d.id);
@@ -915,6 +1166,20 @@ const fpOpts = {
         // ─── Guardar ─────────────────────────────────────────────────────────────
         $('#btnGuardarCurso').click(function () {
             const btn = $(this);
+            const isEditMode = btn.data('edit-mode') === 'true';
+            const cursoIdAEditar = $('#cursoIdParaEditar').val();
+            const fechasEncuentros = getFechasEncuentro();
+            const fechasCompletas = fechasEncuentros.filter(Boolean);
+
+            if (fechasCompletas.length !== fechasEncuentros.length) {
+                Swal.fire('Fechas incompletas', 'Completá todas las fechas de encuentros.', 'warning');
+                return;
+            }
+
+            if (fechasCompletas.length === 0) {
+                Swal.fire('Fechas requeridas', 'Ingresá al menos una fecha de encuentro.', 'warning');
+                return;
+            }
 
             const formadorCombinado = getCombinado();
             if (!formadorCombinado) {
@@ -933,7 +1198,7 @@ const fpOpts = {
                 if (cargoId) cargosInvitados.push(cargoId);
             });
 
-            const obligatorios = ['anio', 'cohorte', 'fechaInicioCurso', 'cupo',
+            const obligatorios = ['anio', 'itinerario', 'horaEncuentro', 'cupo',
                 'cantidadEncuentros', 'cantidadHoras', 'drupalFormatoDictado',
                 'drupalNivel', 'drupalSede', 'drupalOrganiza', 'alcance'];
 
@@ -948,6 +1213,10 @@ const fpOpts = {
                 Swal.fire('Campos incompletos', 'Completá todos los campos obligatorios.', 'warning');
                 return;
             }
+
+            // Agregar hora a fechas de encuentros
+            const hora = $('#horaEncuentro').val(); // "HH:mm"
+            const fechasConHora = fechasCompletas.map(fecha => `${fecha}T${hora}`);
 
             const publicacionDrupal = {
                 nivel:          $('#drupalNivel').val()          || undefined,
@@ -969,32 +1238,32 @@ const fpOpts = {
                 dispositivo:        $('#dispositivo').val(),
                 tituloFormulario:   $('#tituloFormulario').val(),
                 anio:               Number($('#anio').val()),
-                cohorte:            Number($('#cohorte').val()),
-                fechaInicioCurso:   $('#fechaInicioCurso').val(),
-                fechaFinCurso:      $('#fechaFinCurso').val(),
+                itinerario:         Number($('#itinerario').val()),
                 cupo:               Number($('#cupo').val()),
                 alcance:            Number($('#alcance').val()),
-                cantidadEncuentros: Number($('#cantidadEncuentros').val()),
+                cantidadEncuentros: fechasConHora.length,
                 cantidadHoras:      Number($('#cantidadHoras').val()),
                 formadorAbc:        formadorCombinado,
                 publicacionDrupal,
-                cargosInvitados
+                cargosInvitados,
+                fechasEncuentros:   fechasConHora
             };
 
             btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Guardando...');
 
             $.ajax({
-                url: '/curso/alta',
-                method: 'POST',
+                url: isEditMode ? `/curso/${cursoIdAEditar}` : '/curso/alta',
+                method: isEditMode ? 'PUT' : 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(payload),
                 success: function () {
-                    Swal.fire({ icon: 'success', title: '¡Curso creado!', showConfirmButton: false, timer: 1500 })
+                    const msg = isEditMode ? 'Curso actualizado' : 'Curso creado';
+                    Swal.fire({ icon: 'success', title: `¡${msg}!`, showConfirmButton: false, timer: 1500 })
                         .then(() => location.reload());
                 },
                 error: function (xhr) {
-                    btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Crear Curso');
-                    Swal.fire('Error', xhr.responseJSON?.error || 'No se pudo crear el curso.', 'error');
+                    btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>' + (isEditMode ? 'Actualizar Curso' : 'Crear Curso'));
+                    Swal.fire('Error', xhr.responseJSON?.error || 'No se pudo guardar el curso.', 'error');
                 }
             });
         });
@@ -1002,6 +1271,164 @@ const fpOpts = {
         $(document).on('input change', '.form-control, .form-select', function () {
             $(this).removeClass('is-invalid');
         });
+
+        // ─── Editar curso pendiente ───────────────────────────────────────────────
+        $(document).on('click', '.btn-editar-pendiente', function () {
+            const cursoId = $(this).data('id');
+            $.get(`/curso/${cursoId}`)
+                .done(function (curso) {
+                    // Precarga datos del curso
+                    $('#cursoBaseId').val(curso.cursoBaseId?._id || '');
+                    $('#idCursoOriginal').val(curso.idCursoOriginal || '');
+                    $('#nombrePropuesta').val(curso.nombrePropuesta || '');
+                    $('#dispositivo').val(curso.dispositivo || '');
+                    $('#dispositivoSeleccionado').val(curso.dispositivo || '');
+                    $('#anio').val(curso.anio || new Date().getFullYear());
+                    $('#itinerario').val(curso.itinerario || 1);
+                    $('#drupalFormatoDictado').val(curso.publicacionDrupal?.formatoDictado || '');
+                    
+                    // Extraer hora del primer encuentro si existe
+                    let horaEncuentro = '18:00';
+                    if (curso.encuentros && curso.encuentros.length > 0 && curso.encuentros[0].fecha) {
+                        const fechaObj = new Date(curso.encuentros[0].fecha);
+                        const h = String(fechaObj.getHours()).padStart(2, '0');
+                        const m = String(fechaObj.getMinutes()).padStart(2, '0');
+                        horaEncuentro = `${h}:${m}`;
+                    }
+                    $('#horaEncuentro').val(horaEncuentro);
+                    
+                    $('#cupo').val(curso.cupo || 30);
+                    $('#cantidadHoras').val(curso.cantidadHoras || '');
+                    $('#tituloFormulario').val(curso.tituloFormulario || '');
+                    $('#drupalNivel').val(curso.publicacionDrupal?.nivel || '');
+                    $('#drupalSede').val(curso.publicacionDrupal?.sede || '');
+                    $('#drupalOrganiza').val(curso.publicacionDrupal?.organiza || '');
+                    $('#drupalDiaDictado').val(curso.publicacionDrupal?.diasHorarios || 'Lunes');
+                    $('#drupalPuntaje').val(curso.publicacionDrupal?.puntaje || '');
+                    $('#alcance').val(curso.alcance || 1);
+
+                    // Cargar fechas de encuentros
+                    let fechas = [];
+                    if (curso.encuentros && curso.encuentros.length > 0) {
+                        fechas = curso.encuentros.map(e => {
+                            if (e.fecha) {
+                                const dateStr = e.fecha instanceof Date ? e.fecha.toISOString().split('T')[0] : e.fecha.split('T')[0];
+                                return dateStr;
+                            }
+                            return '';
+                        });
+                    }
+                    renderFechasEncuentros(fechas.length > 0 ? fechas : ['']);
+
+                    // Resumen
+                    $('#resumenNombreBase').text(curso.nombrePropuesta || 'Curso sin nombre');
+                    $('#resumenDetalleBase').text(`${curso.dispositivo || ''} · ${curso.anio || ''}`);
+
+                    // Cargar formadores - limpiar formadores invitados
+                    $('#listaFormadores').empty();
+                    $('#listaFormadores').append(`
+                        <div class="formador-row mb-1" data-index="0" data-cargo-id="">
+                            <input type="text"
+                                   class="form-control form-control-sm bg-dark border-secondary text-white input-formador"
+                                   id="formadorAbc" name="formadorAbc"
+                                   maxlength="40" placeholder="Apellido, Nombre"
+                                   value="${curso.formadorAbc || ''}" required>
+                        </div>
+                    `);
+                    $('#wrapperAlcance').addClass('d-none'); // Ocultar alcance en edición pendiente
+                    nombreCompletoOriginal = curso.formadorAbc || '';
+                    
+                    // Guardar ID del documento para poder editar
+                    $('#cursoIdParaEditar').val(cursoId);
+
+                    // Cambiar texto del botón a "Actualizar"
+                    $('#btnGuardarCurso').data('edit-mode', 'true').html('<i class="bi bi-check-circle me-1"></i>Actualizar Curso');
+
+                    $('#modalAltaCurso').modal('show');
+                })
+                .fail(function () {
+                    Swal.fire('Error', 'No se pudo cargar el curso.', 'error');
+                });
+        });
+
+        // ─── Eliminar curso pendiente ─────────────────────────────────────────────
+        $(document).on('click', '.btn-eliminar-pendiente', function () {
+            const cursoId = $(this).data('id');
+            const $row = $(this).closest('tr');
+            const nombreCurso = $row.find('td:nth-child(3)').text().trim();
+
+            Swal.fire({
+                title: '¿Eliminar curso?',
+                html: `<small class="text-muted">Se eliminará el curso "${nombreCurso}" y todos sus encuentros relacionados.</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/curso/${cursoId}`,
+                        method: 'DELETE',
+                        success: function () {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Curso eliminado',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => location.reload());
+                        },
+                        error: function (xhr) {
+                            const mensaje = xhr.responseJSON?.error || 'No se pudo eliminar el curso.';
+                            Swal.fire('Error', mensaje, 'error');
+                        }
+                    });
+                }
+            });
+        });
+
+        // ─── Vincular curso pendiente con sitio oficial desde cuenta institucional ───────
+        async function publicarCursoDirectamente(cursoClave, ciieClave) {
+            try {
+                const response = await fetch('/ciie/cursos/nuevo/publicar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cursoClave, ciieClave })
+                });
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'No se pudo publicar el curso en el sitio oficial.');
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Curso publicado',
+                    text: 'El curso se vinculó directamente con el sitio oficial.',
+                    showConfirmButton: false,
+                    timer: 1800
+                }).then(() => location.reload());
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            }
+        }
+
+        $(document).on('click', '.btn-vincular-oficial', function () {
+            const cursoClave = $(this).data('curso-clave');
+            const ciieClave = '<%=ciieClave%>';
+            alert(cursoClave)
+            if (!cursoClave) return;
+            publicarCursoDirectamente(cursoClave, ciieClave);
+        });
+
+        // ─── Auto-abrir modal de edición si viene con parámetro editar ─────────────────────
+        const urlParams = new URLSearchParams(window.location.search);
+        const cursoIdParaEditar = urlParams.get('editar');
+        if (cursoIdParaEditar) {
+            // Simular clic en el botón de editar del curso
+            $(`.btn-editar-pendiente[data-id="${cursoIdParaEditar}"]`).trigger('click');
+        }
 
     }); // fin document.ready
 

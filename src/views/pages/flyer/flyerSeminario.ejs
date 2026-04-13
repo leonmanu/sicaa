@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <%- include('../../partials/head') %>
+    <title>Flyer Seminario — <%= curso.tituloFormulario || curso.nombrePropuesta %></title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+        /* ─── Paleta oficial ─────────────────────────────── */
+        :root {
+             --cele:       #b1e3fc86;
+            --teal:       #00ADC5;
+            --teal-dk:    #1FA8A8;
+            --orange:     #F47920;
+            --orange-lt:  #ffab40ff;
+            --sky:        #B8DFF0;
+            --sky-dk:     #7BBDD6;
+            --cream:      #F0EBE3;
+            --white:      #FFFFFF;
+            --text-dark:  #1A4A5A;
+            --gray-dark:  #3a3a3a;
+            --gray:  #676767;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #1a1a2e;
+            font-family: 'Nunito', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ─── Layout página ──────────────────────────────── */
+        .page-layout {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+            padding: 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* ─── Flyer: 540 × 675 px ─── */
+        .flyer {
+            width: 540px;
+            height: 675px;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+            /* Fondo celeste con grilla de puntos */
+            background-color: var(--teal);
+            background-image:
+                radial-gradient(circle, rgba(255,255,255,0.25) 1px, transparent 1px);
+            background-size: 28px 28px;
+            font-family: 'Encode Sans', sans-serif;
+        }
+
+        /* ─── Mitad derecha: foto ────────────────────────── */
+        .foto-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 52%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .foto-panel img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: 30% top;
+        }
+
+        /* Degradado que une la foto con el fondo celeste */
+        .foto-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, var(--teal) 0%, transparent 40%);
+            z-index: 1;
+        }
+
+        /* ─── Contenido izquierdo ────────────────────────── */
+
+        /* ─── Panel teal principal ───────────────────────── */
+        .panel-teal {   
+            position: absolute;
+            top: 40px;
+            left: 15px;
+            width: 330px;
+            min-height: 600px;
+            background: var(--cele);
+            border-radius: 24px;
+            padding: 20px 20px 20px 20px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .contenido {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            padding: 20px 35px 35px 35px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─── Badge SEMINARIO arriba izquierda ───────────── */
+        .badge-dispositivo-sem {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--orange-lt);
+            color: white;
+            border-radius: 12px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            align-self: flex-start;
+            box-shadow: 0 4px 12px rgba(244,121,32,0.4);
+            margin-top: -14%;
+            margin-bottom: 30px;
+        }
+
+        .badge-dispositivo-sem i {
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+        /* ─── Título área (resaltado naranja por palabra) ── */
+        .cargo-titulo-sem {
+            font-size: 30px;
+            font-weight: 700;
+            height: 100px;
+            overflow: hidden;
+            word-break: break-word;
+            line-height: 1.1;
+            display: block;
+            margin-bottom: 14px;
+        }
+
+        .mark-palabra-sem {
+            background-color: var(--orange);
+            color: white;
+            padding: 0.05em 0.25em;
+            display: inline;
+            line-height: 1.3;
+            margin-right: -0.15em;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+
+        .mark-espacio-sem {
+            background-color: var(--orange);
+            color: var(--orange);
+            padding: 0.05em 0;
+            display: inline;
+            line-height: 1.3;
+            margin-right: -0.2em;
+        }
+
+        /* ─── Título curso ───────────────────────────────── */
+        .curso-titulo-sem {
+            font-size: 25px;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.3;
+            height: 250px;
+            overflow: hidden;
+            word-break: break-word;
+            margin-bottom: auto;
+        }
+
+        /* ─── Panel fechas (gris oscuro) ─────────────────── */
+        .panel-fechas-sem {
+            background: var(--gray);
+            border-radius: 16px;
+            padding: 12px 14px 0 14px;
+            color: white;
+            margin-top: 10px;
+            position: relative;
+            width: 80%;
+        }
+
+        .icono-cal-sem {
+            position: absolute;
+            top: -8px;
+            right: -12px;
+            width: 45px;
+            height: 45px;
+            background: var(--gray-dark);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dia-semana-sem {
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .fecha-linea-sem {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.15;
+            text-transform: uppercase;
+        }
+
+        .hora-badge-sem {
+            display: inline-block;
+            font-size: 18px;
+            font-weight: 800;
+            margin-top: 6px;
+            color: var(--orange);
+            background-color: white;
+            padding: 0 6px;
+        }
+
+        .distrito-strip-sem {
+            font-size: 15px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.85);
+            margin-top: 8px;
+            padding-bottom: 10px;
+        }
+
+        .panel-fechas-footer {
+            background: var(--orange);
+            border-radius: 0 0 16px 16px;
+            padding: 7px 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            margin: 0 -14px;
+        }
+
+        /* ─── Badge CIIE (sobre la foto, arriba derecha) ─── */
+        .badge-ciie-sem {
+            position: absolute;
+            top: 60px;
+            right: 12px;
+            background: white;
+            color: var(--text-dark);
+            border-radius: 10px;
+            padding: 7px 18px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            z-index: 10;
+            white-space: nowrap;
+        }
+
+        .badge-ciie-sem-nombre {
+            font-size: 14px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            vertical-align: baseline;
+            line-height: 1;
+        }
+
+        /* ─── Info formador (sobre la foto, abajo derecha) ── */
+        .formador-panel {
+            position: absolute;
+            bottom: 150px;
+            right: 10px;
+            width: 44%;
+            background: rgba(255,255,255,0.88);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            justify-content: center;
+            color: var(--teal-dk);
+            z-index: 10;
+        }
+
+        /* ─── Logos abajo derecha ────────────────────────── */
+        .logos-panel {
+            position: absolute;
+            bottom:35px;
+            right: 0px;
+            height: 70px;
+            width: 50%;
+            background: white;
+            border-radius: 35px 0 0 35px;
+            padding: 6px 0px;
+            display: flex;
+            align-items: center;
+            justify-content: right;
+            z-index: 10;
+        }
+
+        .logos-panel img {
+            height: 50px;
+            width: auto;
+        }
+
+        /* ─── contenteditable ────────────────────────────── */
+        [contenteditable="true"] {
+            outline: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 3px;
+            cursor: text;
+            transition: outline 0.15s;
+            min-width: 20px;
+        }
+        [contenteditable="true"]:hover { outline: 2px dashed rgba(255,255,255,0.7); }
+        [contenteditable="true"]:focus {
+            outline: 2px solid var(--orange);
+            background: rgba(244,121,32,0.1);
+        }
+
+        /* ─── Panel de edición ───────────────────────────── */
+        .edit-panel { width: 320px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+
+    <div class="container-fluid py-3">
+        <div class="row mb-3 px-3">
+            <div class="col">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a href="/usuario/mis-cargos" class="text-decoration-none">Mis Cargos</a></li>
+                        <li class="breadcrumb-item active">Flyer Seminario</li>
+                    </ol>
+                </nav>
+                <h4 class="fw-bold mb-0 text-white">
+                    <i class="bi bi-image me-2 text-primary"></i>Vista previa del flyer — Seminario
+                </h4>
+            </div>
+        </div>
+
+        <div class="page-layout">
+
+            <!-- ══════════════ FLYER ══════════════ -->
+            <div>
+                <div class="flyer" id="flyer">
+
+                    <!-- Foto derecha -->
+                    <div class="foto-panel">
+                        <img src="/img/frenteCIIE.png" alt="Foto seminario">
+                    </div>
+
+                    <!-- Badge CIIE sobre la foto -->
+                    <div class="badge-ciie-sem">
+                        <span id="ed-ciie" class="badge-ciie-sem-nombre">CIIE <%=
+                            (curso.cargoId?.ciieId?.nombre || '').replace(/ciie\s*/i,'').toUpperCase()
+                        %></span>
+                    </div>
+
+                    <!-- Info formador sobre la foto -->
+                    <div class="formador-panel" id="ed-formador" contenteditable="true">
+                        <%
+                            let nombres = (curso.formadorAbc || '').split(';').map(n => n.trim()).filter(n => n);
+                        %>
+                        <% if (nombres.length > 0) { %>
+                            Formador/a: <%= nombres.join(' ; ') %>
+                        <% } else { %>
+                            Formador/a: A DESIGNAR
+                        <% } %>
+                    </div>
+
+                    <!-- Logos abajo derecha -->
+                    <div class="logos-panel">
+                        <img src="/img/logo-pba.svg" alt="Gobierno de la Provincia de Buenos Aires">
+                    </div>
+
+                    <div class="panel-teal">
+                    <!-- Contenido izquierdo -->
+                        <div class="contenido">
+
+                            <!-- Badge dispositivo -->
+                            <div class="badge-dispositivo-sem">
+                                <i class="bi bi-journal-bookmark"></i>
+                                <span id="ed-dispositivo"><%= curso.dispositivo.split(' ')[0] %></span>
+                            </div>
+                            
+                            <!-- Título área resaltado -->
+                            <div class="cargo-titulo-sem" id="cargo-titulo" contenteditable="true"><%
+                                const areaText = (curso.cargoId?.areaId?.nombre || curso.nombrePropuesta || 'Área').toUpperCase();
+                                const palabras = areaText.split(' ').filter(p => p);
+                                palabras.forEach((palabra, i) => { %>
+                                    <span class="mark-palabra-sem"><%= palabra %></span><%
+                                    if (i < palabras.length - 1) { %>
+                                        <span class="mark-espacio-sem"> </span><%
+                                    }
+                                });
+                            %></div>
+
+                            <!-- Título curso -->
+                            <div class="curso-titulo-sem" id="ed-titulo" contenteditable="true"><%=
+                                (curso.tituloFormulario || curso.nombrePropuesta || 'Título del seminario')
+                            %></div>
+
+                            <!-- Panel fechas -->
+                            <div class="panel-fechas-sem">
+                                <div class="icono-cal-sem">
+                                    <i class="bi bi-calendar3 text-white"></i>
+                                </div>
+
+                                <% if (curso.encuentros && curso.encuentros.length > 0) {
+                                    const primerEnc = new Date(curso.encuentros[0].fecha);
+                                    const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+
+                                    const listaFechas = curso.encuentros.map(enc => {
+                                        const d = new Date(enc.fecha);
+                                        const dia = String(d.getUTCDate()).padStart(2, '0');
+                                        const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+                                        return `${dia}/${mes}`;
+                                    }).join(', ');
+
+                                    const hora = `${String(primerEnc.getHours()).padStart(2,'0')}:${String(primerEnc.getMinutes()).padStart(2,'0')} hs.`;
+                                %>
+                                    <div class="dia-semana-sem"><%= dias[primerEnc.getUTCDay()] %></div>
+                                    <div class="fecha-linea-sem" id="ed-fecha" contenteditable="true"><%= listaFechas %></div>
+                                    <div class="hora-badge-sem" id="ed-hora" contenteditable="true"><%= hora %></div>
+                                    <div class="distrito-strip-sem" id="ed-distrito" contenteditable="true">
+                                        <%= curso.cargoId?.ciieId?.distrito %>, Bs.As
+                                    </div>
+                                <% } else { %>
+                                    <div class="fecha-linea-sem">SIN FECHAS</div>
+                                <% } %>
+
+                                <div class="panel-fechas-footer" id="ed-panel-footer" contenteditable="true">
+                                    <span>FRECUENCIA: Cada 2 semanas</span>
+                                    <br>
+                                    <span>MODALIDAD: <%= curso.encuentros?.[0]?.modalidad || 'Presencial' %></span>
+                                </div>
+                            </div>
+
+                        </div><!-- /contenido -->
+                    </div>
+                </div><!-- /flyer -->
+            </div>
+
+            <!-- ══════════════ PANEL EDICIÓN ══════════════ -->
+            <div class="edit-panel">
+                <div class="card bg-dark border-secondary">
+                    <div class="card-header border-secondary">
+                        <h6 class="mb-0 fw-bold text-white">
+                            <i class="bi bi-pencil-square me-2"></i>Editar antes de descargar
+                        </h6>
+                        <small class="text-muted">Hacé click sobre cualquier texto del flyer para editarlo</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-dark border-secondary p-2 mb-3" style="font-size:0.8rem;">
+                            <i class="bi bi-info-circle me-1 text-info"></i>
+                            Los cambios son solo visuales y no se guardan en la base de datos.
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <% if (curso.publicacionDrupal && curso.publicacionDrupal.enlaceInscripcion) { %>
+                                <button class="btn btn-primary fw-bold" id="btnCopiarEnlace"
+                                        data-link="<%= curso.publicacionDrupal.enlaceInscripcion %>">
+                                    <i class="bi bi-link-45deg me-2"></i>Copiar Enlace de Inscripción
+                                </button>
+                            <% } else if (curso.enlaceInscripcion) { %>
+                                <button class="btn btn-primary fw-bold" id="btnCopiarEnlace"
+                                        data-link="<%= curso.enlaceInscripcion %>">
+                                    <i class="bi bi-link-45deg me-2"></i>Copiar Enlace de Inscripción
+                                </button>
+                            <% } %>
+
+                            <button class="btn btn-success fw-bold" id="btnDescargar">
+                                <i class="bi bi-download me-2"></i>Descargar PNG (1080×1350)
+                            </button>
+                        </div>
+
+                        <hr class="border-secondary mt-3 mb-3">
+                        <p class="text-muted small mb-2">Campos editables en el flyer:</p>
+                        <ul class="text-muted small mb-0" style="padding-left:1.2rem; line-height:2.2;">
+                            <li>Título del área</li>
+                            <li>Título del seminario</li>
+                            <li>Formador/a</li>
+                            <li>Fecha</li>
+                            <li>Hora</li>
+                            <li>Distrito / sede</li>
+                            <li>Frecuencia / Modalidad</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /page-layout -->
+    </div>
+
+    <%- include('../../partials/scripts') %>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script>
+
+// ─── Función shrink ───────────────────────────────────────
+function shrink(el, maxSize, minSize) {
+    if (!el) return;
+    if (el.scrollHeight <= el.offsetHeight + 2) return;
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    while (el.scrollHeight > el.offsetHeight + 2 && size > minSize) {
+        size -= 0.5;
+        el.style.fontSize = size + 'px';
+    }
+}
+
+// ─── Al cargar ────────────────────────────────────────────
+window.addEventListener('load', function () {
+    shrink(document.getElementById('ed-titulo'), 25, 11);
+    shrink(document.getElementById('cargo-titulo'), 48, 18);
+});
+
+// ─── Al editar título curso ───────────────────────────────
+document.getElementById('ed-titulo').addEventListener('input', function () {
+    const current = parseFloat(getComputedStyle(this).fontSize);
+    if (this.scrollHeight <= this.offsetHeight + 2 && current < 25) {
+        this.style.fontSize = Math.min(current + 0.5, 25) + 'px';
+    }
+    shrink(this, 25, 11);
+});
+
+// ─── Al editar título área ────────────────────────────────
+document.getElementById('cargo-titulo').addEventListener('input', function () {
+    const current = parseFloat(getComputedStyle(this).fontSize);
+    if (this.scrollHeight <= this.offsetHeight + 2 && current < 48) {
+        this.style.fontSize = Math.min(current + 0.5, 48) + 'px';
+    }
+    shrink(this, 48, 18);
+});
+
+    // Descargar PNG
+    document.getElementById('btnDescargar').addEventListener('click', function () {
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando...';
+
+        const editables = document.querySelectorAll('[contenteditable="true"]');
+        editables.forEach(el => el.setAttribute('contenteditable', 'false'));
+
+        html2canvas(document.getElementById('flyer'), {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#00ADC5'
+        }).then(function (canvas) {
+            const link = document.createElement('a');
+            link.download = 'flyer-<%= curso.cargoId?.areaId?.nombreCorto %> - <%= curso.dispositivo.split(" ")[0] %> - <%= new Date(curso.encuentros[0].fecha).toLocaleDateString("es-AR", {day:"2-digit", month:"2-digit", year:"numeric", timeZone:"UTC"}).replace(/\//g, "-") %>.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            editables.forEach(el => el.setAttribute('contenteditable', 'true'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-download me-2"></i>Descargar PNG (1080×1350)';
+        });
+    });
+
+    // Copiar enlace
+    const btnCopiar = document.getElementById('btnCopiarEnlace');
+    if (btnCopiar) {
+        btnCopiar.addEventListener('click', function () {
+            const link = this.getAttribute('data-link');
+            navigator.clipboard.writeText(link).then(() => {
+                const originalText = this.innerHTML;
+                this.classList.replace('btn-primary', 'btn-info');
+                this.innerHTML = '<i class="bi bi-check2 me-2"></i>¡Enlace Copiado!';
+                setTimeout(() => {
+                    this.classList.replace('btn-info', 'btn-primary');
+                    this.innerHTML = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Error al copiar: ', err);
+                alert('No se pudo copiar el enlace automáticamente.');
+            });
+        });
+    }
+
+    </script>
+</body>
+</html>

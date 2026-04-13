@@ -46,7 +46,8 @@ class CargoController {
             res.render('pages/curso/cursoLocalList', {
                 cargo,         // Objeto único
                 cursosLocales, // Array para el forEach
-                user: req.user
+                user: req.user,
+                esVistaInstitucional: false
             });
     
         } catch (error) {

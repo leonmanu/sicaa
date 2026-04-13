@@ -10,10 +10,19 @@ const populateCargoBase = {
     ]
 };
 
+const populateConEncuentros = {
+    path: 'cargoId',
+    populate: [
+        { path: 'ciieId' },
+        { path: 'areaId' }
+    ]
+};
+
 const populateCargoConOcupante = {
     path: 'cargoId',
     populate: [
         { path: 'areaId' }, // Trae el nombre del área
+        { path: 'ciieId' }, // Trae el nombre del CIIE
         {
             path: 'ocupante', // Virtual que apunta a Asignación
             match: { estado: 'Activo' },
@@ -36,6 +45,15 @@ class CursoLocalRepo {
             return await cursoLocal.save();
         } catch (error) {
             console.error('Error en CursoLocalRepo.post:', error.message);
+            throw error;
+        }
+    }
+
+    async delPorId(cursoId) {
+        try {
+            return await CursoLocal.deleteOne({ _id: new mongoose.Types.ObjectId(cursoId) });
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.delPorId:', error.message);
             throw error;
         }
     }
@@ -66,11 +84,11 @@ class CursoLocalRepo {
         try {
             return await CursoLocal.find({
                 ciieId: new mongoose.Types.ObjectId(ciieId),
-                $or: [
-                    { idOfertaOficial: { $exists: false } },
-                    { idOfertaOficial: null },
-                    { idOfertaOficial: '' }
-                ]
+                // $or: [
+                //     { idOfertaOficial: { $exists: false } },
+                //     { idOfertaOficial: null },
+                //     { idOfertaOficial: '' }
+                // ]
             })
             .populate(populateCargoConOcupante)
             .sort({ createdAt: -1 })
@@ -225,16 +243,17 @@ class CursoLocalRepo {
     }
 
     async getPorCiieId(ciieId) {
-        try {
-            return await CursoLocal.find({ ciieId: new mongoose.Types.ObjectId(ciieId) })
-                .populate(populateCargoConOcupante)
-                .sort({ anio: -1 })
-                .lean({ virtuals: true });
-        } catch (error) {
-            console.error('Error en CursoLocalRepo.getPorCiieId:', error.message);
-            throw error;
-        }
+    try {
+        return await CursoLocal.find({ ciieId: new mongoose.Types.ObjectId(ciieId) })
+            .populate(populateCargoConOcupante)
+            // -1 ordena de mayor a menor (2026 primero, y lo más reciente de hoy arriba)
+            .sort({ _id: -1 }) 
+            .lean({ virtuals: true });
+    } catch (error) {
+        console.error('Error en CursoLocalRepo.getPorCiieId:', error.message);
+        throw error;
     }
+}
 
     async getPorAgente(usuarioId) {
         try {
@@ -266,6 +285,22 @@ class CursoLocalRepo {
                 .lean();
         } catch (error) {
             console.error('Error en CursoLocalRepo.getTodos:', error.message);
+            throw error;
+        }
+    }
+
+    async getPorCiieAnioDispositivo(ciieId, anio, dispositivo) {
+        try {
+            return await CursoLocal.find({
+                ciieId: new mongoose.Types.ObjectId(ciieId),
+                anio,
+                dispositivo,
+                estado: { $ne: 'dormido' }
+            })
+            .sort({ itinerario: -1 })
+            .lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getPorCiieAnioDispositivo:', error.message);
             throw error;
         }
     }

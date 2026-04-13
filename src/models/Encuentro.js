@@ -38,22 +38,7 @@
         timestamps: true 
     });
 
-    EncuentroSchema.pre('save', function() {
-    console.log('fecha ANTES:', this.fecha);
-    if (this.fecha) {
-        this.fecha.setUTCHours(0, 0, 0, 0);
-    }
-    console.log('fecha DESPUÉS:', this.fecha);
-});
-    EncuentroSchema.pre('findByIdAndUpdate', function(next) {
-        const update = this.getUpdate();
-        if (update.$set && update.$set.fecha) {
-            update.$set.fecha = new Date(update.$set.fecha);
-            update.$set.fecha.setUTCHours(0, 0, 0, 0);
-        }
-        next();
-    });
-    
+     
     EncuentroSchema.index({ cursoId: 1, numero: 1 }, { unique: true });
     EncuentroSchema.index({ cursoId: 1, fecha: 1 }, { unique: true });
 

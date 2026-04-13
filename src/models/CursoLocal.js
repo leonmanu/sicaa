@@ -18,8 +18,6 @@ const cursoSchema = new mongoose.Schema({
     itinerario: { type: Number, default: 0 },
     fechaInicioInscripcion: Date,
     fechaFinInscripcion: Date,
-    fechaInicioCurso: Date,
-    fechaFinCurso: Date,
     cantidadEncuentros: { type: Number, default: 1 },
 
     // Estado y Cupos
@@ -36,7 +34,15 @@ const cursoSchema = new mongoose.Schema({
     ciieId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
     cursoBaseId: { type: mongoose.Schema.Types.ObjectId, ref: 'CursoBase' },
     
-    estado: { type: String, default: 'pendiente' },
+    estado: { 
+        type: String, 
+        enum: ['pendiente', 'vinculado', 'modificacion_pendiente', 'eliminacion_pendiente', 'dormido'],
+        default: 'pendiente' 
+    },
+    datosPrevios: { 
+        type: mongoose.Schema.Types.Mixed,
+        default: null
+    },
     calificaciones: {
         estado: {
             type: String,

@@ -68,10 +68,15 @@
                                             <small><%= curso.cargoId?.areaId?.nombre || 'Area sin definir' %></small>
                                         </td>
                                         <td>
-                                            <span><%= curso.anio || '-' %> / C<%= curso.cohorte ?? 0 %></span>
+                                            <span><%= curso.anio || '-' %> • <b>I</b><%= curso.itinerario ?? 0 %></span>
                                         </td>
                                         <td>
-                                            <span class="badge bg-warning text-dark"><%= curso.estado || 'pendiente' %></span>
+                                            <% if(curso.estado === 'pendiente') { %>
+                                                <span class="badge bg-warning text-dark"><%= curso.estado %></span>
+                                            <% } %>
+                                            <% if(curso.estado === 'vinculado') { %>
+                                                <span class="badge bg-success text-dark"><%= curso.estado %></span>
+                                            <% } %>
                                         </td>
                                         <td class="text-end pe-4">
                                             <div class="d-flex justify-content-end gap-2">

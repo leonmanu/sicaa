@@ -6,7 +6,9 @@ const InscriptoLocal = require('../models/InscriptoLocal');
 class EncuentroRepo {
     async getPorCursoId(cursoId) {
         try {
-            const encuentros = await Encuentro.find({ cursoId: cursoId }).lean();
+            const encuentros = await Encuentro.find({ cursoId: cursoId })
+                                        .sort({ numero: 1 })
+                                        .lean();
             return encuentros;
         } catch (error) {
             console.error('Error en EncuentroRepo.getByCurso:', error.message);
@@ -62,6 +64,15 @@ class EncuentroRepo {
             return resultado;
         } catch (error) {
             console.error('Error en EncuentroRepo.delete:', error.message);
+            throw error;
+        }
+    }
+
+    async delPorCursoId(cursoId) {
+        try {
+            return await Encuentro.deleteMany({ cursoId: new mongoose.Types.ObjectId(cursoId) });
+        } catch (error) {
+            console.error('Error en EncuentroRepo.delPorCursoId:', error.message);
             throw error;
         }
     }

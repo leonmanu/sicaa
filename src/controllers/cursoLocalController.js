@@ -1,4 +1,5 @@
 const cargoService = require('../services/cargoService');
+const ciieService = require('../services/ciieService');
 const cursoLocalService = require('../services/cursoLocalService');
 
 const vincularCurso = async (req, res) => {
@@ -35,10 +36,11 @@ const vincularCurso = async (req, res) => {
 
 const getCursosLocales = async (req, res) => {
     try {
-        const cursos = await cursoLocalService.getCursosLocales();  
-        res.render('pages/curso/cursoLocalList', { 
-            cursos, 
-            title: "Cursos Locales Vinculados" 
+        const cursos = await cursoLocalService.getCursosLocales();
+        res.render('pages/curso/cursoLocalList', {
+            cursos,
+            esVistaInstitucional: false,
+            title: "Cursos Locales Vinculados"
         });
     } catch (error) {
         console.error('Error al obtener cursos locales:', error.message);
@@ -67,10 +69,33 @@ const post = async (req, res) => {
     }
 }
 
+const putCurso = async (req, res) => {
+    try {
+        const cursoId = req.params.id;
+        const cursoActualizado = await cursoLocalService.editarCursoPorId(cursoId, req.body, req.user);
+        req.flash('success', 'Curso actualizado correctamente.');
+        return res.status(200).json({
+            success: true,
+            message: 'Curso actualizado correctamente',
+            curso: cursoActualizado
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudo actualizar el curso.';
+        console.error('Error en putCurso:', message);
+        req.flash('error', message);
+        return res.status(status).json({
+            success: false,
+            error: message
+        });
+    }
+}
+
 const getVincularConSitioOficial = async (req, res) => {
     try {
         console.log('CIIE:', req.user.referenciaId);
-        const ciieClave = await req.user.referenciaId
+        const ciieClave = await req.user.referenciaId;
+        const selectedCursoLocalId = String(req.query.cursoLocalId || '').trim() || null;
         const [cursosPendientes, ofertasOficiales] = await Promise.all([
             cursoLocalService.getPendientesVinculacionPorCiie(ciieClave),
             cursoLocalService.getOfertasOficialesDisponibles()
@@ -79,6 +104,7 @@ const getVincularConSitioOficial = async (req, res) => {
         res.render('pages/ciie/cursoVincularOficial', {
             cursosPendientes,
             ofertasOficiales,
+            selectedCursoLocalId,
             user: req.user,
             title: 'Vincular Cursos con Sitio Oficial'
         });
@@ -370,7 +396,9 @@ const postEditarCursoPendiente = async (req, res) => {
 
     const postCrearYVincularConSitioOficial = async (req, res) => {
         try {
+            console.log('Datos recibidos para crear y vincular curso:', req.body);
             const resultado = await cursoLocalService.crearYVincularCursoEnSitioOficial(req.body, req.user);
+            
             return res.status(200).json({
                 success: true,
                 message: 'Curso creado en ABC y vinculado correctamente.',
@@ -387,12 +415,35 @@ const postEditarCursoPendiente = async (req, res) => {
 const getPorCiie = async (req, res) => {
     try {
         const ciieId = req.user.referenciaId;
-        const cursosLocales = await cursoLocalService.getCursosPorCiieId(ciieId); 
+        const ciie = await ciieService.getPorId(ciieId);
+        const cursosLocales = await cursoLocalService.getCursosPorCiieId(ciieId);
+        //console.log('Cursos locales obtenidos para CIIE Clave', req.user)
         res.render('pages/curso/cursoLocalList', { 
             cursosLocales,
             cargo: [],
             user: req.user,
-            ciieClave: req.user.clave,
+            ciieClave: ciie.clave,
+            esVistaInstitucional: true,
+            title: "Cursos Locales Vinculados" 
+        });
+    } catch (error) {
+        console.error('Error al obtener cursos locales:', error.message);
+        res.status(500).send("Error en el servidor: " + error.message);
+    }
+}
+
+const getPorCiieDrupal = async (req, res) => {
+    try {
+        const ciieId = req.user.referenciaId;
+        const ciie = await ciieService.getPorId(ciieId);
+        const cursosLocales = await cursoLocalService.getCursosPorCiieIdDrupal(ciieId);
+        //console.log('Cursos locales obtenidos para CIIE Clave', req.user)
+        res.render('pages/curso/cursoLocalListDrupal', { 
+            cursosLocales,
+            cargo: [],
+            user: req.user,
+            ciieClave: ciie.clave,
+            esVistaInstitucional: true,
             title: "Cursos Locales Vinculados" 
         });
     } catch (error) {
@@ -429,7 +480,8 @@ const getCursosPorCargoClaveCiieClave = async (req, res) => {
             ciieClave,     // Para mostrar en el título o breadcrumb
             cargo,         // Objeto único
             cursosLocales, // Array para el forEach
-            user: req.user
+            user: req.user,
+            esVistaInstitucional: false
         });
         
     } catch (error) {
@@ -458,6 +510,7 @@ const viewFormAltaPorCargoClaveCiieClave = async (req, res) => {
 const getFlyerCurso = async (req, res) => {
     try {
         const curso = await cursoLocalService.getPorIdOfertaOficial(req.params.ofertaId);
+        console.log('Curso obtenido para flyer:', curso);
         if (!curso) {
             req.flash('error', 'Curso no encontrado.');
             return res.redirect('back');
@@ -484,6 +537,93 @@ const getFlyerCurso = async (req, res) => {
     }
 };
 
+const deleteCurso = async (req, res) => {
+    try {
+        const cursoLocalId = req.params.id;
+        const resultado = await cursoLocalService.deleteCurso(cursoLocalId, req.user);
+        
+        return res.status(200).json({
+            success: true,
+            message: resultado.message || 'Curso eliminado correctamente.',
+            resultado
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudo eliminar el curso.';
+        console.error('Error en deleteCurso:', message);
+        return res.status(status).json({
+            success: false,
+            error: message
+        });
+    }
+};
+
+const getCursoById = async (req, res) => {
+    try {
+        const cursoLocalId = req.params.id;
+        const curso = await cursoLocalService.getCursoById(cursoLocalId);
+        //console.log('Curso obtenido por ID:', curso);
+        if (!curso) {
+            return res.status(404).json({
+                success: false,
+                error: 'Curso no encontrado'
+            });
+        }
+        
+        return res.status(200).json(curso);
+    } catch (error) {
+        console.error('Error en getCursoById:', error.message);
+        return res.status(500).json({
+            success: false,
+            error: error.message || 'No se pudo obtener el curso.'
+        });
+    }
+};
+
+const getCursoByIdEdit = async (req, res) => {
+    try {
+        const cursoLocalId = req.params.id;
+        const curso = await cursoLocalService.getCursoByIdEdit(cursoLocalId);
+        if (!curso) {
+            return res.status(404).json({
+                success: false,
+                error: 'Curso no encontrado'
+            });
+        }
+        
+        return res.status(200).json(curso);
+    } catch (error) {
+        console.error('Error en getCursoById:', error.message);
+        return res.status(500).json({
+            success: false,
+            error: error.message || 'No se pudo obtener el curso.'
+        });
+    }
+};
+
+
+const getMisCursos = async (req, res) => {
+    try {
+        // Solo para usuarios de tipo 'agente' (docentes)
+        if (req.user.tipoModel !== 'Persona') {
+            return res.status(403).render('pages/error', { 
+                message: 'Acceso denegado. Esta vista es solo para docentes.' 
+            });
+        }
+
+        const usuarioId = req.user._id;
+        const cursosPersonales = await cursoLocalService.getCursosPorDocente(usuarioId);
+        
+        res.render('pages/curso/misCursosDocente', {
+            cursosPersonales,
+            user: req.user,
+            title: 'Mis Cursos'
+        });
+    } catch (error) {
+        console.error('Error al obtener mis cursos:', error.message);
+        res.status(500).send("Error en el servidor: " + error.message);
+    }
+};
 
 module.exports = {
     vincularCurso,
@@ -507,5 +647,11 @@ module.exports = {
     postGuardarYEnviarCalificacionesCurso,
     postEnviarCalificacionesCurso,
     postMarcarImpresionDocumentos,
-    getFlyerCurso
+    getFlyerCurso,
+    deleteCurso,
+    getCursoById,
+    putCurso,
+    getMisCursos,
+    getPorCiieDrupal,
+    getCursoByIdEdit
 }

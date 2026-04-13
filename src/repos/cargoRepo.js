@@ -97,7 +97,6 @@ class CargoRepo {
                     }
                 })
                 .lean();
-                console.log('Cargo encontrado en CargoRepo.getPorCargoClaveCiieId:', cargo);
             return cargo;
         } catch (error) {
             console.error('Error en CargoRepo.findByClave:', error.message);

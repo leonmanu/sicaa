@@ -24,6 +24,9 @@ cargoSchema.virtual('ocupante', {
     justOne: true // Porque un cargo solo puede tener una asignación activa (habitualmente)
 });
 
-cargoSchema.index({ ciieId: 1, rolId: 1, areaId: 1, comision: 1 }, { unique: true });
 
+
+cargoSchema.index({ ciieId: 1, rolId: 1, areaId: 1, comision: 1 }, { unique: true });
+cargoSchema.set('toObject', { virtuals: true });
+cargoSchema.set('toJSON', { virtuals: true });
 module.exports = mongoose.model('Cargo', cargoSchema);
