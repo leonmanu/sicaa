@@ -454,9 +454,10 @@ const getPorCiieDrupal = async (req, res) => {
 
 const getCursosPorCiieId = async (req, res) => {
     try {
-        const ciieId = req.user._id;
+        const ciieId = req.user.referenciaId;
         console.log('Obteniendo cursos locales para CIIE ID:', ciieId);
         const cursosLocales = await cursoLocalService.getCursosPorCiieId(ciieId);
+        console.log('Cursos locales obtenidos para CIIE ID', ciieId, cursosLocales);
         
         res.render('pages/curso/cursoListTodos', { //vista pendiente
             cursosLocales, 

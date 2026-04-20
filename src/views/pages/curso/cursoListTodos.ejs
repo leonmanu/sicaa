@@ -3,13 +3,25 @@
 <head>
     <%- include('../../partials/head') %>
     <title>SICAA - Todos los Cursos</title>
+    <style>
+        /* Estilo para que el select de la tabla no desentone con el modo oscuro */
+        .filter-select {
+            background-color: #2b3035;
+            color: #dee2e6;
+            border: 1px solid #495057;
+            border-radius: 5px;
+            padding: 2px 5px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+    </style>
 </head>
 <body>
     <%- include('../../partials/navbar') %>
     <%- include('../../partials/msj') %>
 
     <div class="container-fluid py-5 px-4">
-        <div class="row mb-4">
+        <div class="row mb-4 align-items-center">
             <div class="col-md-8">
                 <h2 class="fw-bold mb-1">
                     <i class="bi bi-collection-play-fill me-2 text-primary"></i>
@@ -17,6 +29,7 @@
                 </h2>
                 <p class="text-muted mb-0">Listado completo de ofertas vinculadas al CIIE</p>
             </div>
+            <div class="col-md-4 text-end" id="itinerarioFilterContainer"></div>
         </div>
 
         <div class="card shadow-sm border-0 bg-dark text-white">
@@ -25,13 +38,13 @@
                     <table id="tablaGeneralCursos" class="table table-dark table-hover align-middle mb-0">
                         <thead class="bg-black text-muted small text-uppercase">
                             <tr>
-                                <th>Inicio</th>
+                                <th>Itinerario</th>
                                 <th>Área / Nivel</th>
                                 <th>Formador (ETR)</th>
                                 <th>Propuesta</th>
                                 <th>Disp</th>
+                                <th>Inicio</th>
                                 <th><i class="bi bi-people-fill"></i></th>
-                                
                                 <th class="text-center pe-4">Acciones</th>
                             </tr>
                         </thead>
@@ -39,8 +52,8 @@
                             <% if (cursosLocales && cursosLocales.length > 0) { %>
                                 <% cursosLocales.forEach(c => { %>
                                     <tr>
-                                        <td class="small">
-                                            <%= c.fechaInicioCurso ? new Date(c.fechaInicioCurso).toLocaleDateString('es-AR') : 'A definir' %>
+                                        <td class="small fw-bold">
+                                            <%= c.anio %> ● <%= c.itinerario %>
                                         </td>
                                         
                                         <td>
@@ -51,10 +64,7 @@
                                         </td>
 
                                         <td>
-                                            <% 
-                                                // Ruta: Curso -> Cargo -> Ocupante -> Usuario -> Persona (referenciaId)
-                                                const docente = c.cargoId?.ocupante?.usuarioId?.referenciaId;
-                                            %>
+                                            <% const docente = c.cargoId?.ocupante?.usuarioId?.referenciaId; %>
                                             <% if (docente) { %>
                                                 <div style="font-size: 0.85rem;">
                                                     <i class="bi bi-person-check-fill text-success me-1"></i>
@@ -75,54 +85,67 @@
                                         </td>
                                         
                                         <td>
-    <% 
-        // Definimos las siglas rápido
-        let sigla = 'S/D';
-        let color = '#6c757d'; // Gris por defecto
-
-        if (c.dispositivo === 'Taller en Servicio') { sigla = 'TES'; color = '#198754'; }
-        else if (c.dispositivo === 'Seminario') { sigla = 'SEM'; color = '#d63384'; }
-        else if (c.dispositivo === 'Extensión CIIE') { sigla = 'EXT'; color = '#fd7e14'; }
-        else if (c.dispositivo === 'Curso Distancia') { sigla = 'CDI'; color = '#0d6efd'; }
-        else if (c.dispositivo === 'Ateneo Distancia') { sigla = 'ATD'; color = '#6f42c1'; }
-        else if (c.dispositivo === 'MADP + Ateneo') { sigla = 'MADP'; color = '#20c997'; }
-        else if (c.dispositivo === 'Seminario Distancia') { sigla = 'SED'; color = '#e83e8c'; }
-        else if (c.dispositivo === 'Taller Fuera de Servicio') { sigla = 'TFS'; color = '#adb5bd'; }
-    %>
-    
-    <span class="badge border" 
-          style=" color: <%= color %>; border-color: <%= color %>; background-color: <%= color %>15;" 
-          title="<%= c.dispositivo %>">
-        <%= sigla %>
-    </span>
-</td>
-                                        
-                                        <td>
-                                            <%= c.cantidadInscriptos %>
+                                            <% 
+                                                let sigla = 'S/D', color = '#6c757d';
+                                                const dMap = {
+                                                    'Taller en Servicio': { s: 'TES', c: '#198754' },
+                                                    'Seminario': { s: 'SEM', c: '#d63384' },
+                                                    'Extensión CIIE': { s: 'EXT', c: '#fd7e14' },
+                                                    'Curso Distancia': { s: 'CDI', c: '#0d6efd' },
+                                                    'Ateneo Distancia': { s: 'ATD', c: '#6f42c1' },
+                                                    'MADP + Ateneo': { s: 'MADP', c: '#20c997' },
+                                                    'Seminario Distancia': { s: 'SED', c: '#e83e8c' },
+                                                    'Taller Fuera de Servicio': { s: 'TFS', c: '#adb5bd' }
+                                                };
+                                                if(dMap[c.dispositivo]) { 
+                                                    sigla = dMap[c.dispositivo].s; 
+                                                    color = dMap[c.dispositivo].c; 
+                                                }
+                                            %>
+                                            <span class="badge border" 
+                                                  style="color: <%= color %>; border-color: <%= color %>; background-color: <%= color %>15;" 
+                                                  title="<%= c.dispositivo %>">
+                                                <%= sigla %>
+                                            </span>
                                         </td>
 
-                                        <td class="text-center">
-    <div class="d-flex justify-content-center gap-2">
-        <a href="/ciie/inscriptos/curso/<%= c.idOfertaOficial %>" 
-           class="btn btn-outline-primary d-flex align-items-center justify-content-center" 
-           style="width: 40px; height: 40px; border-radius: 10px;" 
-           title="Ver alumnos">
-            <i class="bi bi-people-fill fs-5"></i>
-        </a>
+                                        <td class="small">
+                                            <% if (c.encuentros && c.encuentros.length > 0) { 
+                                                const d = new Date(c.encuentros[0].fecha);
+                                                const dias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+                                                const nomDia = dias[d.getUTCDay()];
+                                                const diaNum = String(d.getUTCDate()).padStart(2, '0');
+                                                const mesNum = String(d.getUTCMonth() + 1).padStart(2, '0');
+                                            %>
+                                                <%= `${nomDia} ${diaNum}/${mesNum}` %>
+                                            <% } else { %>
+                                                A definir
+                                            <% } %>
+                                        </td>
 
-        <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center" 
-                style="width: 40px; height: 40px; border-radius: 10px;"
-                onclick="copyToClipboard('<%= c.enlaceInscripcion %>')"
-                title="Copiar link">
-            <i class="bi bi-link-45deg fs-5"></i>
-        </button>
-    </div>
-</td>
+                                        <td><%= c.cantidadInscriptos %></td>
+
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <a href="/ciie/inscriptos/curso/<%= c.idOfertaOficial %>" 
+                                                   class="btn btn-outline-primary btn-sm" 
+                                                   style="width: 35px; height: 35px; border-radius: 8px;" 
+                                                   title="Ver alumnos">
+                                                    <i class="bi bi-people-fill"></i>
+                                                </a>
+                                                <button class="btn btn-outline-secondary btn-sm" 
+                                                        style="width: 35px; height: 35px; border-radius: 8px;"
+                                                        onclick="copyToClipboard('<%= c.enlaceInscripcion %>')"
+                                                        title="Copiar link">
+                                                    <i class="bi bi-link-45deg"></i>
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 <% }); %>
                             <% } else { %>
                                 <tr>
-                                    <td colspan="7" class="text-center py-5 text-muted">No hay cursos registrados.</td>
+                                    <td colspan="8" class="text-center py-5 text-muted">No hay cursos registrados.</td>
                                 </tr>
                             <% } %>
                         </tbody>
@@ -136,23 +159,47 @@
 
     <script>
         $(document).ready(function() {
-            $('#tablaGeneralCursos').DataTable({
+            const table = $('#tablaGeneralCursos').DataTable({
                 language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
                 responsive: true,
                 order: [[0, 'desc'], [1, 'asc']],
-                // --- CONFIGURACIÓN PARA MOSTRAR TODO SIN LÍMITE ---
-                paging: false,          // Desactiva la paginación (muestra todo de una vez)
-                info: true,            // Muestra "Mostrando X de X registros"
-                lengthChange: false,   // Quita el selector de "Mostrar 10, 25..."
+                paging: false,
+                info: true,
                 scrollCollapse: true,
-                dom: '<"d-flex justify-content-between align-items-center mb-3"f>t<"p-3"i>', // Solo buscador arriba (f) y tabla (t)
+                dom: '<"d-flex justify-content-between align-items-center mb-3"f>t<"p-3"i>',
+                
+                initComplete: function () {
+                    // Seleccionamos la columna 0 (Itinerario)
+                    this.api().columns(0).every(function () {
+                        var column = this;
+                        
+                        // Crear el elemento Select
+                        var select = $('<select class="form-select form-select-sm d-inline-block w-auto ms-2"><option value="">Todos los Itinerarios</option></select>')
+                            .appendTo('#itinerarioFilterContainer')
+                            .on('change', function () {
+                                var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                                column.search(val ? '^' + val + '$' : '', true, false).draw();
+                            });
+
+                        // Llenar el select con los valores únicos de la columna
+                        column.data().unique().sort().each(function (d, j) {
+                            // Limpiar el HTML si existiera (por el ● o tags)
+                            const cleanText = d.replace(/<[^>]+>/g, '').trim();
+                            select.append('<option value="' + cleanText + '">' + cleanText + '</option>');
+                        });
+                    });
+                }
             });
         });
 
         function copyToClipboard(text) {
-            if(!text) return;
+            if(!text || text === 'undefined') return alert('No hay enlace disponible');
             navigator.clipboard.writeText(text).then(() => {
-                alert('Enlace copiado');
+                // Un pequeño feedback visual es mejor que un alert
+                const btn = event.currentTarget;
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
+                setTimeout(() => btn.innerHTML = originalHtml, 2000);
             });
         }
     </script>
