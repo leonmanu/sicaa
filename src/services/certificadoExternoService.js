@@ -1,9 +1,20 @@
 const certificadoExternoRepository = require('../repos/certificadoExternoRepo');
+const sesionService = require('./sesionService');
 
 class CertificadoExternoService {
     async obtenerCertificado(idOfertaOficial) {
         try {
-            const rawText = await certificadoExternoRepository.getDatosAdministrativosPdf(idOfertaOficial);
+            // Asegurar sesión antes de consultar el sitio oficial
+            await sesionService.asegurarSesion();
+            
+            let rawText = await certificadoExternoRepository.getDatosAdministrativosPdf(idOfertaOficial);
+            
+            // Si algo falla, reintentamos con sesión renovada
+            if (!rawText || rawText.length === 0) {
+                console.log('⚠️ PDF vacío, renovando sesión e intentando de nuevo...');
+                await sesionService.asegurarSesion(true);
+                rawText = await certificadoExternoRepository.getDatosAdministrativosPdf(idOfertaOficial);
+            }
             return {
                 rawText,
                 parsed: this._parseDatosAdministrativos(rawText)
