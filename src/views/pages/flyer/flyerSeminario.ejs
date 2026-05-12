@@ -434,23 +434,23 @@
                                 </div>
 
                                 <% if (curso.encuentros && curso.encuentros.length > 0) { 
-        const primerEnc = new Date(curso.encuentros[0].fecha);
-        const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+                                            const primerEnc = new Date(curso.encuentros[0].fecha);
+                                            const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
 
-        const toArgentina = (date) => {
-            return new Date(date.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
-        };
+                                            const toArgentina = (date) => {
+                                                return new Date(date.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+                                            };
 
-        const listaFechas = curso.encuentros.map(enc => {
-            const d = toArgentina(new Date(enc.fecha));
-            const dia = String(d.getDate()).padStart(2, '0');
-            const mes = String(d.getMonth() + 1).padStart(2, '0');
-            return `${dia}/${mes}`;
-        }).join(', ');
+                                            const listaFechas = curso.encuentros.map(enc => {
+                                                const d = toArgentina(new Date(enc.fecha));
+                                                const dia = String(d.getDate()).padStart(2, '0');
+                                                const mes = String(d.getMonth() + 1).padStart(2, '0');
+                                                return `${dia}/${mes}`;
+                                            }).join(', ');
 
-        const encLocal = toArgentina(primerEnc);
-        const hora = `${String(encLocal.getHours()).padStart(2,'0')}:${String(encLocal.getMinutes()).padStart(2,'0')} hs.`;
-    %>
+                                            const encLocal = toArgentina(primerEnc);
+                                            const hora = `${String(encLocal.getHours()).padStart(2,'0')}:${String(encLocal.getMinutes()).padStart(2,'0')} hs.`;
+                                        %>
                                     <div class="dia-semana-sem"><%= dias[primerEnc.getUTCDay()] %></div>
                                     <div class="fecha-linea-sem" id="ed-fecha" contenteditable="true"><%= listaFechas %></div>
                                     <div class="hora-badge-sem" id="ed-hora" contenteditable="true"><%= hora %></div>
