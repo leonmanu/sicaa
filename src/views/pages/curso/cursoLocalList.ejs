@@ -1289,13 +1289,15 @@ $('#btnAltaCurso').on('click', function() {
                     
                     // Extraer hora del primer encuentro si existe
                     let horaEncuentro = '18:00';
-                    if (curso.encuentros && curso.encuentros.length > 0 && curso.encuentros[0].fecha) {
-                        const fechaObj = new Date(curso.encuentros[0].fecha);
-                        const h = String(fechaObj.getHours()).padStart(2, '0');
-                        const m = String(fechaObj.getMinutes()).padStart(2, '0');
-                        horaEncuentro = `${h}:${m}`;
-                    }
-                    $('#horaEncuentro').val(horaEncuentro);
+if (curso.encuentros && curso.encuentros.length > 0 && curso.encuentros[0].fecha) {
+    horaEncuentro = new Date(curso.encuentros[0].fecha).toLocaleTimeString('es-AR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'America/Argentina/Buenos_Aires'
+    });
+}
+$('#horaEncuentro').val(horaEncuentro);
                     
                     $('#cupo').val(curso.cupo || 30);
                     $('#cantidadHoras').val(curso.cantidadHoras || '');
