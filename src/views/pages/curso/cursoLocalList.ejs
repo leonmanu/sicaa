@@ -127,7 +127,11 @@
         <div class="card shadow-sm border-0 bg-dark text-white">
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table id="tablaCursosCargo" class="table table-dark table-hover align-middle mb-0">
+                    <table id="tablaCursosCargo"
+                           class="table table-dark table-hover align-middle mb-0"
+                           data-estado-col-index="<%= usuario.tipo === 'institucion' ? 4 : 3 %>"
+                           data-creado-col-index="<%= usuario.tipo === 'institucion' ? 5 : 4 %>"
+                           data-inicio-col-index="<%= usuario.tipo === 'institucion' ? 3 : 2 %>">
                         <thead class="bg-black text-muted small text-uppercase">
                             <tr>
                                 <th>Iti</th>
@@ -135,11 +139,43 @@
                                     <th>Área</th>
                                 <% } %>
                                 <th>Propuesta</th>
-  
                                 <th>Inicio</th>
-    
                                 <th>Dispositivo</th>
+                                <th>Creado</th>
                                 <th class="text-center pe-4">Acciones</th>
+                            </tr>
+                            <tr class="bg-dark text-white">
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="0">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <% if(usuario.tipo == 'institucion'){ %>
+                                    <th>
+                                        <select class="form-select form-select-sm filtro-columna" data-column="1">
+                                            <option value="">Todas</option>
+                                        </select>
+                                    </th>
+                                <% } %>
+                                <th>
+                                    <input type="text" class="form-control form-control-sm filtro-texto" data-column="<%= usuario.tipo == 'institucion' ? 2 : 1 %>" placeholder="Buscar...">
+                                </th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="<%= usuario.tipo == 'institucion' ? 3 : 2 %>">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="<%= usuario.tipo == 'institucion' ? 4 : 3 %>">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="<%= usuario.tipo == 'institucion' ? 5 : 4 %>">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -158,7 +194,7 @@
                                             <div class="text-wrap" style="max-width: 400px;"><%= c.nombrePropuesta %></div>
                                         </td>
 
-                                            <td>
+                                            <td data-order="<%= c.encuentros && c.encuentros.length > 0 ? new Date(c.encuentros[0].fecha).toISOString() : '' %>">
                                                 <% if (c.encuentros && c.encuentros.length > 0) { %>
                                                     <small class="text-muted">
                                                         <% const fecha = new Date(c.encuentros[0].fecha); %>
@@ -170,7 +206,7 @@
                                                 <% } %>
                                             </td>
 
-                                        <td>
+                                        <td data-order="<%= c.estado === 'pendiente' ? 0 : c.estado === 'vinculado' ? 1 : c.estado === 'modificacion_pendiente' ? 2 : c.estado === 'eliminacion_pendiente' ? 3 : c.estado === 'dormido' ? 4 : 99 %>">
                                             <small class="text-muted"><%= c.dispositivo %></small>
                                             <br>
                                             <% 
@@ -195,6 +231,9 @@
                                                     <%= etiquetasEstado[c.estado] || c.estado %>
                                                 </span>
                                             </div>
+                                        </td>
+                                        <td data-order="<%= c.createdAt ? new Date(c.createdAt).toISOString() : '' %>">
+                                            <small class="text-muted"><%= c.createdAt ? new Date(c.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-' %></small>
                                         </td>
                                         <td class="text-center pe-4">
                                             <% if (c.estado === 'vinculado') { %>
@@ -270,7 +309,7 @@
                                 <% }); %>
                             <% } else { %>
                                 <tr>
-                                    <td colspan="<%= usuario.tipo === 'institucion' ? 7 : 6 %>" class="text-center py-5">
+                                    <td colspan="<%= usuario.tipo === 'institucion' ? 8 : 7 %>" class="text-center py-5">
                                         <p class="text-muted mb-0">No hay cursos vinculados a este cargo.</p>
                                     </td>
                                 </tr>
@@ -596,11 +635,56 @@ $('#btnAltaCurso').on('click', function() {
 });
         // ─── DataTable ───────────────────────────────────────────────────────────
         if ($('#tablaCursosCargo tbody tr td[colspan]').length === 0) {
+            const table = $('#tablaCursosCargo');
+            const estadoColIndex = Number(table.data('estado-col-index'));
+            const creadoColIndex = Number(table.data('creado-col-index'));
+            const inicioColIndex = Number(table.data('inicio-col-index'));
+
             // Solo inicializar DataTable si hay cursos (sin row con colspan vacía)
-            $('#tablaCursosCargo').DataTable({
+            table.DataTable({
                 language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
                 responsive: true,
-                order: [[1, 'desc'], [3, 'desc']]
+                order: [[estadoColIndex, 'asc'], [creadoColIndex, 'desc'], [inicioColIndex, 'desc']],
+                initComplete: function () {
+                    const api = this.api();
+                    const escapeHtml = (text) => $('<div>').text(text).html();
+
+                    api.columns().every(function () {
+                        const column = this;
+                        const idx = column.index();
+                        const $select = table.find(`.filtro-columna[data-column="${idx}"]`);
+                        const $input = table.find(`.filtro-texto[data-column="${idx}"]`);
+
+                        if ($select.length) {
+                            const values = [];
+                            column.data().unique().sort().each(function (d) {
+                                const text = $('<div>').html(d).text().trim();
+                                if (text && !values.includes(text)) {
+                                    values.push(text);
+                                }
+                            });
+
+                            values.forEach(function (val) {
+                                $select.append(`<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`);
+                            });
+
+                            $select.on('change', function () {
+                                const val = $(this).val();
+                                column
+                                    .search(val ? '^' + $.fn.dataTable.util.escapeRegex(val) + '$' : '', true, false)
+                                    .draw();
+                            });
+                        }
+
+                        if ($input.length) {
+                            $input.on('keyup change', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        }
+                    });
+                }
             });
         }
 
