@@ -1214,9 +1214,12 @@ $('#btnAltaCurso').on('click', function() {
                 return;
             }
 
-            // Agregar hora a fechas de encuentros
+            // Agregar hora a fechas de encuentros usando ISO UTC para evitar desajustes de zona horaria
             const hora = $('#horaEncuentro').val(); // "HH:mm"
-            const fechasConHora = fechasCompletas.map(fecha => `${fecha}T${hora}`);
+            const fechasConHora = fechasCompletas.map(fecha => {
+                const fechaCompleta = new Date(`${fecha}T${hora}`);
+                return fechaCompleta.toISOString();
+            });
 
             const publicacionDrupal = {
                 nivel:          $('#drupalNivel').val()          || undefined,
