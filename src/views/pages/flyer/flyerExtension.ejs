@@ -398,9 +398,17 @@
     (() => {
         if (!curso.encuentros || curso.encuentros.length === 0) return 'FECHA';
         const d = new Date(curso.encuentros[0].fecha);
-        const dias  = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
-        const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-        return `${dias[d.getDay()]}, ${d.getDate()} DE ${meses[d.getMonth()]}`;
+        const formatter = new Intl.DateTimeFormat('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long'
+        });
+        const parts = formatter.formatToParts(d).reduce((acc, part) => {
+            acc[part.type] = part.value;
+            return acc;
+        }, {});
+        return `${parts.weekday.toUpperCase()}, ${parts.day} DE ${parts.month.toUpperCase()}`;
     })()
 %></div>
 
@@ -408,7 +416,13 @@
     (() => {
         if (!curso.encuentros || curso.encuentros.length === 0) return '00:00hs';
         const d = new Date(curso.encuentros[0].fecha);
-        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}hs`;
+        const formatter = new Intl.DateTimeFormat('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        return `${formatter.format(d)}hs`;
     })()
 %></div>
 
