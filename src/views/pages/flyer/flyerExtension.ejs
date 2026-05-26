@@ -397,9 +397,13 @@
                             <div class="fecha-linea" id="ed-fecha" contenteditable="true"><%=
     (() => {
         if (!curso.encuentros || curso.encuentros.length === 0) return 'FECHA';
-        const d = new Date(curso.encuentros[0].fecha);
+        const fecha = curso.encuentros[0].fecha;
+        const dateStr = typeof fecha === 'string'
+            ? fecha.split('T')[0]
+            : fecha.toISOString().split('T')[0];
+        const [yyyy, mm, dd] = dateStr.split('-').map(Number);
+        const d = new Date(yyyy, mm - 1, dd); // fecha local, sin UTC
         const formatter = new Intl.DateTimeFormat('es-AR', {
-            timeZone: 'America/Argentina/Buenos_Aires',
             weekday: 'long',
             day: 'numeric',
             month: 'long'
@@ -415,7 +419,8 @@
 <div class="hora-badge" id="ed-hora" contenteditable="true"><%=
     (() => {
         if (!curso.encuentros || curso.encuentros.length === 0) return '00:00hs';
-        const d = new Date(curso.encuentros[0].fecha);
+        const fecha = curso.encuentros[0].fecha;
+        const d = new Date(fecha);
         const formatter = new Intl.DateTimeFormat('es-AR', {
             timeZone: 'America/Argentina/Buenos_Aires',
             hour: '2-digit',
