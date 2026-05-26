@@ -400,7 +400,7 @@
         const d = new Date(curso.encuentros[0].fecha);
         const dias  = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
         const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-        return `${dias[d.getUTCDay()]}, ${d.getUTCDate()} DE ${meses[d.getUTCMonth()]}`;
+        return `${dias[d.getDay()]}, ${d.getDate()} DE ${meses[d.getMonth()]}`;
     })()
 %></div>
 
@@ -408,7 +408,7 @@
     (() => {
         if (!curso.encuentros || curso.encuentros.length === 0) return '00:00hs';
         const d = new Date(curso.encuentros[0].fecha);
-        return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}hs`;
+        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}hs`;
     })()
 %></div>
 
