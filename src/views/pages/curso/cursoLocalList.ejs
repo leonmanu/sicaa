@@ -414,12 +414,13 @@
 
                         <div class="col-6">
                             <label class="form-label small fw-bold">FORMATO DICTADO <span class="text-danger">*</span></label>
-                            <select id="drupalFormatoDictado" name="drupalFormatoDictado"
+                            <select id="idformato" name="idformato"
                                     class="form-select bg-dark border-secondary text-white" required>
-                                <option value="Presencial (237)">Presencial</option>
-                                <option value="Sincrónico (238)">Bimodal / Sincrónico</option>
-                                <option value="Virtual (236)">Virtual</option>
-                                <option value="Asincrónico (239)">Asincrónico</option>
+                                <option value="0">Seleccione una opción</option>
+                                <option value="2" selected>Presencial</option>
+                                <option value="3">Sincrónico Virtual</option>
+                                <option value="5">Combinado</option>
+                                <option value="1">Sin definir</option>
                             </select>
                         </div>
                         <div class="col-6">
@@ -618,7 +619,7 @@ $('#btnAltaCurso').on('click', function() {
     $('#drupalNivel').val('<%= cargo?.areaId?.nivel || "" %>');
     $('#drupalSede').val('CIIE G. de Laferrere - Monseñor López May N° 3250');
     $('#drupalOrganiza').val('DFDP');
-    $('#drupalFormatoDictado').val('Presencial (237)');
+    $('#idformato').val('2');
     
     // 4. RESTAURAMOS AL FORMADOR ORIGINAL (Lo que pediste)
     $('#formadorAbc').val(formadorOriginal);
@@ -1197,7 +1198,7 @@ $('#btnAltaCurso').on('click', function() {
             $('#anio').val(new Date().getFullYear());
             $('#itinerario').val('1');
             $('#horaEncuentro').val('18:00');
-            $('#drupalFormatoDictado').val('Presencial (237)');
+            $('#idformato').val('2');
             $('#cupo').val('30');
             $('#cantidadEncuentros').val('');
             $('#cantidadHoras').val('');
@@ -1283,7 +1284,7 @@ $('#btnAltaCurso').on('click', function() {
             });
 
             const obligatorios = ['anio', 'itinerario', 'horaEncuentro', 'cupo',
-                'cantidadEncuentros', 'cantidadHoras', 'drupalFormatoDictado',
+                'cantidadEncuentros', 'cantidadHoras', 'idformato',
                 'drupalNivel', 'drupalSede', 'drupalOrganiza', 'alcance'];
 
             let valido = true;
@@ -1307,7 +1308,6 @@ $('#btnAltaCurso').on('click', function() {
 
             const publicacionDrupal = {
                 nivel:          $('#drupalNivel').val()          || undefined,
-                formatoDictado: $('#drupalFormatoDictado').val() || undefined,
                 puntaje:        $('#drupalPuntaje').val() ? Number($('#drupalPuntaje').val()) : undefined,
                 sede:           $('#drupalSede').val()           || undefined,
                 organiza:       $('#drupalOrganiza').val()       || undefined,
@@ -1326,6 +1326,7 @@ $('#btnAltaCurso').on('click', function() {
                 tituloFormulario:   $('#tituloFormulario').val(),
                 anio:               Number($('#anio').val()),
                 itinerario:         Number($('#itinerario').val()),
+                idformato:          Number($('#idformato').val()),  // ← esta línea
                 cupo:               Number($('#cupo').val()),
                 alcance:            Number($('#alcance').val()),
                 cantidadEncuentros: fechasConHora.length,
@@ -1372,7 +1373,7 @@ $('#btnAltaCurso').on('click', function() {
                     $('#dispositivoSeleccionado').val(curso.dispositivo || '');
                     $('#anio').val(curso.anio || new Date().getFullYear());
                     $('#itinerario').val(curso.itinerario || 1);
-                    $('#drupalFormatoDictado').val(curso.publicacionDrupal?.formatoDictado || '');
+                    $('#idformato').val(curso.idformato || '');
                     
                     // Extraer hora del primer encuentro si existe
                     let horaEncuentro = '18:00';

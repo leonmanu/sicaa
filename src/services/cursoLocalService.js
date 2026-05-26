@@ -61,6 +61,7 @@ class CursoLocalService {
             anio:    anio,
             cohorte: this._toNumberOrNull(data.cohorte) ?? 0,
             itinerario: this._toNumberOrNull(data.itinerario) ?? 0,
+            idformato: this._toNumberOrNull(data.idformato) || 1,
             fechaInicioInscripcion: this._toDateOrNull(fechaInicioInscripcion),
             fechaFinInscripcion:  this._toDateOrNull(data.fechasEncuentros[0]),
             cantidadEncuentros: cantidadEncuentrosCalculada,
@@ -723,6 +724,7 @@ class CursoLocalService {
             idalcance: String(this._normalizeAlcance(cursoLocal.alcance)), // acá va el valor del select
             tituloform: this._sanitizeString(cursoLocal.tituloFormulario) || '', //
             numero: String(cursoLocal.itinerario || 0), //aca va el número del itinerario
+            idformato: String(data.idformato || '1'), // Formato de dictado mapeado (1=Sin definir, 2=Presencial, 3=Sincrónico Virtual, 5=Combinado)
             nombrecapa: this._sanitizeString(cursoLocal.formadorAbc) || '' // acá va el nombre del formador que figura en el curso local, si no tiene se puede dejar vacío o poner "A designar"
         });
 
@@ -862,10 +864,6 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
         itinerarioFinal = cursoLocal.itinerario;
     }
 
-    const formatoDictado = this._sanitizeString(data.drupalFormatoDictado || data.publicacionDrupal?.formatoDictado);
-    const modalidad = this._mapFormatoDictadoAModalidad(formatoDictado);
-
-    // Actualizar encuentros si vienen fechas nuevas
     if (data.fechasEncuentros && Array.isArray(data.fechasEncuentros) && data.fechasEncuentros.length > 0) {
         const fechasNormalizadas = this._normalizeFechasEncuentros(data.fechasEncuentros);
         await encuentroRepo.delPorCursoId(cursoLocalId);
@@ -873,8 +871,7 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
             await encuentroRepo.post({
                 cursoId: cursoLocalId,
                 numero: i + 1,
-                fecha: fechasNormalizadas[i],
-                modalidad
+                fecha: fechasNormalizadas[i]
             });
         }
     }
@@ -885,18 +882,18 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
         tituloFormulario:   this._sanitizeString(data.tituloFormulario),
         anio:               anioNuevo,
         itinerario:         itinerarioFinal,
+        idformato:          this._toNumberOrNull(data.idformato) ?? cursoLocal.idformato,
         cupo:               this._toNumberOrNull(data.cupo) ?? cursoLocal.cupo,
         alcance:            this._toNumberOrNull(data.alcance) ?? cursoLocal.alcance,
         cantidadHoras:      this._toNumberOrNull(data.cantidadHoras),
         cantidadEncuentros: data.fechasEncuentros?.length || cursoLocal.cantidadEncuentros,
         publicacionDrupal: {
             ...cursoLocal.publicacionDrupal,
-            formatoDictado,
-            nivel:        this._sanitizeString(data.drupalNivel       || data.publicacionDrupal?.nivel),
-            sede:         this._sanitizeString(data.drupalSede        || data.publicacionDrupal?.sede),
-            organiza:     this._sanitizeString(data.drupalOrganiza    || data.publicacionDrupal?.organiza),
-            puntaje:      this._toNumberOrNull(data.drupalPuntaje     || data.publicacionDrupal?.puntaje),
-            diasHorarios: this._sanitizeString(data.drupalDiaDictado  || data.publicacionDrupal?.diasHorarios)
+            nivel:        this._sanitizeString(data.drupalNivel      || data.publicacionDrupal?.nivel),
+            sede:         this._sanitizeString(data.drupalSede       || data.publicacionDrupal?.sede),
+            organiza:     this._sanitizeString(data.drupalOrganiza   || data.publicacionDrupal?.organiza),
+            puntaje:      this._toNumberOrNull(data.drupalPuntaje    || data.publicacionDrupal?.puntaje),
+            diasHorarios: this._sanitizeString(data.drupalDiaDictado || data.publicacionDrupal?.diasHorarios)
         }
     };
 
