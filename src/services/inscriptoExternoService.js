@@ -6,22 +6,34 @@ const sesionService = require('./sesionService');
 class InscriptoExternoService {
 
     async listarCursantes(idInscripcion, idCurso) {
-        await sesionService.asegurarSesion();
+    await sesionService.asegurarSesion();
+
+    try {
         await inscriptoExternoRepo.sincronizarFiltros(idInscripcion, idCurso);
         let response = await inscriptoExternoRepo.getRawCursantes(idInscripcion, idCurso);
 
+        // Si la respuesta viene vacía o como HTML (sesión expirada)
         if (!response.data?.aaData || response.data.aaData.length === 0 || typeof response.data === 'string') {
-            console.log('🔄 Re-intentando por posible sesión expirada...');
-            await sesionService.asegurarSesion(true);
-            await inscriptoExternoRepo.sincronizarFiltros(idInscripcion, idCurso);
-            response = await inscriptoExternoRepo.getRawCursantes(idInscripcion, idCurso);
+            throw new Error('Respuesta inválida, forzando renovación de sesión');
         }
+
+        const rawData = response.data.aaData;
+        return rawData.sort((a, b) =>
+            a[1].localeCompare(b[1], 'es', { sensitivity: 'base' })
+        );
+
+    } catch (err) {
+        console.log('🔄 Re-intentando listarCursantes por posible sesión expirada...');
+        await sesionService.asegurarSesion(true);
+        await inscriptoExternoRepo.sincronizarFiltros(idInscripcion, idCurso);
+        const response = await inscriptoExternoRepo.getRawCursantes(idInscripcion, idCurso);
 
         const rawData = response.data?.aaData || [];
         return rawData.sort((a, b) =>
             a[1].localeCompare(b[1], 'es', { sensitivity: 'base' })
         );
     }
+}
 
     async probarFichaDocente(idDocente) {
         try {

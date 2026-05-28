@@ -11,7 +11,8 @@ const {
     viewAsistencia,
     putCalificacion,
     postAsistencia
-} = require('../controllers/inscriptoController')
+} = require('../controllers/inscriptoController');
+const { asegurarSesion } = require('../services/sesionService');
 
 router
     .get('/curso/:idOfertaOficial', viewInscripto)
