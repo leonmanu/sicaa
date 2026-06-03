@@ -185,9 +185,13 @@
                                         <td class="fw-bold text-info"><%= c.anio %> • I<%= c.itinerario %></td>
                                         <% if(usuario.tipo == 'institucion'){ %>
                                             <td>
-                                                <b><%= c.cargoId.areaId?.nombreCorto || 'Área General' %></b> <small><%= c.cargoId?.clave || 'clave fallida' %></small>
+                                                <b><%= c.cargoId.areaId?.nombreCorto || 'Área General' %></b>
+                                                <small class="ms-1"><%= c.cargoId?.clave || 'clave fallida' %></small>
                                                 <br>
                                                 <small><%= c.formadorAbc %></small>
+                                                <% if (c.cargosInvitados && c.cargosInvitados.length > 0) { %>
+                                                    <div class="mt-1"><small class="text-muted">Invitados: <%= c.cargosInvitados.map(ci => (ci && ci.areaId && ci.areaId.nombre) ? ci.areaId.nombre : (ci && ci.clave) ? ci.clave : (typeof ci === 'string' ? ci : (ci?._id || ''))).join(', ') %></small></div>
+                                                <% } %>
                                             </td>
                                         <% } %>
                                         <td>
@@ -230,6 +234,13 @@
                                                 <span class="badge rounded-pill <%= coloresEstado[c.estado] || 'bg-light text-dark' %>" style="font-size: 0.7rem;">
                                                     <%= etiquetasEstado[c.estado] || c.estado %>
                                                 </span>
+                                            </div>
+                                            <div class="mt-1">
+                                                <% if (String(c.disponible || '').toUpperCase() === 'S') { %>
+                                                    <span class="badge bg-success">Disponible</span>
+                                                <% } else { %>
+                                                    <span class="badge bg-secondary">No disponible</span>
+                                                <% } %>
                                             </div>
                                         </td>
                                         <td data-order="<%= c.createdAt ? new Date(c.createdAt).toISOString() : '' %>">

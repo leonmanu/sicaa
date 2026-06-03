@@ -17,7 +17,8 @@ const {
     getCursoById,
     getCursoByIdEdit,
     putCurso,
-    getMisCursos
+    getMisCursos,
+    getPorCiiePublico
 } = require('../controllers/cursoLocalController');
 
 router
@@ -25,6 +26,7 @@ router
     .get('/lista', cursoExternoController.getCursos)
     .get('/mi-cursos', asegurarRegistro, getMisCursos)
     .get('/ciie', asegurarRegistro, getPorCiie)
+    .get('/publico/:ciieClave', getPorCiiePublico)
     .get('/drupal', asegurarRegistro, getPorCiieDrupal)
     .get('/flyers', asegurarRegistro, getFlyersList)
     .get('/flyer/:ofertaId', getFlyerCurso)

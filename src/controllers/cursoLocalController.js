@@ -432,6 +432,26 @@ const getPorCiie = async (req, res) => {
     }
 }
 
+const getPorCiiePublico = async (req, res) => {
+    try {
+        const ciieClave = req.params.ciieClave;
+        const ciie = await ciieService.getPorClave(ciieClave);
+        if (!ciie) {
+            return res.status(404).send('CIIE no encontrado.');
+        }
+        const cursosLocales = await cursoLocalService.getCursosPorCiieId(ciie._id);
+        res.render('pages/curso/cursoLocalListPublico', {
+            cursosLocales,
+            ciieClave: ciie.clave,
+            ciieNombre: ciie.nombre || ciieClave,
+            title: `Oferta de Cursos - ${ciie.nombre || ciieClave}`
+        });
+    } catch (error) {
+        console.error('Error al obtener cursos locales públicos:', error.message);
+        res.status(500).send("Error en el servidor: " + error.message);
+    }
+}
+
 const getPorCiieDrupal = async (req, res) => {
     try {
         const ciieId = req.user.referenciaId;
@@ -692,5 +712,6 @@ module.exports = {
     putCurso,
     getMisCursos,
     getPorCiieDrupal,
-    getCursoByIdEdit
+    getCursoByIdEdit,
+    getPorCiiePublico
 }

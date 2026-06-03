@@ -11,6 +11,32 @@
 
         .dropdown-formadores { max-height: 260px; overflow-y: auto; }
 
+        /* Estilo personalizado para el botón JSON de la fila */
+        .btn-outline-json {
+            color: #00ADC5;
+            border-color: rgba(0, 173, 197, 0.4);
+            background: transparent;
+        }
+        .btn-outline-json:hover {
+            color: #fff;
+            background-color: #00ADC5;
+            border-color: #00ADC5;
+        }
+        .btn-outline-json.copied-success {
+            color: #fff;
+            background-color: #00c578;
+            border-color: #00c578;
+        }
+
+        /* ─── Fila copiada ──────────────────────────────── */
+        #tablaCursosCargo tbody tr.fila-copiada {
+            border-left: 3px solid #00c578;
+            background-color: rgba(0, 197, 120, 0.06) !important;
+        }
+        #tablaCursosCargo tbody tr.fila-copiada td:first-child {
+            position: relative;
+        }
+
         /* ─── Modal copiado ─────────────────────────── */
         .copy-field {
             background: rgba(255,255,255,0.04);
@@ -102,6 +128,26 @@
         .btn-copy-all:hover { background: #F47920; color: white; }
         .btn-copy-all.ok { background: #00c578; border-color: #00c578; color: white; }
 
+        .btn-copy-json {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #00ADC5;
+            border-radius: 8px;
+            background: transparent;
+            color: #00ADC5;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+        .btn-copy-json:hover { background: #00ADC5; color: white; }
+        .btn-copy-json.ok { background: #00c578; border-color: #00c578; color: white; }
+
         @media (max-width: 767.98px) {
             .container.py-5 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
             #btnAltaCurso { width: 100%; }
@@ -155,13 +201,14 @@
                                 <th>ITI <i class="bi bi-arrow-down-up small ms-1"></i>
                                     <div id="contenedor-filtro-iti" class="mt-2"></div>
                                 </th>
-                                
                                 <th>Áreas</th>
                                 <th>Propuesta</th>
                                 <th>Inicio</th>
                                 <th>Dispositivo</th>
+                                <th>Creado</th>
+                                <th>Disponible</th>
                                 <th>Enlaces</th>
-                                <th class="text-center pe-4">Acciones</th>
+                                <th class="text-center pe-4" style="min-width: 140px;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -171,8 +218,13 @@
                                     <td class="fw-bold text-info"><%= c.anio %> • I<%= c.itinerario %></td>
                                     <% if (usuario.tipo == 'institucion') { %>
                                     <td>
-                                        <b><%= c.cargoId.areaId?.nombre || 'Área General' %></b><br>
+                                        <b><%= c.cargoId.areaId?.nombre || 'Área General' %></b>
+                                        <small class="ms-1"><%= c.cargoId?.clave || '' %></small>
+                                        <br>
                                         <small><%= c.formadorAbc %></small>
+                                        <% if (c.cargosInvitados && c.cargosInvitados.length > 0) { %>
+                                            <div class="mt-1"><small class="text-muted">Invitados: <%= c.cargosInvitados.map(ci => (ci && ci.areaId && ci.areaId.nombre) ? ci.areaId.nombre : (ci && ci.clave) ? ci.clave : (typeof ci === 'string' ? ci : (ci?._id || ''))).join(', ') %></small></div>
+                                        <% } %>
                                     </td>
                                     <% } %>
                                     <td>
@@ -207,6 +259,16 @@
                                             <%= etiquetasEstado[c.estado] || c.estado %>
                                         </span>
                                     </td>
+                                    <td data-order="<%= c.createdAt ? new Date(c.createdAt).toISOString() : '' %>">
+                                        <small class="text-muted"><%= c.createdAt ? new Date(c.createdAt).toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '-' %></small>
+                                    </td>
+                                    <td>
+                                        <% if (String(c.disponible || '').toUpperCase() === 'S') { %>
+                                            <span class="badge bg-success">Disponible</span>
+                                        <% } else { %>
+                                            <span class="badge bg-secondary">No disponible</span>
+                                        <% } %>
+                                    </td>
                                     <td class="text-center pe-4">
                                         <% if (c.enlaceInscripcion) { %>
                                             <a href="<%= c.enlaceInscripcion %>" target="_blank" class="text-decoration-none">
@@ -217,15 +279,22 @@
                                         <% } %>
                                     </td>
                                     <td class="text-center pe-4">
-                                        <button class="btn btn-sm btn-outline-info btn-ver-curso" data-id="<%= c._id %>">
-                                            <i class="bi bi-clipboard-data me-1"></i>Ver datos
-                                        </button>
+                                        <div class="d-flex justify-content-center gap-1">
+                                            <!-- BOTÓN DIRECTO EN LA FILA (COPIA EL JSON EXTENDIDO COMPLETO) -->
+                                            <button class="btn btn-sm btn-outline-json btn-copiar-json-fila" data-id="<%= c._id %>" title="Copiar JSON Completo para Drupal">
+                                                <i class="bi bi-filetype-json"></i>
+                                            </button>
+                                            <!-- BOTÓN MODAL TRADICIONAL -->
+                                            <button class="btn btn-sm btn-outline-info btn-ver-curso" data-id="<%= c._id %>" title="Ver Vista Detallada">
+                                                <i class="bi bi-clipboard-data"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 <% }); %>
                             <% } else { %>
                                 <tr>
-                                    <td colspan="6" class="text-center py-5">
+                                    <td colspan="9" class="text-center py-5">
                                         <p class="text-muted mb-0">No hay cursos vinculados a este cargo.</p>
                                     </td>
                                 </tr>
@@ -250,11 +319,9 @@
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-
                 <div class="modal-body" id="modalCopiarBody">
                     <!-- se rellena por JS -->
                 </div>
-
                 <div class="modal-footer border-secondary py-2">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
                 </div>
@@ -266,6 +333,13 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     $(document).ready(function () {
+
+        const REGLAS = {
+            'Taller en Servicio':       '3 encuentros de 4 horas',
+            'Taller Fuera de Servicio': '5 encuentros de 3 horas',
+            'Seminario':                '3 encuentros de 3 horas',
+            'Extensión CIIE':           '1 encuentro de 2 horas'
+        };
 
         // ─── DataTable ────────────────────────────────────
         const table = $('#tablaCursosCargo').DataTable({
@@ -292,22 +366,96 @@
             }
         });
 
-        // ─── Reglas por dispositivo ───────────────────────
-        const REGLAS = {
-            'Taller en Servicio':       '3 encuentros de 4 horas',
-            'Taller Fuera de Servicio': '5 encuentros de 3 horas',
-            'Seminario':                '3 encuentros de 3 horas',
-            'Extensión CIIE':           '1 encuentro de 2 horas'
-        };
+        // ─── FUNCIÓN CENTRAL: MAPEO COMPLETO DE LOS CAMPOS PARA DRUPAL ───
+        function procesarCursoParaExtension(c) {
+            // 1. Fecha de inicio
+            let fechaInicioIso = '';
+            if (c.encuentros && c.encuentros.length > 0) {
+                const d = new Date(c.encuentros[0].fecha);
+                fechaInicioIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            }
 
-        // ─── Abrir modal con datos del curso ─────────────
+            // 2. Fecha actual para la inscripción (YYYY-MM-DD)
+            const hoy = new Date();
+            const fechaInscripcionIso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+
+            // 3. Duración y días/horarios
+            const duracionLeyenda = REGLAS[c.dispositivo] || `${c.encuentros?.length || ''} encuentros`;
+
+            let diaHorarioText = '';
+            if (c.encuentros && c.encuentros.length > 0) {
+                const dias = ['dom','lun','mar','mié','jue','vie','sáb'];
+                const primerEnc = new Date(c.encuentros[0].fecha);
+                const h = String(primerEnc.getHours()).padStart(2,'0');
+                const m = String(primerEnc.getMinutes()).padStart(2,'0');
+                const fechasStr = c.encuentros.map(enc => {
+                    const d = new Date(enc.fecha);
+                    return `${dias[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+                }).join(' • ');
+                diaHorarioText = `${fechasStr} - ${h}:${m} hs.`;
+            }
+
+            // 4. Materia: "Varias" si hay invitados, nombre del área principal si no
+            const primaryCargoLabel = c.cargoId?.areaId?.nombre || c.cargoId?.clave || '';
+            const tieneInvitados = (c.cargosInvitados || []).length > 0;
+            const materiaField = tieneInvitados ? 'Varias' : (primaryCargoLabel || 'Área General');
+
+            // RETORNO DEL JSON COMPLETO
+            return {
+                titulo:            c.tituloFormulario || c.nombrePropuesta || '',
+                fecha_inscripcion: fechaInscripcionIso,
+                fecha_inicio:      fechaInicioIso,
+                formato_dictado:   'Presencial (237)',
+                nivel:             c.publicacionDrupal?.nivel || '',
+                materia:           materiaField,
+                puntaje:           c.publicacionDrupal?.puntaje ? String(c.publicacionDrupal.puntaje) : '',
+                duracion:          duracionLeyenda,
+                dias_horarios:     diaHorarioText,
+                sede:              c.publicacionDrupal?.sede || '',
+                vacantes:          c.cupo ? String(c.cupo) : '',
+                formador:          c.formadorAbc || 'A DESIGNAR',
+                organiza:          c.publicacionDrupal?.organiza || 'DFDP',
+                enlace_url:        c.publicacionDrupal?.enlaceInscripcion || c.enlaceInscripcion || '',
+                enlace_texto:      'Formulario de Inscripción'
+            };
+        }
+
+        // ─── EVENTO: Copiado instantáneo desde la Fila ───
+        $(document).on('click', '.btn-copiar-json-fila', function () {
+            const btn = $(this);
+            const cursoId = btn.data('id');
+            const originalHtml = btn.html();
+            const fila = btn.closest('tr');
+
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+
+            $.get(`/curso/${cursoId}`)
+                .done(function (c) {
+                    const jsonCompleto = procesarCursoParaExtension(c);
+
+                    navigator.clipboard.writeText(JSON.stringify(jsonCompleto, null, 2)).then(() => {
+                        btn.addClass('copied-success').html('<i class="bi bi-check2"></i>');
+                        // Marcar la fila hasta el próximo refresh
+                        fila.addClass('fila-copiada');
+                        setTimeout(() => {
+                            btn.removeClass('copied-success').html(originalHtml).prop('disabled', false);
+                        }, 1800);
+                    });
+                })
+                .fail(function () {
+                    btn.html(originalHtml).prop('disabled', false);
+                    Swal.fire('Error', 'No se pudieron extraer los datos del curso.', 'error');
+                });
+        });
+
+        // ─── EVENTO: Abrir modal con datos del curso ─────────────
         $(document).on('click', '.btn-ver-curso', function () {
             const cursoId = $(this).data('id');
             $.get(`/curso/${cursoId}`)
                 .done(function (c) {
                     const body = document.getElementById('modalCopiarBody');
                     body.innerHTML = buildModalContent(c);
-                    bindCopyFields(body);
+                    bindCopyFields(body, c);
                     new bootstrap.Modal(document.getElementById('modalCopiarCurso')).show();
                 })
                 .fail(function () {
@@ -315,62 +463,41 @@
                 });
         });
 
-        // ─── Construir contenido del modal ───────────────
+        // ─── Construir contenido interno del modal ───────────────
         function buildModalContent(c) {
             const dias = ['dom','lun','mar','mié','jue','vie','sáb'];
+            const nombreProp = `${c.dispositivo ? c.dispositivo.trim().split(' ')[0].toUpperCase() : ''} • ${c.tituloFormulario || c.nombrePropuesta || '—'} [${c.cargoId?.clave || ''}]`;
 
-            // Nombre propuesta
-            // Nombre propuesta
-const nombreProp = `${c.dispositivo ? c.dispositivo.trim().split(' ')[0].toUpperCase() : ''} • ${c.tituloFormulario || c.nombrePropuesta || '—'} [${c.cargoId?.clave || ''}]`;
-
-            // Fecha inicio
             let fechaInicio = '—';
             if (c.encuentros && c.encuentros.length > 0) {
                 const d = new Date(c.encuentros[0].fecha);
-fechaInicio = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+                fechaInicio = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
             }
 
-            // Formato dictado sin paréntesis
             const formatoDictado = (c.publicacionDrupal?.formatoDictado || '—').replace(/\s*\(\d+\)/,'');
-
-            // Nivel
             const nivel = c.publicacionDrupal?.nivel || '—';
-
-            // Materia / área
-            const materia = c.cargoId?.areaId?.nombre || '—';
-
-            // Puntaje
+            // Modal también respeta la lógica de "Varias"
+            const tieneInvitados = (c.cargosInvitados || []).length > 0;
+            const materia = tieneInvitados ? 'Varias' : (c.cargoId?.areaId?.nombre || '—');
             const puntaje = c.publicacionDrupal?.puntaje ? String(c.publicacionDrupal.puntaje) : '—';
-
-            // Encuentros y duración
             const leyenda = REGLAS[c.dispositivo] || `${c.encuentros?.length || '—'} encuentros`;
 
-            // Fechas + horario
             let diaHorario = '—';
             if (c.encuentros && c.encuentros.length > 0) {
-    const primerEnc = new Date(c.encuentros[0].fecha);
-    const h = String(primerEnc.getHours()).padStart(2,'0');
-    const m = String(primerEnc.getMinutes()).padStart(2,'0');
-    const fechasStr = c.encuentros.map(enc => {
-        const d = new Date(enc.fecha);
-        return `${dias[d.getDay()]}, ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-    }).join(' • ');
-    diaHorario = `${fechasStr} - ${h}:${m} hs.`;
-}
+                const primerEnc = new Date(c.encuentros[0].fecha);
+                const h = String(primerEnc.getHours()).padStart(2,'0');
+                const m = String(primerEnc.getMinutes()).padStart(2,'0');
+                const fechasStr = c.encuentros.map(enc => {
+                    const d = new Date(enc.fecha);
+                    return `${dias[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+                }).join(' • ');
+                diaHorario = `${fechasStr} - ${h}:${m} hs.`;
+            }
 
-            // Sede
             const sede = c.publicacionDrupal?.sede || '—';
-
-            // Cupo
             const cupo = c.cupo ? String(c.cupo) : '—';
-
-            // Formador
             const formador = c.formadorAbc || 'A DESIGNAR';
-
-            // Organiza
             const organiza = c.publicacionDrupal?.organiza || 'DFDP';
-
-            // Enlace
             const enlace = c.publicacionDrupal?.enlaceInscripcion || c.enlaceInscripcion || '';
 
             return `
@@ -386,53 +513,32 @@ fechaInicio = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).p
                 ${field('Fechas y horario', diaHorario)}
                 ${field('Sede', sede)}
                 ${field('Vacantes / Cupo', cupo)}
-
                 ${section('Responsables')}
                 ${field('Formador/a', formador)}
                 ${field('Organiza', organiza)}
-
                 ${enlace ? section('Inscripción') + fieldLink('Enlace de inscripción', enlace) : ''}
-
-                <button class="btn-copy-all" id="btnCopiarTodo">
-                    <i class="bi bi-clipboard-check"></i> Copiar todo
+                <button class="btn-copy-all mb-2" id="btnCopiarTodo">
+                    <i class="bi bi-clipboard-check"></i> Copiar todo (Texto Plano)
+                </button>
+                <button class="btn-copy-json" id="btnCopiarJsonExtension">
+                    <i class="bi bi-filetype-json"></i> Copiar JSON Completo para Extensión
                 </button>
             `;
         }
 
-        function section(label) {
-            return `<div class="copy-section-label"><i class="bi bi-dot"></i>${label}</div>`;
-        }
-
+        function section(label) { return `<div class="copy-section-label"><i class="bi bi-dot"></i>${label}</div>`; }
         function field(label, value) {
             const safe = value.replace(/"/g, '&quot;');
-            return `
-                <div class="copy-field" data-value="${safe}">
-                    <div class="copy-field-body">
-                        <div class="copy-field-label">${label}</div>
-                        <div class="copy-field-value">${value}</div>
-                    </div>
-                    <button class="btn-copy-field" title="Copiar"><i class="bi bi-copy"></i></button>
-                </div>`;
+            return `<div class="copy-field" data-value="${safe}"><div class="copy-field-body"><div class="copy-field-label">${label}</div><div class="copy-field-value">${value}</div></div><button class="btn-copy-field" title="Copiar"><i class="bi bi-copy"></i></button></div>`;
         }
-
         function fieldLink(label, value) {
             const safe = value.replace(/"/g, '&quot;');
-            return `
-                <div class="copy-field" data-value="${safe}">
-                    <div class="copy-field-body">
-                        <div class="copy-field-label">${label}</div>
-                        <div class="copy-field-value is-link">
-                            <a href="${value}" target="_blank" style="color:#00ADC5;text-decoration:none;">${value}</a>
-                        </div>
-                    </div>
-                    <button class="btn-copy-field" title="Copiar"><i class="bi bi-copy"></i></button>
-                </div>`;
+            return `<div class="copy-field" data-value="${safe}"><div class="copy-field-body"><div class="copy-field-label">${label}</div><div class="copy-field-value is-link"><a href="${value}" target="_blank" style="color:#00ADC5;text-decoration:none;">${value}</a></div></div><button class="btn-copy-field" title="Copiar"><i class="bi bi-copy"></i></button></div>`;
         }
 
-        // ─── Bind eventos de copiado ──────────────────────
-        function bindCopyFields(container) {
+        function bindCopyFields(container, c) {
             container.querySelectorAll('.copy-field').forEach(field => {
-                field.addEventListener('click', function (e) {
+                field.addEventListener('click', function () {
                     const btn = this.querySelector('.btn-copy-field');
                     copyText(this.getAttribute('data-value'), btn, this);
                 });
@@ -451,7 +557,21 @@ fechaInicio = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).p
                     this.innerHTML = '<i class="bi bi-check2"></i> ¡Copiado todo!';
                     this.classList.add('ok');
                     setTimeout(() => {
-                        this.innerHTML = '<i class="bi bi-clipboard-check"></i> Copiar todo';
+                        this.innerHTML = '<i class="bi bi-clipboard-check"></i> Copiar todo (Texto Plano)';
+                        this.classList.remove('ok');
+                    }, 2000);
+                });
+            }
+
+            const btnJson = container.querySelector('#btnCopiarJsonExtension');
+            if (btnJson) {
+                btnJson.addEventListener('click', function () {
+                    const jsonCompleto = procesarCursoParaExtension(c);
+                    copyText(JSON.stringify(jsonCompleto, null, 2), this, null);
+                    this.innerHTML = '<i class="bi bi-check2"></i> ¡JSON Copiado para Extensión!';
+                    this.classList.add('ok');
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="bi bi-filetype-json"></i> Copiar JSON para Extensión';
                         this.classList.remove('ok');
                     }, 2000);
                 });
@@ -466,13 +586,17 @@ fechaInicio = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).p
                 }
                 if (field) field.classList.add('copied');
                 setTimeout(() => {
-                    if (btn) { btn.innerHTML = '<i class="bi bi-copy"></i>'; btn.classList.remove('ok'); }
+                    if (btn) {
+                        if (btn.id === 'btnCopiarTodo') btn.innerHTML = '<i class="bi bi-clipboard-check"></i> Copiar todo (Texto Plano)';
+                        else if (btn.id === 'btnCopiarJsonExtension') btn.innerHTML = '<i class="bi bi-filetype-json"></i> Copiar JSON para Extensión';
+                        else btn.innerHTML = '<i class="bi bi-copy"></i>';
+                        btn.classList.remove('ok');
+                    }
                     if (field) field.classList.remove('copied');
                 }, 1800);
             });
         }
-
-    }); // fin ready
+    });
     </script>
 </body>
 </html>

@@ -245,7 +245,10 @@ class CursoLocalRepo {
     async getPorCiieId(ciieId) {
     try {
         return await CursoLocal.find({ ciieId: new mongoose.Types.ObjectId(ciieId) })
-            .populate(populateCargoConOcupante)
+            .populate([
+                populateCargoConOcupante,
+                { path: 'cargosInvitados', populate: [ { path: 'areaId' }, { path: 'ciieId' } ] }
+            ])
             // -1 ordena de mayor a menor (2026 primero, y lo más reciente de hoy arriba)
             .sort({ _id: -1 }) 
             .lean({ virtuals: true });

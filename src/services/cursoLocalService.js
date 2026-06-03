@@ -11,6 +11,7 @@ const ciieRepo = require('../repos/ciieRepo');
 const ciieService = require('./ciieService');
 const encuentroRepo = require('../repos/encuentroRepo');
 const CursoLocal = require('../models/CursoLocal');
+const Cargo = require('../models/Cargo');
 
 class CursoLocalService {
 
@@ -708,6 +709,23 @@ class CursoLocalService {
         const inicioInscripcion = cursoLocal.fechaInicioInscripcion || new Date();
         const finInscripcion = cursoLocal.fechaFinInscripcion || cursoLocal.fechaInicioCurso || cursoLocal.fechaFinCurso;
 
+        // Construir etiqueta de materia: cargo principal + cargos invitados
+        let primaryCargoLabel = '';
+        if (cursoLocal.cargoId) primaryCargoLabel = cursoLocal.cargoId.clave || cursoLocal.cargoId.areaId?.nombre || '';
+
+        let invitadosLabels = [];
+        if (Array.isArray(cursoLocal.cargosInvitados) && cursoLocal.cargosInvitados.length > 0) {
+            try {
+                const invitadosDocs = await Cargo.find({ _id: { $in: cursoLocal.cargosInvitados } }).populate('areaId').lean();
+                invitadosLabels = invitadosDocs.map(ci => ci?.areaId?.nombre || ci?.clave || String(ci?._id)).filter(Boolean);
+            } catch (err) {
+                console.warn('No se pudieron poblar cargosInvitados:', err.message);
+            }
+        }
+        const materiaField = [primaryCargoLabel].concat(invitadosLabels).filter(Boolean).join(', ');
+
+        const hoy = this._toDateString(new Date());
+
         const payload = new URLSearchParams({
             id: '0',
             idcurso: idCursoOriginal,
@@ -725,7 +743,24 @@ class CursoLocalService {
             tituloform: this._sanitizeString(cursoLocal.tituloFormulario) || '', //
             numero: String(cursoLocal.itinerario || 0), //aca va el número del itinerario
             idformato: String(data.idformato || '1'), // Formato de dictado mapeado (1=Sin definir, 2=Presencial, 3=Sincrónico Virtual, 5=Combinado)
-            nombrecapa: this._sanitizeString(cursoLocal.formadorAbc) || '' // acá va el nombre del formador que figura en el curso local, si no tiene se puede dejar vacío o poner "A designar"
+            nombrecapa: this._sanitizeString(cursoLocal.formadorAbc) || '', // acá va el nombre del formador que figura en el curso local, si no tiene se puede dejar vacío o poner "A designar"
+
+            // Campos para completar el formulario Drupal del sitio oficial
+            'title[0][value]': this._sanitizeString(cursoLocal.tituloFormulario) || this._sanitizeString(cursoLocal.nombrePropuesta) || '',
+            'field_fecha_inscripcion[0][value][date]': hoy,
+            'field_fecha_inicio[0][value][date]': this._toDateString(encuentros[0]?.fecha) || '',
+            'field_formato_de_dictado[0][target_id]': 'Presencial (237)',
+            'field_nivel[0][value]': cursoLocal.publicacionDrupal?.nivel || '',
+            'field_materia[0][value]': materiaField || '',
+            'field_puntaje_que_otorga_la_prop[0][value]': cursoLocal.publicacionDrupal?.puntaje ? String(cursoLocal.publicacionDrupal.puntaje) : '',
+            'field_duracion_de_la_propuesta_f[0][value]': cursoLocal.publicacionDrupal?.duracion || '',
+            'field_dias_y_hor[0][value]': cursoLocal.publicacionDrupal?.diasHorarios || '',
+            'field_sede[0][value]': cursoLocal.publicacionDrupal?.sede || '',
+            'field_vacantes[0][value]': cursoLocal.cupo ? String(cursoLocal.cupo) : '',
+            'field_formadora_formador[0][value]': this._sanitizeString(cursoLocal.formadorAbc) || '',
+            'field_organiza[0][value]': cursoLocal.publicacionDrupal?.organiza || '',
+            'field_formulario_de_inscripcion[0][subform][field_url_limitado][0][uri]': cursoLocal.publicacionDrupal?.enlaceInscripcion || cursoLocal.enlaceInscripcion || '',
+            'field_formulario_de_inscripcion[0][subform][field_titulo_del_enlace][0][value]': 'Formulario de Inscripción'
         });
 
         let response = await cursoExternoRepo.crearOfertaOficial(payload);

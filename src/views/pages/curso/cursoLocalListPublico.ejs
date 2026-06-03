@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title><%= title || 'Oferta de Cursos' %></title>
+    <style>
+        .curso-card {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            background-color: #161b22;
+            border: 1px solid #30363d !important;
+        }
+        .curso-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+        }
+        .badge-dispositivo {
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+        }
+        .curso-nombre {
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+        .info-row {
+            font-size: 0.82rem;
+            color: #8b949e;
+        }
+        .info-row i { width: 16px; text-align: center; }
+        #buscador:focus { border-color: #58a6ff; box-shadow: 0 0 0 0.2rem rgba(88,166,255,.15); }
+        .filtro-activo { border-color: #58a6ff !important; }
+        #contadorResultados { font-size: 0.8rem; }
+        .sin-resultados { display: none; }
+
+        @media (max-width: 575.98px) {
+            .curso-nombre { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER PÚBLICO -->
+    <nav class="navbar navbar-dark bg-dark border-bottom border-secondary border-opacity-25 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+                <img src="/img/LogoSicaa.png" alt="SICAA" height="18" class="me-2">
+                <span>SICAA</span>
+            </a>
+            <span class="text-muted small d-none d-sm-inline">
+                <i class="bi bi-building me-1"></i><%= ciieNombre %>
+            </span>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+
+        <!-- ENCABEZADO -->
+        <div class="mb-4">
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>Oferta de Cursos
+            </h1>
+            <p class="text-muted mb-0">
+                <i class="bi bi-building me-1"></i><%= ciieNombre %>
+                <span class="ms-2 badge bg-secondary"><%= ciieClave %></span>
+            </p>
+        </div>
+
+        <!-- BUSCADOR Y FILTROS -->
+        <div class="card mb-4" style="background-color:#161b22; border:1px solid #30363d;">
+            <div class="card-body py-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-5">
+                        <label class="form-label small text-muted mb-1">Buscar</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-muted">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" id="buscador"
+                                   class="form-control bg-dark border-secondary text-white"
+                                   placeholder="Nombre, formador/a, área...">
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small text-muted mb-1">Dispositivo</label>
+                        <select id="filtroDispositivo" class="form-select form-select-sm bg-dark border-secondary text-white">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small text-muted mb-1">Área</label>
+                        <select id="filtroArea" class="form-select form-select-sm bg-dark border-secondary text-white">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small text-muted mb-1">Año</label>
+                        <select id="filtroAnio" class="form-select form-select-sm bg-dark border-secondary text-white">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-1 d-flex align-items-end">
+                        <button id="btnLimpiar" class="btn btn-sm btn-outline-secondary w-100" title="Limpiar filtros">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-2 d-flex align-items-center gap-3">
+                    <span id="contadorResultados" class="text-muted"></span>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="soloDisponibles" checked>
+                        <label class="form-check-label small text-muted" for="soloDisponibles">Solo con inscripción abierta</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRILLA DE CURSOS -->
+        <%
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            const cursosVinculados = cursosLocales.filter(c => {
+                if (c.estado !== 'vinculado') return false;
+                if (!c.encuentros || c.encuentros.length === 0) return true;
+                return new Date(c.encuentros[0].fecha) >= hoy;
+            });
+        %>
+
+        <% if (cursosVinculados.length === 0) { %>
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-journal-x fs-1 d-block mb-3 opacity-25"></i>
+                <p class="mb-0">No hay cursos disponibles en este momento.</p>
+            </div>
+        <% } else { %>
+
+            <div id="gridCursos" class="row g-3">
+                <% cursosVinculados.forEach(c => {
+                    const disponible = String(c.disponible || '').toUpperCase() === 'S';
+                    const fechaInicio = c.encuentros && c.encuentros.length > 0
+                        ? new Date(c.encuentros[0].fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                        : null;
+                    const area = c.cargoId?.areaId?.nombre || c.cargoId?.areaId?.nombreCorto || '';
+                    const nivelText = c.publicacionDrupal?.nivel || '';
+                    const sede = c.publicacionDrupal?.sede || '';
+                    const puntaje = c.publicacionDrupal?.puntaje;
+                    const horas = c.cantidadHoras;
+
+                    const dispositivoColores = {
+                        'Taller en Servicio':       'bg-primary',
+                        'Taller Fuera de Servicio': 'bg-info text-dark',
+                        'Seminario':                'bg-warning text-dark',
+                        'Extensión CIIE':           'bg-secondary',
+                        'MADP + Ateneo':            'bg-success',
+                        'Ateneo Distancia':         'bg-success',
+                        'Curso Distancia':          'bg-danger',
+                        'Seminario Distancia':      'bg-warning text-dark'
+                    };
+                    const colorBadge = dispositivoColores[c.dispositivo] || 'bg-secondary';
+                %>
+                <div class="col-12 col-sm-6 col-xl-4 curso-item"
+                     data-nombre="<%= (c.nombrePropuesta || '').toLowerCase() %>"
+                     data-formador="<%= (c.formadorAbc || '').toLowerCase() %>"
+                     data-area="<%= area.toLowerCase() %>"
+                     data-dispositivo="<%= c.dispositivo || '' %>"
+                     data-anio="<%= c.anio || '' %>"
+                     data-disponible="<%= disponible ? '1' : '0' %>">
+                    <div class="card curso-card h-100">
+                        <div class="card-body d-flex flex-column gap-2 p-3">
+
+                            <!-- Badges superiores -->
+                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                <span class="badge badge-dispositivo <%= colorBadge %>">
+                                    <%= c.dispositivo || 'Sin dispositivo' %>
+                                </span>
+                                <span class="badge bg-dark border border-secondary text-muted" style="font-size:0.7rem;">
+                                    <%= c.anio %> · I<%= c.itinerario %>
+                                </span>
+                                <% if (disponible) { %>
+                                    <span class="badge bg-success ms-auto" style="font-size:0.65rem;">
+                                        <i class="bi bi-circle-fill me-1" style="font-size:0.5rem;"></i>Inscripción abierta
+                                    </span>
+                                <% } else { %>
+                                    <span class="badge bg-secondary ms-auto" style="font-size:0.65rem;">Sin inscripción</span>
+                                <% } %>
+                            </div>
+
+                            <!-- Nombre del curso -->
+                            <h6 class="curso-nombre fw-semibold text-white mb-0">
+                                <%= c.nombrePropuesta %>
+                            </h6>
+
+                            <!-- Info -->
+                            <div class="d-flex flex-column gap-1 mt-1">
+                                <% if (c.formadorAbc) { %>
+                                <div class="info-row">
+                                    <i class="bi bi-person-fill text-primary me-1"></i>
+                                    <%= c.formadorAbc %>
+                                </div>
+                                <% } %>
+
+                                <% if (area) { %>
+                                <div class="info-row">
+                                    <i class="bi bi-tag-fill text-secondary me-1"></i>
+                                    <%= area %>
+                                </div>
+                                <% } %>
+
+                                <% if (fechaInicio) { %>
+                                <div class="info-row">
+                                    <i class="bi bi-calendar-event-fill text-warning me-1"></i>
+                                    Inicio: <span class="text-white-50"><%= fechaInicio %></span>
+                                    <% if (c.encuentros && c.encuentros.length > 1) { %>
+                                        <span class="ms-1 text-muted">(<%= c.encuentros.length %> encuentros)</span>
+                                    <% } %>
+                                </div>
+                                <% } %>
+
+                                <div class="d-flex flex-wrap gap-2 info-row mt-1">
+                                    <% if (horas) { %>
+                                    <span><i class="bi bi-clock me-1"></i><%= horas %>hs</span>
+                                    <% } %>
+                                    <% if (puntaje) { %>
+                                    <span><i class="bi bi-award me-1 text-warning"></i><%= puntaje %> pts</span>
+                                    <% } %>
+                                    <% if (c.cupo) { %>
+                                    <span><i class="bi bi-people me-1"></i>Cupo: <%= c.cupo %></span>
+                                    <% } %>
+                                </div>
+
+                                <% if (nivelText) { %>
+                                <div class="info-row">
+                                    <i class="bi bi-mortarboard me-1"></i>
+                                    <%= nivelText %>
+                                </div>
+                                <% } %>
+
+                                <% if (sede) { %>
+                                <div class="info-row">
+                                    <i class="bi bi-geo-alt me-1"></i>
+                                    <%= sede %>
+                                </div>
+                                <% } %>
+                            </div>
+
+                            <!-- Botón inscripción -->
+                            <% if (disponible && c.enlaceInscripcion) { %>
+                            <div class="mt-auto pt-2 border-top border-secondary">
+                                <a href="<%= c.enlaceInscripcion %>" target="_blank" rel="noopener noreferrer"
+                                   class="btn btn-success btn-sm w-100 fw-semibold">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>Inscribirse
+                                </a>
+                            </div>
+                            <% } else if (!disponible) { %>
+                            <div class="mt-auto pt-2 border-top border-secondary">
+                                <button class="btn btn-outline-secondary btn-sm w-100" disabled>
+                                    <i class="bi bi-lock me-1"></i>Inscripción no disponible
+                                </button>
+                            </div>
+                            <% } %>
+
+                        </div>
+                    </div>
+                </div>
+                <% }); %>
+            </div>
+
+            <!-- SIN RESULTADOS -->
+            <div id="sinResultados" class="text-center py-5 text-muted sin-resultados">
+                <i class="bi bi-search fs-1 d-block mb-3 opacity-25"></i>
+                <p class="mb-1">No se encontraron cursos con esos criterios.</p>
+                <button class="btn btn-sm btn-outline-secondary mt-2" id="btnLimpiarSinResultados">
+                    <i class="bi bi-x-circle me-1"></i>Limpiar filtros
+                </button>
+            </div>
+
+        <% } %>
+
+    </div>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="mt-5 py-3 border-top border-secondary border-opacity-25 text-center">
+        <small class="text-muted">
+            <img src="/img/LogoSicaa.png" alt="SICAA" height="12" class="me-1 opacity-50">
+            SICAA · <%= ciieNombre %>
+        </small>
+    </footer>
+
+    <%- include('../../partials/scripts') %>
+    <script>
+    $(document).ready(function () {
+
+        const $items    = $('.curso-item');
+        const $grid     = $('#gridCursos');
+        const $sin      = $('#sinResultados');
+        const $contador = $('#contadorResultados');
+
+        // ─── Poblar filtros ───────────────────────────────────────────────────
+        const dispositivos = [...new Set($items.map((_, el) => $(el).data('dispositivo')).get().filter(Boolean))].sort();
+        const areas        = [...new Set($items.map((_, el) => $(el).data('area')).get().filter(Boolean))].sort();
+        const anios        = [...new Set($items.map((_, el) => String($(el).data('anio'))).get().filter(Boolean))].sort((a, b) => b - a);
+
+        dispositivos.forEach(d => $('#filtroDispositivo').append(`<option value="${d}">${d}</option>`));
+        areas.forEach(a => $('#filtroArea').append(`<option value="${a}">${a}</option>`));
+        anios.forEach(a => $('#filtroAnio').append(`<option value="${a}">${a}</option>`));
+
+        // ─── Filtrar ──────────────────────────────────────────────────────────
+        function filtrar() {
+            const texto       = $('#buscador').val().toLowerCase().trim();
+            const dispositivo = $('#filtroDispositivo').val();
+            const area        = $('#filtroArea').val().toLowerCase();
+            const anio        = $('#filtroAnio').val();
+            const soloDisp    = $('#soloDisponibles').is(':checked');
+
+            let visibles = 0;
+
+            $items.each(function () {
+                const $el = $(this);
+                const matchTexto  = !texto ||
+                    $el.data('nombre').includes(texto) ||
+                    $el.data('formador').includes(texto) ||
+                    $el.data('area').includes(texto);
+                const matchDisp   = !dispositivo || $el.data('dispositivo') === dispositivo;
+                const matchArea   = !area || $el.data('area').includes(area);
+                const matchAnio   = !anio || String($el.data('anio')) === anio;
+                const matchSoloD  = !soloDisp || $el.data('disponible') === 1 || $el.data('disponible') === '1';
+
+                const visible = matchTexto && matchDisp && matchArea && matchAnio && matchSoloD;
+                $el.toggle(visible);
+                if (visible) visibles++;
+            });
+
+            $contador.text(visibles === $items.length ? `${visibles} cursos` : `${visibles} de ${$items.length} cursos`);
+
+            if ($items.length > 0) {
+                $sin.toggle(visibles === 0);
+                $grid.toggle(visibles > 0);
+            }
+
+            // Resaltar filtros activos
+            ['#filtroDispositivo', '#filtroArea', '#filtroAnio'].forEach(sel => {
+                $(sel).toggleClass('filtro-activo', !!$(sel).val());
+            });
+            $('#buscador').toggleClass('filtro-activo', !!$('#buscador').val());
+        }
+
+        // ─── Limpiar ──────────────────────────────────────────────────────────
+        function limpiar() {
+            $('#buscador').val('');
+            $('#filtroDispositivo, #filtroArea, #filtroAnio').val('');
+            $('#soloDisponibles').prop('checked', true);
+            filtrar();
+        }
+
+        // ─── Eventos ──────────────────────────────────────────────────────────
+        $('#buscador').on('input', filtrar);
+        $('#filtroDispositivo, #filtroArea, #filtroAnio, #soloDisponibles').on('change', filtrar);
+        $('#btnLimpiar, #btnLimpiarSinResultados').on('click', limpiar);
+
+        // Inicializar contador
+        filtrar();
+    });
+    </script>
+</body>
+</html>
