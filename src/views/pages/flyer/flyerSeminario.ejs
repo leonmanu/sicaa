@@ -340,9 +340,21 @@
 
         /* ─── Panel de edición ───────────────────────────── */
         .edit-panel { width: 320px; flex-shrink: 0; }
+
+        /* ─── Modo embed (bare=true, sin chrome) ─────────── */
+        body.bare-mode { min-height: 675px; overflow: hidden; }
+        body.bare-mode nav.navbar { display: none !important; }
+        body.bare-mode .row.mb-3 { display: none !important; }
+        body.bare-mode .container-fluid { padding: 0 !important; }
+        body.bare-mode .page-layout {
+            padding: 0 !important;
+            max-width: 540px !important;
+            margin: 0 !important;
+            gap: 0 !important;
+        }
     </style>
 </head>
-<body>
+<body<% if (locals.bare) { %> class="bare-mode"<% } %>>
     <%- include('../../partials/navbar') %>
 
     <div class="container-fluid py-3">
@@ -474,6 +486,7 @@
             </div>
 
             <!-- ══════════════ PANEL EDICIÓN ══════════════ -->
+            <% if (!locals.bare) { %>
             <div class="edit-panel">
                 <div class="card bg-dark border-secondary">
                     <div class="card-header border-secondary">
@@ -520,6 +533,7 @@
                     </div>
                 </div>
             </div>
+            <% } %> <!-- /bare check -->
 
         </div><!-- /page-layout -->
     </div>
@@ -564,7 +578,8 @@ document.getElementById('cargo-titulo').addEventListener('input', function () {
 });
 
     // Descargar PNG
-    document.getElementById('btnDescargar').addEventListener('click', function () {
+    const btnDescargar = document.getElementById('btnDescargar');
+    if (btnDescargar) btnDescargar.addEventListener('click', function () {
         const btn = this;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando...';

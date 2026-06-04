@@ -550,7 +550,7 @@ const getFlyerCurso = async (req, res) => {
 
         const vista = vistas[curso.dispositivo] || 'pages/flyer/flyerOtros';
 
-        res.render(vista, { curso, user: req.user });
+        res.render(vista, { curso, user: req.user, bare: req.query.bare === 'true' });
 
     } catch (error) {
         console.error('Error al generar flyer:', error);

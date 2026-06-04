@@ -4,36 +4,47 @@
     <%- include('../../partials/head') %>
     <title><%= title || 'Oferta de Cursos' %></title>
     <style>
-        .curso-card {
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        .flyer-card {
             background-color: #161b22;
-            border: 1px solid #30363d !important;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
-        .curso-card:hover {
+        .flyer-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
-        .badge-dispositivo {
-            font-size: 0.7rem;
-            letter-spacing: 0.04em;
+        .flyer-preview-wrapper {
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            background: #1a1a2e;
         }
-        .curso-nombre {
-            font-size: 1rem;
-            line-height: 1.4;
+        .flyer-iframe {
+            width: 540px;
+            height: 675px;
+            border: none;
+            transform-origin: top left;
+            display: block;
+            pointer-events: none;
         }
-        .info-row {
-            font-size: 0.82rem;
-            color: #8b949e;
+        .flyer-no-disponible {
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a2e;
         }
-        .info-row i { width: 16px; text-align: center; }
+        .inscripcion-footer {
+            padding: 8px;
+            border-top: 1px solid #30363d;
+        }
         #buscador:focus { border-color: #58a6ff; box-shadow: 0 0 0 0.2rem rgba(88,166,255,.15); }
         .filtro-activo { border-color: #58a6ff !important; }
         #contadorResultados { font-size: 0.8rem; }
         .sin-resultados { display: none; }
-
-        @media (max-width: 575.98px) {
-            .curso-nombre { font-size: 0.95rem; }
-        }
     </style>
 </head>
 <body>
@@ -134,26 +145,7 @@
             <div id="gridCursos" class="row g-3">
                 <% cursosVinculados.forEach(c => {
                     const disponible = String(c.disponible || '').toUpperCase() === 'S';
-                    const fechaInicio = c.encuentros && c.encuentros.length > 0
-                        ? new Date(c.encuentros[0].fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                        : null;
                     const area = c.cargoId?.areaId?.nombre || c.cargoId?.areaId?.nombreCorto || '';
-                    const nivelText = c.publicacionDrupal?.nivel || '';
-                    const sede = c.publicacionDrupal?.sede || '';
-                    const puntaje = c.publicacionDrupal?.puntaje;
-                    const horas = c.cantidadHoras;
-
-                    const dispositivoColores = {
-                        'Taller en Servicio':       'bg-primary',
-                        'Taller Fuera de Servicio': 'bg-info text-dark',
-                        'Seminario':                'bg-warning text-dark',
-                        'Extensión CIIE':           'bg-secondary',
-                        'MADP + Ateneo':            'bg-success',
-                        'Ateneo Distancia':         'bg-success',
-                        'Curso Distancia':          'bg-danger',
-                        'Seminario Distancia':      'bg-warning text-dark'
-                    };
-                    const colorBadge = dispositivoColores[c.dispositivo] || 'bg-secondary';
                 %>
                 <div class="col-12 col-sm-6 col-xl-4 curso-item"
                      data-nombre="<%= (c.nombrePropuesta || '').toLowerCase() %>"
@@ -162,101 +154,41 @@
                      data-dispositivo="<%= c.dispositivo || '' %>"
                      data-anio="<%= c.anio || '' %>"
                      data-disponible="<%= disponible ? '1' : '0' %>">
-                    <div class="card curso-card h-100">
-                        <div class="card-body d-flex flex-column gap-2 p-3">
+                    <div class="flyer-card">
 
-                            <!-- Badges superiores -->
-                            <div class="d-flex flex-wrap gap-1 align-items-center">
-                                <span class="badge badge-dispositivo <%= colorBadge %>">
-                                    <%= c.dispositivo || 'Sin dispositivo' %>
-                                </span>
-                                <span class="badge bg-dark border border-secondary text-muted" style="font-size:0.7rem;">
-                                    <%= c.anio %> · I<%= c.itinerario %>
-                                </span>
-                                <% if (disponible) { %>
-                                    <span class="badge bg-success ms-auto" style="font-size:0.65rem;">
-                                        <i class="bi bi-circle-fill me-1" style="font-size:0.5rem;"></i>Inscripción abierta
-                                    </span>
-                                <% } else { %>
-                                    <span class="badge bg-secondary ms-auto" style="font-size:0.65rem;">Sin inscripción</span>
-                                <% } %>
-                            </div>
-
-                            <!-- Nombre del curso -->
-                            <h6 class="curso-nombre fw-semibold text-white mb-0">
-                                <%= c.nombrePropuesta %>
-                            </h6>
-
-                            <!-- Info -->
-                            <div class="d-flex flex-column gap-1 mt-1">
-                                <% if (c.formadorAbc) { %>
-                                <div class="info-row">
-                                    <i class="bi bi-person-fill text-primary me-1"></i>
-                                    <%= c.formadorAbc %>
-                                </div>
-                                <% } %>
-
-                                <% if (area) { %>
-                                <div class="info-row">
-                                    <i class="bi bi-tag-fill text-secondary me-1"></i>
-                                    <%= area %>
-                                </div>
-                                <% } %>
-
-                                <% if (fechaInicio) { %>
-                                <div class="info-row">
-                                    <i class="bi bi-calendar-event-fill text-warning me-1"></i>
-                                    Inicio: <span class="text-white-50"><%= fechaInicio %></span>
-                                    <% if (c.encuentros && c.encuentros.length > 1) { %>
-                                        <span class="ms-1 text-muted">(<%= c.encuentros.length %> encuentros)</span>
-                                    <% } %>
-                                </div>
-                                <% } %>
-
-                                <div class="d-flex flex-wrap gap-2 info-row mt-1">
-                                    <% if (horas) { %>
-                                    <span><i class="bi bi-clock me-1"></i><%= horas %>hs</span>
-                                    <% } %>
-                                    <% if (puntaje) { %>
-                                    <span><i class="bi bi-award me-1 text-warning"></i><%= puntaje %> pts</span>
-                                    <% } %>
-                                    <% if (c.cupo) { %>
-                                    <span><i class="bi bi-people me-1"></i>Cupo: <%= c.cupo %></span>
-                                    <% } %>
-                                </div>
-
-                                <% if (nivelText) { %>
-                                <div class="info-row">
-                                    <i class="bi bi-mortarboard me-1"></i>
-                                    <%= nivelText %>
-                                </div>
-                                <% } %>
-
-                                <% if (sede) { %>
-                                <div class="info-row">
-                                    <i class="bi bi-geo-alt me-1"></i>
-                                    <%= sede %>
-                                </div>
-                                <% } %>
-                            </div>
-
-                            <!-- Botón inscripción -->
-                            <% if (disponible && c.enlaceInscripcion) { %>
-                            <div class="mt-auto pt-2 border-top border-secondary">
-                                <a href="<%= c.enlaceInscripcion %>" target="_blank" rel="noopener noreferrer"
-                                   class="btn btn-success btn-sm w-100 fw-semibold">
-                                    <i class="bi bi-box-arrow-up-right me-1"></i>Inscribirse
-                                </a>
-                            </div>
-                            <% } else if (!disponible) { %>
-                            <div class="mt-auto pt-2 border-top border-secondary">
-                                <button class="btn btn-outline-secondary btn-sm w-100" disabled>
-                                    <i class="bi bi-lock me-1"></i>Inscripción no disponible
-                                </button>
-                            </div>
-                            <% } %>
-
+                        <!-- Flyer embebido -->
+                        <% if (c.idOfertaOficial) { %>
+                        <div class="flyer-preview-wrapper">
+                            <iframe
+                                src="/curso/flyer/<%= c.idOfertaOficial %>?bare=true"
+                                class="flyer-iframe"
+                                loading="lazy"
+                                scrolling="no"
+                                frameborder="0"
+                                title="<%= c.nombrePropuesta %>">
+                            </iframe>
                         </div>
+                        <% } else { %>
+                        <div class="flyer-no-disponible">
+                            <i class="bi bi-image text-muted" style="font-size:3rem; opacity:0.3;"></i>
+                            <p class="text-muted mt-2 small mb-0">Vista previa no disponible</p>
+                        </div>
+                        <% } %>
+
+                        <!-- Enlace de inscripción al pie -->
+                        <div class="inscripcion-footer">
+                            <% if (disponible && c.enlaceInscripcion) { %>
+                            <a href="<%= c.enlaceInscripcion %>" target="_blank" rel="noopener noreferrer"
+                               class="btn btn-success btn-sm w-100 fw-semibold">
+                                <i class="bi bi-box-arrow-up-right me-1"></i>Inscribirse
+                            </a>
+                            <% } else { %>
+                            <button class="btn btn-outline-secondary btn-sm w-100" disabled>
+                                <i class="bi bi-lock me-1"></i>Inscripción no disponible
+                            </button>
+                            <% } %>
+                        </div>
+
                     </div>
                 </div>
                 <% }); %>
@@ -285,6 +217,20 @@
 
     <%- include('../../partials/scripts') %>
     <script>
+    // ─── Escalar iframes al tamaño del contenedor ─────────────────────
+    function scaleFlyerIframes() {
+        document.querySelectorAll('.flyer-preview-wrapper').forEach(function(wrapper) {
+            var iframe = wrapper.querySelector('.flyer-iframe');
+            if (!iframe) return;
+            var scale = wrapper.offsetWidth / 540;
+            iframe.style.transform = 'scale(' + scale + ')';
+            wrapper.style.height = Math.round(675 * scale) + 'px';
+        });
+    }
+    window.addEventListener('load', scaleFlyerIframes);
+    window.addEventListener('resize', scaleFlyerIframes);
+    scaleFlyerIframes();
+
     $(document).ready(function () {
 
         const $items    = $('.curso-item');
