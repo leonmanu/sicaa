@@ -131,7 +131,8 @@
                            class="table table-dark table-hover align-middle mb-0"
                            data-estado-col-index="<%= usuario.tipo === 'institucion' ? 4 : 3 %>"
                            data-creado-col-index="<%= usuario.tipo === 'institucion' ? 5 : 4 %>"
-                           data-inicio-col-index="<%= usuario.tipo === 'institucion' ? 3 : 2 %>">
+                           data-inicio-col-index="<%= usuario.tipo === 'institucion' ? 3 : 2 %>"
+                           data-area-col-index="<%= usuario.tipo === 'institucion' ? 1 : -1 %>">
                         <thead class="bg-black text-muted small text-uppercase">
                             <tr>
                                 <th>Iti</th>
@@ -184,7 +185,7 @@
                                     <tr>
                                         <td class="fw-bold text-info"><%= c.anio %> • I<%= c.itinerario %></td>
                                         <% if(usuario.tipo == 'institucion'){ %>
-                                            <td>
+                                            <td data-area="<%= c.cargoId.areaId?.nombreCorto || 'Área General' %>">
                                                 <b><%= c.cargoId.areaId?.nombreCorto || 'Área General' %></b>
                                                 <small class="ms-1"><%= c.cargoId?.clave || 'clave fallida' %></small>
                                                 <br>
@@ -210,7 +211,7 @@
                                                 <% } %>
                                             </td>
 
-                                        <td data-order="<%= c.estado === 'pendiente' ? 0 : c.estado === 'vinculado' ? 1 : c.estado === 'modificacion_pendiente' ? 2 : c.estado === 'eliminacion_pendiente' ? 3 : c.estado === 'dormido' ? 4 : 99 %>">
+                                        <td data-order="<%= c.estado === 'pendiente' ? 0 : c.estado === 'vinculado' ? 1 : c.estado === 'modificacion_pendiente' ? 2 : c.estado === 'eliminacion_pendiente' ? 3 : c.estado === 'dormido' ? 4 : 99 %>" data-dispositivo="<%= c.dispositivo %>">
                                             <small class="text-muted"><%= c.dispositivo %></small>
                                             <br>
                                             <% 
@@ -651,8 +652,24 @@ $('#btnAltaCurso').on('click', function() {
             const estadoColIndex = Number(table.data('estado-col-index'));
             const creadoColIndex = Number(table.data('creado-col-index'));
             const inicioColIndex = Number(table.data('inicio-col-index'));
+            const areaColIndex = Number(table.data('area-col-index'));
 
             // Solo inicializar DataTable si hay cursos (sin row con colspan vacía)
+            let filtroDispositivoActual = '';
+            let filtroAreaActual = '';
+            $.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex) {
+                if (settings.nTable.id !== 'tablaCursosCargo') return true;
+                if (filtroDispositivoActual) {
+                    const valor = $(settings.aoData[dataIndex].nTr).find('td[data-dispositivo]').data('dispositivo');
+                    if (String(valor) !== filtroDispositivoActual) return false;
+                }
+                if (filtroAreaActual) {
+                    const valor = $(settings.aoData[dataIndex].nTr).find('td[data-area]').data('area');
+                    if (String(valor) !== filtroAreaActual) return false;
+                }
+                return true;
+            });
+
             table.DataTable({
                 language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
                 responsive: true,
@@ -666,6 +683,48 @@ $('#btnAltaCurso').on('click', function() {
                         const idx = column.index();
                         const $select = table.find(`.filtro-columna[data-column="${idx}"]`);
                         const $input = table.find(`.filtro-texto[data-column="${idx}"]`);
+
+                        if (idx === estadoColIndex) {
+                            // Columna combinada (Dispositivo + Estado + Disponible): el select filtra solo por dispositivo.
+                            if ($select.length) {
+                                const dispositivos = [];
+                                table.find('tbody td[data-dispositivo]').each(function () {
+                                    const val = $(this).data('dispositivo');
+                                    if (val && !dispositivos.includes(val)) dispositivos.push(val);
+                                });
+                                dispositivos.sort();
+                                dispositivos.forEach(function (val) {
+                                    $select.append(`<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`);
+                                });
+
+                                $select.on('change', function () {
+                                    filtroDispositivoActual = $(this).val();
+                                    api.draw();
+                                });
+                            }
+                            return;
+                        }
+
+                        if (idx === areaColIndex) {
+                            // Columna combinada (Área + Cargo + Formador + Invitados): el select filtra solo por área.
+                            if ($select.length) {
+                                const areas = [];
+                                table.find('tbody td[data-area]').each(function () {
+                                    const val = $(this).data('area');
+                                    if (val && !areas.includes(val)) areas.push(val);
+                                });
+                                areas.sort();
+                                areas.forEach(function (val) {
+                                    $select.append(`<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`);
+                                });
+
+                                $select.on('change', function () {
+                                    filtroAreaActual = $(this).val();
+                                    api.draw();
+                                });
+                            }
+                            return;
+                        }
 
                         if ($select.length) {
                             const values = [];

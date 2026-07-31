@@ -69,7 +69,8 @@ const getDashboard = async (req, res) => {
                     acciones: [
                         { label: 'Calificaciones', href: '/ciie/calificaciones', descripcion: 'Gestion y envio de notas.' },
                         { label: 'Certificados y actas', href: '/ciie/certificados', descripcion: 'Impresion de documentos.' },
-                        { label: 'Planilla aprobados por itinerario', href: '/ciie/certificados/aprobados-itinerario', descripcion: 'Planilla de aprobados por anio e itinerario.' }
+                        { label: 'Planilla aprobados por itinerario', href: '/ciie/certificados/aprobados-itinerario', descripcion: 'Planilla de aprobados por anio e itinerario.' },
+                        { label: 'Trayectoria de cursantes', href: '/ciie/certificados/trayectoria-cursantes', descripcion: 'Busqueda de recorrido de un cursante por DNI o apellido y nombre.' }
                     ]
                 }
             ];

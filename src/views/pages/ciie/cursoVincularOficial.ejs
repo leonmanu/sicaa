@@ -44,7 +44,31 @@
                                 </th>
                                 <th>Curso Local</th>
                                 <th>Cargo</th>
-                                <th>Anio/Cohorte</th>
+                                <th>
+                                    <div class="d-flex flex-column gap-1">
+                                        <span>Cohorte</span>
+                                        <%
+                                            const combosCohorteSet = new Set();
+                                            (cursosPendientes || []).forEach(c => {
+                                                combosCohorteSet.add(`${c.anio ?? 0}-${c.itinerario ?? 0}`);
+                                            });
+                                            const combosCohorte = Array.from(combosCohorteSet).sort((a, b) => {
+                                                const [aAnio, aIti] = a.split('-').map(Number);
+                                                const [bAnio, bIti] = b.split('-').map(Number);
+                                                if (bAnio !== aAnio) return bAnio - aAnio;
+                                                return bIti - aIti;
+                                            });
+                                            const comboCohorteMax = combosCohorte[0];
+                                        %>
+                                        <select id="filtroCohorte" class="form-select form-select-sm bg-dark border-secondary text-white fw-normal text-lowercase" style="min-width: 110px;">
+                                            <option value="todas">Todas</option>
+                                            <% combosCohorte.forEach(combo => { %>
+                                                <option value="<%= combo %>" <% if (combo === comboCohorteMax) { %>selected<% } %>><%= combo.replace('-', ' • I') %></option>
+                                            <% }) %>
+                                        </select>
+                                    </div>
+                                </th>
+                                <th>Fecha</th>
                                 <th>Estado</th>
                                 <th class="text-end pe-4">Acciones</th>
                             </tr>
@@ -58,6 +82,7 @@
                                                 type="checkbox"
                                                 class="form-check-input check-curso"
                                                 data-curso-id="<%= curso._id %>"
+                                                <% if (curso.estado === 'vinculado') { %>disabled<% } %>
                                                 aria-label="Seleccionar curso <%= (curso.nombrePropuesta || 'Sin nombre').replace(/"/g, '&quot;') %>">
                                         </td>
                                         <td>
@@ -67,10 +92,17 @@
                                         <td>
                                             <small><%= curso.cargoId?.areaId?.nombre || 'Area sin definir' %></small>
                                         </td>
-                                        <td>
+                                        <td data-key="<%= curso.anio ?? 0 %>-<%= curso.itinerario ?? 0 %>">
                                             <span><%= curso.anio || '-' %> • <b>I</b><%= curso.itinerario ?? 0 %></span>
                                         </td>
-                                        <td>
+                                        <td data-order="<%= curso.fechaFinInscripcion ? new Date(curso.fechaFinInscripcion).getTime() : 0 %>">
+                                            <%=
+                                                curso.fechaFinInscripcion
+                                                    ? new Date(curso.fechaFinInscripcion).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+                                                    : '-'
+                                            %>
+                                        </td>
+                                        <td data-order="<%= curso.estado === 'pendiente' ? 0 : (curso.estado === 'vinculado' ? 2 : 1) %>">
                                             <% if(curso.estado === 'pendiente') { %>
                                                 <span class="badge bg-warning text-dark"><%= curso.estado %></span>
                                             <% } %>
@@ -401,14 +433,30 @@
         }
 
         $(document).ready(function () {
-            $('#tablaPendientes').DataTable({
+            let filtroCohorteActual = $('#filtroCohorte').val() || 'todas';
+
+            $.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, rowData, counter) {
+                if (settings.nTable.id !== 'tablaPendientes') return true;
+                if (filtroCohorteActual === 'todas') return true;
+                const key = $(settings.aoData[dataIndex].nTr).find('td[data-key]').data('key');
+                return String(key) === filtroCohorteActual;
+            });
+
+            const tablaPendientesTable = $('#tablaPendientes').DataTable({
                 language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
                 pageLength: 10,
-                order: [[3, 'desc']],
+                order: [[5, 'asc'], [4, 'desc']],
                 columnDefs: [
-                    { orderable: false, targets: [0, 5] }
+                    { orderable: false, targets: [0, 6] }
                 ]
             });
+
+            $('#filtroCohorte')
+                .on('click', function (e) { e.stopPropagation(); })
+                .on('change', function () {
+                    filtroCohorteActual = this.value;
+                    tablaPendientesTable.draw();
+                });
 
             renderOfertas('');
 
@@ -582,12 +630,13 @@
             });
 
             $('#checkAllCursos').on('change', function () {
-                $('.check-curso').prop('checked', this.checked);
+                $('.check-curso:not(:disabled)').prop('checked', this.checked);
             });
 
             $('#btnSeleccionarTodo').on('click', function () {
-                const allChecked = $('.check-curso').length > 0 && $('.check-curso:checked').length === $('.check-curso').length;
-                $('.check-curso').prop('checked', !allChecked);
+                const seleccionables = $('.check-curso:not(:disabled)');
+                const allChecked = seleccionables.length > 0 && seleccionables.filter(':checked').length === seleccionables.length;
+                seleccionables.prop('checked', !allChecked);
                 $('#checkAllCursos').prop('checked', !allChecked);
             });
 

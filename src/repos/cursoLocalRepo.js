@@ -169,6 +169,20 @@ class CursoLocalRepo {
         }
     }
 
+    async getPorIdsYCiie(cursoIds, ciieId) {
+        try {
+            return await CursoLocal.find({
+                _id: { $in: cursoIds },
+                ciieId: new mongoose.Types.ObjectId(ciieId)
+            })
+                .populate(populateCargoConOcupante)
+                .lean({ virtuals: true });
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getPorIdsYCiie:', error.message);
+            throw error;
+        }
+    }
+
     async getPorCiieAnioItinerario(ciieId, anio, itinerario) {
         try {
             return await CursoLocal.find({

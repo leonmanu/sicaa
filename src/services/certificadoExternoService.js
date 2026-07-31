@@ -1,19 +1,25 @@
+const cheerio = require('cheerio');
 const certificadoExternoRepository = require('../repos/certificadoExternoRepo');
 const sesionService = require('./sesionService');
 
 class CertificadoExternoService {
-    async obtenerCertificado(idOfertaOficial) {
+    async obtenerCertificado(idOfertaOficial, opciones = {}) {
+        const { esSeminario = false, idCursoOriginal } = opciones;
         try {
             // Asegurar sesión antes de consultar el sitio oficial
             await sesionService.asegurarSesion();
-            
-            let rawText = await certificadoExternoRepository.getDatosAdministrativosPdf(idOfertaOficial);
-            
+
+            const fetchPdf = () => esSeminario
+                ? this._obtenerTextoSeminario(idOfertaOficial, idCursoOriginal)
+                : certificadoExternoRepository.getDatosAdministrativosPdf(idOfertaOficial);
+
+            let rawText = await fetchPdf();
+
             // Si algo falla, reintentamos con sesión renovada
             if (!rawText || rawText.length === 0) {
                 console.log('⚠️ PDF vacío, renovando sesión e intentando de nuevo...');
                 await sesionService.asegurarSesion(true);
-                rawText = await certificadoExternoRepository.getDatosAdministrativosPdf(idOfertaOficial);
+                rawText = await fetchPdf();
             }
             return {
                 rawText,
@@ -23,6 +29,26 @@ class CertificadoExternoService {
             console.error(`Error al obtener el certificado para la oferta ${idOfertaOficial}:`, error);
             throw new Error('No se pudo obtener el certificado externo');
         }
+    }
+
+    // Para seminarios, quién está en condiciones de certificar lo decide el sitio
+    // oficial en combinaciones.php (cruza con experiencias CIIE de otros CIIE).
+    // De ahí sacamos el listado de "aprobados" para pedirle el PDF a pdf1.php.
+    async _obtenerTextoSeminario(idOfertaOficial, idCursoOriginal) {
+        const html = await certificadoExternoRepository.getCombinaciones(idOfertaOficial, idCursoOriginal);
+        const idaprobados = this._parseAprobadosCombinados(html);
+
+        if (!idaprobados) {
+            return '';
+        }
+
+        return certificadoExternoRepository.getDatosAdministrativosPdfSeminario(idaprobados, idOfertaOficial);
+    }
+
+    _parseAprobadosCombinados(html) {
+        const $ = cheerio.load(String(html || ''));
+        const valor = $('#aprobados').attr('value') || '';
+        return valor.trim();
     }
 
     _parseDatosAdministrativos(texto = '') {

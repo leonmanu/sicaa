@@ -337,6 +337,7 @@ class CursoLocalService {
             };
         }
 
+        const cursosNoExtension = cursos.filter(curso => !this._esExtensionDispositivo(curso.dispositivo));
         const cursoIds = cursos.map(c => c._id);
         const inscriptos = await inscriptoLocalRepo.getPorListaDeCursos(cursoIds);
         const cursoPorId = new Map(cursos.map(c => [String(c._id), c]));
@@ -370,8 +371,30 @@ class CursoLocalService {
             });
         }
 
+        const cursosExtensionIds = new Set(
+            cursos
+                .filter(curso => this._esExtensionDispositivo(curso.dispositivo))
+                .map(curso => String(curso._id))
+        );
+
+        const extensionAprobadosPorPersona = new Map();
+        for (const inscripto of inscriptos) {
+            const cursoId = String(inscripto.cursoId);
+            if (!this._esAprobado(inscripto.calificacion) || !cursosExtensionIds.has(cursoId)) continue;
+
+            const personaKey = this._buildPersonaKey(inscripto);
+            extensionAprobadosPorPersona.set(
+                personaKey,
+                (extensionAprobadosPorPersona.get(personaKey) || 0) + 1
+            );
+        }
+
         const aprobados = inscriptos
             .filter(i => this._esAprobado(i.calificacion))
+            .filter(i => {
+                const curso = cursoPorId.get(String(i.cursoId));
+                return curso && !this._esExtensionDispositivo(curso.dispositivo);
+            })
             .map(i => {
                 const cursoId = String(i.cursoId);
                 const curso = cursoPorId.get(cursoId) || {};
@@ -383,14 +406,19 @@ class CursoLocalService {
                     ? `${formadorPersona.apellido || ''}, ${formadorPersona.nombre || ''}`.replace(/(^\s*,\s*)|(\s+,\s*$)/g, '').trim()
                     : (curso.formadorAbc || 'Sin formador');
 
+                const personaKey = this._buildPersonaKey(i);
+                const cantidadExtension = extensionAprobadosPorPersona.get(personaKey) || 0;
+                const cursoNombre = this._sanitizeString(curso.nombrePropuesta) || 'Sin propuesta';
+
                 return {
-                    nombreCompleto,
+                    nombreCompleto: cantidadExtension > 0 ? `${nombreCompleto} (${cantidadExtension})` : nombreCompleto,
                     dni: this._sanitizeString(i.dni) || '',
-                    curso: this._sanitizeString(curso.nombrePropuesta) || 'Sin propuesta',
+                    curso: cursoNombre,
                     area,
                     formador,
                     fechaInicioCursada: fechasCursada.fechaInicioCursada || null,
-                    fechaFinCursada: fechasCursada.fechaFinCursada || null
+                    fechaFinCursada: fechasCursada.fechaFinCursada || null,
+                    extensionAprobados: cantidadExtension
                 };
             })
             .sort((a, b) => {
@@ -401,13 +429,128 @@ class CursoLocalService {
             .map((fila, index) => ({ ...fila, orden: index + 1 }));
 
         return {
-            cursos,
+            cursos: cursosNoExtension,
             aprobados,
             resumen: {
-                cantidadCursos: cursos.length,
+                cantidadCursos: cursosNoExtension.length,
                 cantidadAprobados: aprobados.length
             }
         };
+    }
+
+    async buscarTrayectoriaCursantes(ciieId, filtros = {}) {
+        const dni = this._sanitizeString(filtros.dni);
+        const apellido = this._sanitizeString(filtros.apellido);
+        const nombres = this._sanitizeString(filtros.nombres);
+
+        const busqueda = { dni: dni || '', apellido: apellido || '', nombres: nombres || '' };
+
+        if (!dni && !apellido && !nombres) {
+            return { personas: [], busqueda };
+        }
+
+        const inscriptos = await inscriptoLocalRepo.buscarPorDniONombre({
+            dni,
+            apellido: apellido ? this._escapeRegExp(apellido) : undefined,
+            nombres: nombres ? this._escapeRegExp(nombres) : undefined
+        });
+
+        if (inscriptos.length === 0) {
+            return { personas: [], busqueda };
+        }
+
+        const cursoIds = [...new Set(inscriptos.map(i => String(i.cursoId)))];
+        const cursos = await cursoLocalRepo.getPorIdsYCiie(cursoIds, ciieId);
+        const cursoPorId = new Map(cursos.map(c => [String(c._id), c]));
+
+        const inscriptosDelCiie = inscriptos.filter(i => cursoPorId.has(String(i.cursoId)));
+        if (inscriptosDelCiie.length === 0) {
+            return { personas: [], busqueda };
+        }
+
+        const encuentros = await encuentroRepo.getPorCursoIds(inscriptosDelCiie.map(i => i.cursoId));
+        const encuentrosPorCursoId = new Map();
+        for (const encuentro of (encuentros || [])) {
+            const key = String(encuentro.cursoId);
+            if (!encuentrosPorCursoId.has(key)) encuentrosPorCursoId.set(key, []);
+            encuentrosPorCursoId.get(key).push(encuentro);
+        }
+
+        const personasPorClave = new Map();
+
+        for (const inscripto of inscriptosDelCiie) {
+            const curso = cursoPorId.get(String(inscripto.cursoId)) || {};
+            const clave = this._buildPersonaKey(inscripto);
+
+            if (!personasPorClave.has(clave)) {
+                personasPorClave.set(clave, {
+                    nombreCompleto: this._buildNombreCompleto(inscripto),
+                    dni: this._sanitizeString(inscripto.dni) || '',
+                    cursos: []
+                });
+            }
+
+            const lista = (encuentrosPorCursoId.get(String(inscripto.cursoId)) || [])
+                .filter(e => e && e.fecha)
+                .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+            const fechaInicioCursada = lista.length > 0
+                ? this._toDateOrNull(lista[0].fecha)
+                : this._toDateOrNull(curso.fechaInicioCurso);
+            const fechaFinCursada = lista.length > 0
+                ? this._toDateOrNull(lista[lista.length - 1].fecha)
+                : this._toDateOrNull(curso.fechaFinCurso);
+
+            const area = curso?.cargoId?.areaId?.nombreCorto || '';
+            const formadorPersona = curso?.cargoId?.ocupante?.usuarioId?.referenciaId;
+            const formador = formadorPersona
+                ? `${formadorPersona.apellido || ''}, ${formadorPersona.nombre || ''}`.replace(/(^\s*,\s*)|(\s+,\s*$)/g, '').trim()
+                : (curso.formadorAbc || '');
+
+            personasPorClave.get(clave).cursos.push({
+                curso: this._sanitizeString(curso.nombrePropuesta) || 'Sin propuesta',
+                anio: curso.anio ?? null,
+                cohorte: curso.cohorte ?? null,
+                itinerario: curso.itinerario ?? null,
+                dispositivo: curso.dispositivo || '',
+                area,
+                formador,
+                calificacion: this._normalizarResultado(inscripto.calificacion),
+                fechaInicioCursada,
+                fechaFinCursada
+            });
+        }
+
+        const personas = Array.from(personasPorClave.values())
+            .map(persona => ({
+                ...persona,
+                cursos: persona.cursos.sort((a, b) => {
+                    const anioA = a.anio ?? 0;
+                    const anioB = b.anio ?? 0;
+                    if (anioA !== anioB) return anioB - anioA;
+                    return (a.cohorte ?? 0) - (b.cohorte ?? 0);
+                })
+            }))
+            .sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es'));
+
+        return { personas, busqueda };
+    }
+
+    _escapeRegExp(value) {
+        return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    _buildPersonaKey(inscripto = {}) {
+        const dni = this._sanitizeString(inscripto.dni) || '';
+        const apellido = this._sanitizeString(inscripto.apellido) || '';
+        const nombres = this._sanitizeString(inscripto.nombres) || '';
+        if (dni) return `dni:${dni.trim()}`;
+        return `name:${apellido.trim().toLowerCase()}|${nombres.trim().toLowerCase()}`;
+    }
+
+    _esExtensionDispositivo(dispositivo) {
+        const value = this._sanitizeString(dispositivo).toLowerCase();
+        return value === 'extensión ciie' || value === 'extension ciie';
     }
 
     async getDetalleCalificacionesCurso(idOfertaOficial, usuario = {}) {
@@ -423,31 +566,31 @@ class CursoLocalService {
     }
 
     async getDocumentosCursosLote(idOfertasOficiales = [], usuario = {}) {
-    if (!Array.isArray(idOfertasOficiales) || idOfertasOficiales.length === 0) {
-        const err = new Error('No se recibieron cursos para consultar documentos.');
-        err.statusCode = 400;
-        throw err;
-    }
+        if (!Array.isArray(idOfertasOficiales) || idOfertasOficiales.length === 0) {
+            const err = new Error('No se recibieron cursos para consultar documentos.');
+            err.statusCode = 400;
+            throw err;
+        }
 
-    const cursosDocumentos = []; // Cambiamos el nombre para mayor claridad
+        const cursosDocumentos = []; // Cambiamos el nombre para mayor claridad
 
-    for (const idOfertaOficial of idOfertasOficiales) {
-        // 1. Datos que vienen del "vinculador" (probablemente scraping/api abc)
-        const cursoAbc = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
-        
-        // 2. Datos que vienen de TU base de datos (con el populate del cargo y persona)
-        const cursoDb = await cursoLocalRepo.getPorIdOfertaOficial(idOfertaOficial);
-        const ciie = await ciieService.getPorId(cursoDb.ciieId);
-        console.log('Curso local encontrado para idOfertaOficial', idOfertaOficial, ':', cursoDb);
-        // 3. Inscriptos
-        const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(cursoAbc._id);
+        for (const idOfertaOficial of idOfertasOficiales) {
+            // 1. Datos que vienen del "vinculador" (probablemente scraping/api abc)
+            const cursoAbc = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
+            
+            // 2. Datos que vienen de TU base de datos (con el populate del cargo y persona)
+            const cursoDb = await cursoLocalRepo.getPorIdOfertaOficial(idOfertaOficial);
+            const ciie = await ciieService.getPorId(cursoDb.ciieId);
+            //console.log('Curso local encontrado para idOfertaOficial', idOfertaOficial, ':', cursoDb);
+            // 3. Inscriptos
+            const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(cursoAbc._id);
 
-        // IMPORTANTE: Aquí enviamos 'cursoDb' que es el que tiene el cargoId populado
-        // Si _buildDocumentosCurso espera el curso, asegúrate de pasarle el de la DB
-        cursosDocumentos.push(await this._buildDocumentosCurso(cursoAbc, inscriptosLocales, cursoDb, ciie));
-    }
+            // IMPORTANTE: Aquí enviamos 'cursoDb' que es el que tiene el cargoId populado
+            // Si _buildDocumentosCurso espera el curso, asegúrate de pasarle el de la DB
+            cursosDocumentos.push(await this._buildDocumentosCurso(cursoAbc, inscriptosLocales, cursoDb, ciie));
+        }
 
-    return cursosDocumentos;
+        return cursosDocumentos;
 }
 
     async marcarImpresionDocumentos(idOfertaOficial, tipo = 'ambos', usuario = {}) {
@@ -1231,7 +1374,11 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
     }
 
     async _buildDocumentosCurso(curso, inscriptosLocales = [], cursoLocal, ciie) {
-        const externos = await certificadoExternoService.obtenerCertificado(curso.idOfertaOficial);
+        const esSeminario = /^Seminario/i.test(this._sanitizeString(curso.dispositivo) || '');
+        const externos = await certificadoExternoService.obtenerCertificado(curso.idOfertaOficial, {
+            esSeminario,
+            idCursoOriginal: curso.idCursoOriginal
+        });
         const metadatos = externos?.parsed?.metadatos || {};
         const propuesta = externos?.parsed?.propuesta || this._sanitizeString(curso.nombrePropuesta);
         // Extraemos los datos del formador de TU base de datos (cursoLocal)
@@ -1242,13 +1389,21 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
         const nombreArea = cursoLocal?.cargoId?.areaId?.nombre || 'Área no definida';
         const cohorte = cursoLocal?.cohorte || ''
 
-        const certificados = inscriptosLocales
-            .filter(i => this._esAprobado(i.calificacion))
-            .map(i => ({
-                nombreCompleto: this._buildNombreCompleto(i),
-                dni: this._sanitizeString(i.dni),
-                calificacion: this._normalizarResultado(i.calificacion),
-                idInscripcionOficial: this._sanitizeString(i.idInscripcionOficial)
+        // El modelo CursoLocal no guarda fechaInicioCurso/fechaFinCurso: esos datos
+        // salen del encabezado del acta oficial (PDF), que ya viene parseado.
+        const encabezadoActa = externos?.parsed?.acta?.encabezado || {};
+        const fechaInicioCurso = this._parseFechaAbc(encabezadoActa.fechaInicio) || this._toDateOrNull(curso.fechaInicioCurso);
+        const fechaFinCurso = this._parseFechaAbc(encabezadoActa.fechaFinalizacion) || this._toDateOrNull(curso.fechaFinCurso);
+
+        // Los certificados se basan en lo que efectivamente aprueba/emite el sitio
+        // oficial (PDF), no en la calificación cargada localmente. Esto es clave
+        // para seminarios, donde "quién está en condiciones" lo decide el cruce
+        // con combinaciones.php y puede no coincidir con la calificación local.
+        const certificados = (externos?.parsed?.certificados || [])
+            .map(c => ({
+                nombreCompleto: this._sanitizeString(c.nombreCompleto),
+                dni: this._sanitizeString(c.dni),
+                calificacion: 'Aprobado'
             }));
 
         const acta = inscriptosLocales
@@ -1268,9 +1423,10 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
                 idCursoOriginal: curso.idCursoOriginal,
                 nombrePropuesta: curso.nombrePropuesta,
                 anio: curso.anio,
+                itinerario: curso.itinerario,
                 cohorte: cohorte || curso.cohorte,
-                fechaInicioCurso: curso.fechaInicioCurso,
-                fechaFinCurso: curso.fechaFinCurso,
+                fechaInicioCurso,
+                fechaFinCurso,
                 dispositivo: curso.dispositivo,
                 formadorAbc: nombreCompletoLocal || curso.formadorAbc,
                 claveCargo: claveCargo, // <--- NUEVA PROPIEDAD

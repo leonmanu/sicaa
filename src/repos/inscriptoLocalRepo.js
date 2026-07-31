@@ -63,6 +63,24 @@ class InscriptoLocalRepo {
         }
     }
 
+    async buscarPorDniONombre({ dni, apellido, nombres } = {}) {
+        try {
+            const filtro = {};
+            if (dni) filtro.dni = dni;
+            if (apellido) filtro.apellido = { $regex: apellido, $options: 'i' };
+            if (nombres) filtro.nombres = { $regex: nombres, $options: 'i' };
+
+            if (Object.keys(filtro).length === 0) return [];
+
+            return await InscriptoLocal.find(filtro)
+                .sort({ apellido: 1, nombres: 1 })
+                .lean();
+        } catch (error) {
+            console.error('Error en InscriptoLocalRepo.buscarPorDniONombre:', error.message);
+            throw error;
+        }
+    }
+
     async post(data) {
         try {
             const registro = new InscriptoLocal(data);

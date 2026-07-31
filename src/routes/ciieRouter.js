@@ -23,7 +23,8 @@ const {
     postGuardarYEnviarCalificacionesCurso,
     postMarcarImpresionDocumentos,
     getCalificaciones,
-    getPlanillaAprobadosItinerario
+    getPlanillaAprobadosItinerario,
+    getTrayectoriaCursantes
 } = require('../controllers/cursoLocalController')
 const { viewInscripto, getExternosPorIdOfertaOficial, vincularCursantes } = require('../controllers/inscriptoController')
 
@@ -49,6 +50,7 @@ router
     .get('/calificaciones', getCalificaciones)
     .get('/certificados', getCalificaciones)
     .get('/certificados/aprobados-itinerario', getPlanillaAprobadosItinerario)
+    .get('/certificados/trayectoria-cursantes', getTrayectoriaCursantes)
     .get('/calificaciones/documentos', getCalificacionesDocumentosLote)
     .get('/calificaciones/:idOfertaOficial', getCalificacionesCursoDetail)
     .get('/calificaciones/:idOfertaOficial/documentos', getCalificacionesDocumentosCurso)

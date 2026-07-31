@@ -100,7 +100,7 @@ const getVincularConSitioOficial = async (req, res) => {
             cursoLocalService.getPendientesVinculacionPorCiie(ciieClave),
             cursoLocalService.getOfertasOficialesDisponibles()
         ]);
-
+        console.log
         res.render('pages/ciie/cursoVincularOficial', {
             cursosPendientes,
             ofertasOficiales,
@@ -200,6 +200,31 @@ const getPlanillaAprobadosItinerario = async (req, res) => {
     } catch (error) {
         const message = error.message || 'No se pudo cargar la planilla de aprobados.';
         console.error('Error en getPlanillaAprobadosItinerario:', error);
+        req.flash('error', message);
+        return res.redirect('/ciie/certificados');
+    }
+}
+
+const getTrayectoriaCursantes = async (req, res) => {
+    try {
+        const ciieId = req.user.referenciaId;
+        const filtros = {
+            dni: req.query.dni,
+            apellido: req.query.apellido,
+            nombres: req.query.nombres
+        };
+
+        const resultado = await cursoLocalService.buscarTrayectoriaCursantes(ciieId, filtros);
+
+        return res.render('pages/ciie/trayectoriaCursantes', {
+            personas: resultado.personas,
+            busqueda: resultado.busqueda,
+            user: req.user,
+            title: 'Trayectoria de cursantes'
+        });
+    } catch (error) {
+        const message = error.message || 'No se pudo cargar la trayectoria de cursantes.';
+        console.error('Error en getTrayectoriaCursantes:', error);
         req.flash('error', message);
         return res.redirect('/ciie/certificados');
     }
@@ -694,6 +719,7 @@ module.exports = {
     getVincularConSitioOficial,
     getCalificaciones,
     getPlanillaAprobadosItinerario,
+    getTrayectoriaCursantes,
     getCalificacionesPendientes,
     getCalificacionesCursoDetail,
     getCalificacionesDocumentosCurso,
