@@ -553,6 +553,14 @@ class CursoLocalService {
         return value === 'extensión ciie' || value === 'extension ciie';
     }
 
+    _siglaDispositivo(dispositivo) {
+        const value = this._sanitizeString(dispositivo) || '';
+        if (/^Taller en Servicio/i.test(value)) return 'TES';
+        if (/^Taller Fuera de Servicio/i.test(value)) return 'TFS';
+        if (/^Seminario/i.test(value)) return 'SEM';
+        return '';
+    }
+
     async getDetalleCalificacionesCurso(idOfertaOficial, usuario = {}) {
         const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
         const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(curso._id);
@@ -1428,6 +1436,7 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
                 fechaInicioCurso,
                 fechaFinCurso,
                 dispositivo: curso.dispositivo,
+                siglaDispositivo: this._siglaDispositivo(curso.dispositivo),
                 formadorAbc: nombreCompletoLocal || curso.formadorAbc,
                 claveCargo: claveCargo, // <--- NUEVA PROPIEDAD
                 areaNombre: nombreArea,  // <--- NUEVA PROPIEDAD

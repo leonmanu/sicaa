@@ -234,7 +234,7 @@
                                 <div class="cert-inner">
                                     <div class="cert-ref">
                                         <small>
-                                            <%= data.administrativos?.cursoClave.toUpperCase() %> |  
+                                            <% if (data.curso?.siglaDispositivo) { %><%= data.curso.siglaDispositivo %> <% } %> | <%= data.administrativos?.cursoClave.toUpperCase() %> |
                                         <%= data.curso?.anio %> • <%= data.curso?.itinerario %>
                                         </small>
                                     </div>
