@@ -60,6 +60,8 @@ class CargoController {
     getCargos = async (req, res) => {
         try {
             const cargos = await cargoService.getCargosPorUsuarioTipo(req.user)
+            console.log('DEBUG /cargo/todos -> req.user.tipo:', req.user?.tipo)
+            console.log('DEBUG /cargo/todos -> cargos[0].ocupante:', JSON.stringify(cargos[0]?.ocupante, null, 2))
             res.render('pages/usuario/cargo', {
                 cargos,
                 user: req.user

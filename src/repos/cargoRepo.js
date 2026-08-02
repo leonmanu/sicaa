@@ -23,9 +23,10 @@ const populateOcupanteAgente = {
 const populateOcupanteCiie = {
     path: 'ocupante',
     match: { estado: 'Activo' },
-    populate: { 
-        path: 'usuarioId', 
-        select: 'email tipo' 
+    populate: {
+        path: 'usuarioId',
+        select: 'email tipo referenciaId tipoModel',
+        populate: { path: 'referenciaId' }
     }
 };
 

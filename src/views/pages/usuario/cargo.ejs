@@ -41,11 +41,17 @@
                                 </td>
                                 <td>
                                     <%= cargo.rolId.nombre %>
+                                    <% if (cargo.ocupante?.usuarioId?.referenciaId?.nombre) { %>
+                                        <br>
+                                        <small class="text-muted">
+                                            <%= cargo.ocupante.usuarioId.referenciaId.apellido %>, <%= cargo.ocupante.usuarioId.referenciaId.nombre %>
+                                        </small>
+                                    <% } %>
                                 </td>
                                 <td>
                                     <%= cargo.areaId?.nombre || '' %>
                                     <br>
-                                    <small class="text-muted"><%= cargo.areaId?.nivel %></small>
+                                    <small class="text-muted"><%= cargo.areaId?.nivel %> - <%= cargo.clave || '' %></small>
                                 </td>
                                 <td>
                                     <% if (cargo.ocupante && cargo.ocupante.estado === 'Activo') { %>
