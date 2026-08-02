@@ -16,9 +16,9 @@ const cursoSchema = new mongoose.Schema({
     anio: Number,
     cohorte: { type: Number, default: 0 },
     itinerario: { type: Number, default: 0 },
-    idformato: { 
+    idformato: {
         type: String,
-        enum: ['1', '2', '3', '4', '5'], // 1: Asincrónico, 2: Presencial, 3: Sincrónico, 4: Virtual
+        enum: ['1', '2', '3', '4', '5'], // 1: Sin definir, 2: Presencial, 3: Sincrónico Virtual, 4: Virtual (legado), 5: Combinado
         default: '1'
     },
     fechaInicioInscripcion: Date,
