@@ -72,11 +72,12 @@ class CargoController {
 
     getFormAltaCargo = async (req, res) => {
         try {
-            const { ciie, roles, areas } = await cargoService.getDatosParaAlta(req.user.referenciaId);
+            const { ciie, roles, areas, cargos } = await cargoService.getDatosParaAlta(req.user.referenciaId);
             res.render('pages/cargo/cargoForm', {
                 ciie,
                 roles,
                 areas,
+                cargos,
                 user: req.user
             });
         } catch (error) {

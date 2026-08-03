@@ -43,7 +43,7 @@ class CargoService {
 
     async getPorClave(clave) {
         try {
-            return await cargoRepo.findByClave(clave);
+            return await cargoRepo.getPorClave(clave);
         } catch (error) {
             console.error('Error en getCargoPorClave:', error);
             throw error;
@@ -97,13 +97,20 @@ class CargoService {
 
     async getDatosParaAlta(ciieId) {
         try {
-            const [ciie, roles, areas] = await Promise.all([
+            const [ciie, roles, areas, cargos] = await Promise.all([
                 ciieService.getPorId(ciieId),
                 cargoRepo.getRoles(),
-                areaRepo.getTodas()
+                areaRepo.getTodas(),
+                cargoRepo.findAllConDetalles(ciieId)
             ]);
 
-            return { ciie, roles, areas };
+            cargos.sort((a, b) => {
+                const porRol = (a.rolId?.nombre || '').localeCompare(b.rolId?.nombre || '', 'es');
+                if (porRol !== 0) return porRol;
+                return (a.areaId?.nombre || '').localeCompare(b.areaId?.nombre || '', 'es');
+            });
+
+            return { ciie, roles, areas, cargos };
         } catch (error) {
             console.error('Error en getDatosParaAlta:', error);
             throw error;
@@ -123,6 +130,11 @@ class CargoService {
 
             const area = datosForm.areaId ? await Area.findById(datosForm.areaId).lean() : null;
             const comision = datosForm.comision ? Number(datosForm.comision) : null;
+
+            const existente = await cargoRepo.getPorCiieRolAreaComision(ciie._id, rol._id, area?._id, comision);
+            if (existente) {
+                throw new Error(`Ya existe un cargo idéntico (${rol.nombre}${area ? ' - ' + area.nombre : ''}${comision ? ' - Com. ' + comision : ''}), clave "${existente.clave}".`);
+            }
 
             const partesClave = [ciie.clave, rol.clave];
             if (area) partesClave.push(area.clave);

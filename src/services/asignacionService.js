@@ -7,10 +7,14 @@ const asignacionService = {
     asignarCargo: async (datos, esCiie, emailUsuario) => {
         console.log('datos y esCiie en asignarCargo:', datos, esCiie);
         // 1. Verificar si el cargo está ocupado
-        const cargo = await cargoService.getCargoPorClave(datos.cargoClave);
+        const cargo = await cargoService.getPorClave(datos.cargoClave);
         console.log('Cargo encontrado en asignarCargo:', cargo);
+        if (!cargo) throw new Error(`No se encontró el cargo con clave "${datos.cargoClave}".`);
+
         const agente = await agenteService.getAgentePorDni(datos.dniAgente);
         console.log('Agente encontrado en asignarCargo:', agente);
+        if (!agente) throw new Error(`No se encontró un agente con DNI "${datos.dniAgente}".`);
+
         const ocupanteActual = await asignacionRepo.findActiveByCargo(cargo._id);
 
 

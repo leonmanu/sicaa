@@ -61,11 +61,48 @@
             </div>
         </div>
 
-        <a href="/ciie/cargos/etr" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Ver cargos existentes
-        </a>
+        <div class="card bg-dark border-secondary shadow-lg">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-ul me-2"></i>Cargos actuales</span>
+                <span class="badge bg-primary"><%= cargos.length %></span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="tablaCargosActuales" class="table table-dark table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Rol</th>
+                                <th>Área</th>
+                                <th>Comisión</th>
+                                <th>Clave</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% cargos.forEach(cargo => { %>
+                                <tr>
+                                    <td><%= cargo.rolId?.nombre || '' %></td>
+                                    <td><%= cargo.areaId ? `${cargo.areaId.nombre} - ${cargo.areaId.nivel}` : 'Sin área' %></td>
+                                    <td><%= cargo.comision || '' %></td>
+                                    <td><code><%= cargo.clave %></code></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <%- include('../../partials/scripts') %>
+
+    <script>
+        $(document).ready(function() {
+            $('#tablaCargosActuales').DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                responsive: true,
+                paging: false
+            });
+        });
+    </script>
 </body>
 </html>

@@ -19,7 +19,7 @@ const areaSchema = new mongoose.Schema({
         type: String, 
         required: true,
         // Opcional: enum para normalizar los niveles educativos
-        enum: ['Inicial', 'Primaria', 'Secundaria', 'Superior', 'Psicología', 'Especial', 'Artística', 'Inglés', 'TIC']
+        enum: ['Inicial', 'Primaria', 'Secundaria', 'Todos']
     }
 }, { 
     timestamps: true,

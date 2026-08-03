@@ -11,6 +11,11 @@ class AreaService {
                 nivel: datosForm.nivel
             };
 
+            const existente = await areaRepo.getPorClave(datos.clave);
+            if (existente) {
+                throw new Error(`Ya existe un área con la clave "${datos.clave}" (${existente.nombre}).`);
+            }
+
             return await areaRepo.crear(datos);
         } catch (error) {
             if (error.code === 11000) {

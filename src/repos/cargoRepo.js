@@ -179,6 +179,15 @@ class CargoRepo {
     async getRoles() {
         return await Rol.find().sort({ nombre: 1 }).lean();
     }
+
+    async getPorCiieRolAreaComision(ciieId, rolId, areaId, comision) {
+        return await Cargo.findOne({
+            ciieId,
+            rolId,
+            areaId: areaId || null,
+            comision: comision || null
+        }).lean();
+    }
 }
 
 module.exports = new CargoRepo();
