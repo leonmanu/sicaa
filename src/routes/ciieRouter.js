@@ -26,6 +26,7 @@ const {
     postMarcarImpresionDocumentos,
     getCalificaciones,
     getPlanillaAprobadosItinerario,
+    getComunicadoItinerario,
     getTrayectoriaCursantes
 } = require('../controllers/cursoLocalController')
 const { viewInscripto, getExternosPorIdOfertaOficial, vincularCursantes } = require('../controllers/inscriptoController')
@@ -52,6 +53,7 @@ router
     .post('/cursos/nuevo/vincular', postVincularConSitioOficial)
     .post('/cursos/nuevo/editar', postEditarCursoPendiente)
     .post('/cursos/nuevo/publicar', postCrearYVincularConSitioOficial)
+    .get('/comunicado', getComunicadoItinerario)
 
     // URL calificaciones
     .get('/calificaciones', getCalificaciones)

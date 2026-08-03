@@ -200,6 +200,59 @@ class CursoLocalRepo {
         }
     }
 
+    // A diferencia de getItinerariosDisponiblesPorCiie/getPorCiieAnioItinerario (que sólo
+    // miran 'vinculado', pensados para actas/aprobados), el comunicado se arma ANTES de que
+    // el itinerario esté vinculado oficialmente, así que también incluye 'pendiente'.
+    async getItinerariosParaComunicadoPorCiie(ciieId) {
+        try {
+            return await CursoLocal.aggregate([
+                {
+                    $match: {
+                        ciieId: new mongoose.Types.ObjectId(ciieId),
+                        estado: { $in: ['vinculado', 'pendiente'] },
+                        anio: { $type: 'number' },
+                        itinerario: { $type: 'number' }
+                    }
+                },
+                {
+                    $group: {
+                        _id: { anio: '$anio', itinerario: '$itinerario' },
+                        cantidadCursos: { $sum: 1 }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        anio: '$_id.anio',
+                        itinerario: '$_id.itinerario',
+                        cantidadCursos: 1
+                    }
+                },
+                { $sort: { anio: -1, itinerario: 1 } }
+            ]);
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getItinerariosParaComunicadoPorCiie:', error.message);
+            throw error;
+        }
+    }
+
+    async getPorCiieAnioItinerarioParaComunicado(ciieId, anio, itinerario) {
+        try {
+            return await CursoLocal.find({
+                ciieId: new mongoose.Types.ObjectId(ciieId),
+                estado: { $in: ['vinculado', 'pendiente'] },
+                anio,
+                itinerario
+            })
+                .populate(populateCargoConOcupante)
+                .sort({ nombrePropuesta: 1, createdAt: -1 })
+                .lean({ virtuals: true });
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getPorCiieAnioItinerarioParaComunicado:', error.message);
+            throw error;
+        }
+    }
+
     async vincularConOfertaOficial(cursoId, dataActualizada) {
         try {
             return await CursoLocal.findByIdAndUpdate(

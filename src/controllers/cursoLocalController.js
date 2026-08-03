@@ -205,6 +205,54 @@ const getPlanillaAprobadosItinerario = async (req, res) => {
     }
 }
 
+const getComunicadoItinerario = async (req, res) => {
+    try {
+        const ciieId = req.user.referenciaId;
+        const itinerarios = await cursoLocalService.getItinerariosParaComunicado(ciieId);
+
+        const anioQuery = Number(req.query.anio);
+        const itinerarioQuery = Number(req.query.itinerario);
+        const tieneSeleccionQuery = Number.isFinite(anioQuery) && Number.isFinite(itinerarioQuery);
+
+        let seleccion = null;
+        if (tieneSeleccionQuery) {
+            const existe = itinerarios.some(i => i.anio === anioQuery && i.itinerario === itinerarioQuery);
+            if (existe) {
+                seleccion = { anio: anioQuery, itinerario: itinerarioQuery };
+            }
+        }
+
+        if (!seleccion && itinerarios.length > 0) {
+            seleccion = {
+                anio: itinerarios[0].anio,
+                itinerario: itinerarios[0].itinerario
+            };
+        }
+
+        let comunicado = { ciie: null, cursos: [] };
+        if (seleccion) {
+            comunicado = await cursoLocalService.getCursosParaComunicado(
+                ciieId,
+                seleccion.anio,
+                seleccion.itinerario
+            );
+        }
+
+        return res.render('pages/ciie/comunicado', {
+            itinerarios,
+            seleccion,
+            comunicado,
+            user: req.user,
+            title: 'Comunicado de itinerario'
+        });
+    } catch (error) {
+        const message = error.message || 'No se pudo generar el comunicado.';
+        console.error('Error en getComunicadoItinerario:', error);
+        req.flash('error', message);
+        return res.redirect('/ciie/dashboard');
+    }
+}
+
 const getTrayectoriaCursantes = async (req, res) => {
     try {
         const ciieId = req.user.referenciaId;
@@ -719,6 +767,7 @@ module.exports = {
     getVincularConSitioOficial,
     getCalificaciones,
     getPlanillaAprobadosItinerario,
+    getComunicadoItinerario,
     getTrayectoriaCursantes,
     getCalificacionesPendientes,
     getCalificacionesCursoDetail,

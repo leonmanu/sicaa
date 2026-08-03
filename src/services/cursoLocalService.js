@@ -315,6 +315,23 @@ class CursoLocalService {
         }).filter(item => item.anio !== null && item.itinerario !== null);
     }
 
+    async getItinerariosParaComunicado(ciieId) {
+        const itinerarios = await cursoLocalRepo.getItinerariosParaComunicadoPorCiie(ciieId);
+        if (!Array.isArray(itinerarios)) return [];
+
+        return itinerarios.map(item => {
+            const anio = this._toNumberOrNull(item.anio);
+            const itinerario = this._toNumberOrNull(item.itinerario);
+            return {
+                anio,
+                itinerario,
+                cantidadCursos: this._toNumberOrNull(item.cantidadCursos) || 0,
+                clave: `${anio}-${itinerario}`,
+                etiqueta: `${anio} - ${itinerario}`
+            };
+        }).filter(item => item.anio !== null && item.itinerario !== null);
+    }
+
     async getPlanillaAprobadosPorItinerario(ciieId, anio, itinerario) {
         const anioNum = this._toNumberOrNull(anio);
         const itinerarioNum = this._toNumberOrNull(itinerario);
@@ -436,6 +453,97 @@ class CursoLocalService {
                 cantidadAprobados: aprobados.length
             }
         };
+    }
+
+    async getCursosParaComunicado(ciieId, anio, itinerario) {
+        const anioNum = this._toNumberOrNull(anio);
+        const itinerarioNum = this._toNumberOrNull(itinerario);
+
+        if (anioNum === null || itinerarioNum === null) {
+            const err = new Error('Debes seleccionar un itinerario valido.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const [ciie, cursos] = await Promise.all([
+            ciieService.getPorId(ciieId),
+            cursoLocalRepo.getPorCiieAnioItinerarioParaComunicado(ciieId, anioNum, itinerarioNum)
+        ]);
+
+        if (!cursos || cursos.length === 0) {
+            return { ciie, cursos: [] };
+        }
+
+        const cursoIds = cursos.map(c => c._id);
+        const encuentros = await encuentroRepo.getPorCursoIds(cursoIds);
+
+        const encuentrosPorCursoId = new Map();
+        for (const encuentro of (encuentros || [])) {
+            const key = String(encuentro.cursoId);
+            if (!encuentrosPorCursoId.has(key)) encuentrosPorCursoId.set(key, []);
+            encuentrosPorCursoId.get(key).push(encuentro);
+        }
+
+        const FORMATO_LABELS = { 1: 'Sin definir', 2: 'Presencial', 3: 'Virtual', 4: 'Virtual', 5: 'Bimodal' };
+
+        const filas = cursos.map(curso => {
+            const lista = (encuentrosPorCursoId.get(String(curso._id)) || [])
+                .slice()
+                .sort((a, b) => {
+                    const na = this._toNumberOrNull(a.numero);
+                    const nb = this._toNumberOrNull(b.numero);
+                    if (na !== null && nb !== null && na !== nb) return na - nb;
+                    return new Date(a.fecha) - new Date(b.fecha);
+                });
+
+            const diasCursada = lista
+                .filter(e => e && e.fecha)
+                .map(e => {
+                    const etiqueta = new Date(e.fecha).toLocaleDateString('es-AR', {
+                        weekday: 'short', day: '2-digit', month: '2-digit'
+                    }).replace(/\./g, '');
+                    return etiqueta;
+                });
+
+            const primerEncuentro = lista[0];
+            let hora = '';
+            if (primerEncuentro?.horaInicio) {
+                hora = primerEncuentro.horaFin
+                    ? `${primerEncuentro.horaInicio} a ${primerEncuentro.horaFin}`
+                    : primerEncuentro.horaInicio;
+            }
+
+            const formadorPersona = curso?.cargoId?.ocupante?.usuarioId?.referenciaId;
+            const formador = curso.formadorAbc
+                || (formadorPersona ? `${formadorPersona.apellido || ''}, ${formadorPersona.nombre || ''}`.replace(/(^\s*,\s*)|(\s+,\s*$)/g, '').trim() : '');
+
+            // publicacionDrupal.formatoDictado (ej: "Presencial (237)") está cargado con más
+            // frecuencia que idformato; se usa como fuente principal y idformato de respaldo.
+            const formatoDictado = this._sanitizeString(curso.publicacionDrupal?.formatoDictado);
+            const formatoDesdeDrupal = formatoDictado ? formatoDictado.replace(/\s*\(\d+\)\s*$/, '').trim() : '';
+            const formato = formatoDesdeDrupal || FORMATO_LABELS[String(curso.idformato)] || 'Sin definir';
+
+            return {
+                nivel: curso?.cargoId?.areaId?.nivel || '',
+                area: curso?.cargoId?.areaId?.nombre || curso?.cargoId?.areaId?.nombreCorto || '',
+                nombreCurso: this._sanitizeString(curso.nombrePropuesta) || 'Sin propuesta',
+                dispositivo: curso.dispositivo || '',
+                formador: formador || 'A designar',
+                diasCursada,
+                hora,
+                formato
+            };
+        });
+
+        filas.sort((a, b) => {
+            const porNivel = (a.nivel || '').localeCompare(b.nivel || '', 'es');
+            if (porNivel !== 0) return porNivel;
+            const porArea = (a.area || '').localeCompare(b.area || '', 'es');
+            if (porArea !== 0) return porArea;
+            return (a.nombreCurso || '').localeCompare(b.nombreCurso || '', 'es');
+        });
+
+        return { ciie, cursos: filas };
     }
 
     async buscarTrayectoriaCursantes(ciieId, filtros = {}) {

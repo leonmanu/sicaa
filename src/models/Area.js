@@ -12,7 +12,8 @@ const areaSchema = new mongoose.Schema({
     clave: { 
         type: String, 
         required: true,
-        lowercase: true
+        lowercase: true,
+        unique: true
     },
     nivel: { 
         type: String, 
