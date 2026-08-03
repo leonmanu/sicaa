@@ -223,10 +223,13 @@ const getComunicadoItinerario = async (req, res) => {
         }
 
         if (!seleccion && itinerarios.length > 0) {
-            seleccion = {
-                anio: itinerarios[0].anio,
-                itinerario: itinerarios[0].itinerario
-            };
+            // Por defecto: el año más reciente y, dentro de ese año, el itinerario más alto.
+            const ultimo = itinerarios.reduce((mejor, actual) => {
+                if (!mejor) return actual;
+                if (actual.anio !== mejor.anio) return actual.anio > mejor.anio ? actual : mejor;
+                return actual.itinerario > mejor.itinerario ? actual : mejor;
+            }, null);
+            seleccion = { anio: ultimo.anio, itinerario: ultimo.itinerario };
         }
 
         let comunicado = { ciie: null, cursos: [] };
@@ -238,10 +241,13 @@ const getComunicadoItinerario = async (req, res) => {
             );
         }
 
+        const dispositivos = [...new Set(comunicado.cursos.map(c => c.dispositivo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+
         return res.render('pages/ciie/comunicado', {
             itinerarios,
             seleccion,
             comunicado,
+            dispositivos,
             user: req.user,
             title: 'Comunicado de itinerario'
         });

@@ -104,6 +104,9 @@
                 <a href="/ciie/subdashboard" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-arrow-left me-1"></i>Volver
                 </a>
+                <button class="btn btn-outline-success btn-sm" onclick="descargarExcel()">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Descargar Excel
+                </button>
                 <button class="btn btn-outline-warning btn-sm" onclick="window.print()">
                     <i class="bi bi-printer me-1"></i>Imprimir
                 </button>
@@ -140,6 +143,21 @@
                         </button>
                     </div>
                 </form>
+
+                <% if (dispositivos.length > 0) { %>
+                    <hr class="border-secondary">
+                    <label class="form-label text-light mb-2">Dispositivos a mostrar</label>
+                    <div id="filtroDispositivos" class="d-flex flex-wrap gap-3">
+                        <% dispositivos.forEach(dispositivo => { %>
+                            <div class="form-check">
+                                <input class="form-check-input chk-dispositivo" type="checkbox" value="<%= dispositivo %>" id="chk-<%= dispositivo.replace(/\s+/g, '-') %>" checked>
+                                <label class="form-check-label text-light" for="chk-<%= dispositivo.replace(/\s+/g, '-') %>">
+                                    <%= dispositivo %>
+                                </label>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } %>
             </div>
         </div>
 
@@ -195,7 +213,7 @@
                             </thead>
                             <tbody>
                                 <% comunicado.cursos.forEach(curso => { %>
-                                    <tr>
+                                    <tr data-dispositivo="<%= curso.dispositivo %>">
                                         <td contenteditable="true"><%= curso.nivel %></td>
                                         <td contenteditable="true"><%= curso.area %></td>
                                         <td contenteditable="true"><em><%= curso.nombreCurso %></em></td>
@@ -245,6 +263,64 @@
                 syncHiddenFields();
             }
         })();
+
+        (function () {
+            const checks = document.querySelectorAll('.chk-dispositivo');
+            if (checks.length === 0) return;
+
+            function aplicarFiltro() {
+                const activos = new Set(
+                    Array.from(checks).filter(c => c.checked).map(c => c.value)
+                );
+                document.querySelectorAll('.comunicado-table tbody tr[data-dispositivo]').forEach(fila => {
+                    fila.style.display = activos.has(fila.dataset.dispositivo) ? '' : 'none';
+                });
+            }
+
+            checks.forEach(c => c.addEventListener('change', aplicarFiltro));
+            aplicarFiltro();
+        })();
+
+        function descargarExcel() {
+            const headerTable = document.querySelector('.comunicado-header table');
+            const dataTable = document.querySelector('.comunicado-table');
+            if (!dataTable) return;
+
+            const dataTableClon = dataTable.cloneNode(true);
+            dataTableClon.querySelectorAll('tbody tr[data-dispositivo]').forEach(fila => {
+                if (fila.style.display === 'none') fila.remove();
+            });
+
+            const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" '
+                + 'xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
+                + '<head><meta charset="UTF-8">'
+                + '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>'
+                + '<x:Name>Comunicado</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>'
+                + '</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
+                + '</head><body>'
+                + (headerTable ? headerTable.outerHTML : '')
+                + '<br>'
+                + dataTableClon.outerHTML
+                + '</body></html>';
+
+            const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            const anio = document.getElementById('anio')?.value || '';
+            const itinerario = document.getElementById('itinerario')?.value || '';
+            const nombreArchivo = 'comunicado-itinerario'
+                + (anio ? `-${anio}` : '')
+                + (itinerario ? `-${itinerario}` : '')
+                + '.xls';
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nombreArchivo;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
     </script>
 </body>
 </html>
