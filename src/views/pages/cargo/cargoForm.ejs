@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Alta de Cargos</title>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+
+    <div class="container py-5">
+        <%- include('../../partials/msj') %>
+
+        <div class="mb-4">
+            <h2 class="fw-bold"><i class="bi bi-briefcase-fill me-2"></i>Nuevo Cargo</h2>
+            <p class="text-muted mb-0">
+                CIIE <strong><%= ciie?.nombre %></strong>: creá un nuevo cargo para asignarle luego un/a Formador/a.
+            </p>
+        </div>
+
+        <div class="card bg-dark border-secondary shadow-lg mb-4">
+            <div class="card-body">
+                <% if (roles.length === 0 || areas.length === 0) { %>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <% if (roles.length === 0) { %>Todavía no hay Roles cargados. <% } %>
+                        <% if (areas.length === 0) { %>Todavía no hay Áreas cargadas, podés crear una <a href="/ciie/areas" class="alert-link">acá</a>.<% } %>
+                    </div>
+                <% } %>
+
+                <form action="/ciie/cargos/nuevo" method="post">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="inputRol" class="form-label">Rol</label>
+                            <select id="inputRol" name="rolId" class="form-select" required>
+                                <option value="" selected disabled>Seleccione...</option>
+                                <% roles.forEach(rol => { %>
+                                    <option value="<%= rol._id %>"><%= rol.nombre %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="inputArea" class="form-label">Área <small class="text-muted">(opcional, según el rol)</small></label>
+                            <select id="inputArea" name="areaId" class="form-select">
+                                <option value="">Sin área (cargo institucional)</option>
+                                <% areas.forEach(area => { %>
+                                    <option value="<%= area._id %>"><%= area.nombre %> - <%= area.nivel %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="inputComision" class="form-label">Comisión <small class="text-muted">(opcional)</small></label>
+                            <input id="inputComision" name="comision" type="number" min="1" class="form-control" placeholder="Ej: 1">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Crear Cargo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <a href="/ciie/cargos/etr" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Ver cargos existentes
+        </a>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+</body>
+</html>

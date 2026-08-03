@@ -1,4 +1,5 @@
 const cargoRepo = require('../repos/cargoRepo');
+const areaRepo = require('../repos/areaRepo');
 const Asignacion = require('../models/Asignacion');
 const asignacionRepo = require('../repos/asignacionRepo');
 const ciieService = require('./ciieService');
@@ -90,6 +91,58 @@ class CargoService {
             return [];
         } catch (error) {
             console.error('Error en getCargosPorUsuarioTipo:', error);
+            throw error;
+        }
+    }
+
+    async getDatosParaAlta(ciieId) {
+        try {
+            const [ciie, roles, areas] = await Promise.all([
+                ciieService.getPorId(ciieId),
+                cargoRepo.getRoles(),
+                areaRepo.getTodas()
+            ]);
+
+            return { ciie, roles, areas };
+        } catch (error) {
+            console.error('Error en getDatosParaAlta:', error);
+            throw error;
+        }
+    }
+
+    async postCargo(datosForm, ciieId) {
+        try {
+            const Rol = require('../models/Rol');
+            const Area = require('../models/Area');
+
+            const ciie = await ciieService.getPorId(ciieId);
+            if (!ciie) throw new Error('No se encontró el CIIE del usuario logueado.');
+
+            const rol = await Rol.findById(datosForm.rolId).lean();
+            if (!rol) throw new Error('El rol seleccionado no es válido.');
+
+            const area = datosForm.areaId ? await Area.findById(datosForm.areaId).lean() : null;
+            const comision = datosForm.comision ? Number(datosForm.comision) : null;
+
+            const partesClave = [ciie.clave, rol.clave];
+            if (area) partesClave.push(area.clave);
+            if (comision && comision > 1) partesClave.push(`c${comision}`);
+            const clave = partesClave.join('-').toLowerCase();
+
+            const nuevoCargo = await cargoRepo.crear({
+                ciieId: ciie._id,
+                rolId: rol._id,
+                areaId: area ? area._id : null,
+                comision,
+                clave
+            });
+
+            return nuevoCargo;
+        } catch (error) {
+            if (error.code === 11000) {
+                throw new Error('Ya existe un cargo con esa combinación de rol, área y comisión para este CIIE.');
+            }
+            console.error('Error en CargoService.postCargo:', error.message);
             throw error;
         }
     }

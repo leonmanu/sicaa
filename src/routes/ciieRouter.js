@@ -6,7 +6,9 @@ const router = express.Router();
 
 
 const { getDashboard, getSubDashboard, getUsuarioPorModelo, putAgenteEstado, getAgentesPendientes} = require('../controllers/ciieController');
-const {vistaAsignacionCiie, vistaCargosEtr} = require('../controllers/cargoController');
+const {vistaAsignacionCiie, vistaCargosEtr, getFormAltaCargo, postCargo} = require('../controllers/cargoController');
+const areaController = require('../controllers/areaController');
+const { soloCiie } = require('../middleware/auth');
 const {getCursos} = require('../controllers/cursoExternoController');
 const {
     getCursosPorCiieId,
@@ -38,6 +40,11 @@ router
     // URL cargo
     .get('/cargo/asignar', vistaAsignacionCiie)
     .get('/cargos/etr', vistaCargosEtr)
+    .get('/cargos/nuevo', soloCiie, getFormAltaCargo)
+    .post('/cargos/nuevo', soloCiie, postCargo)
+    // URL área
+    .get('/areas', soloCiie, areaController.getForm)
+    .post('/areas', soloCiie, areaController.postArea)
     // URL curso
     .get('/curso/externo', getCursos)
     .get('/cursos', getCursosPorCiieId) //vista pendiente

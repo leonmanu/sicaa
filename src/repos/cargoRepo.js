@@ -170,6 +170,15 @@ class CargoRepo {
             .populate('areaId')
             .lean();
     }
+
+    async crear(datos) {
+        const nuevoCargo = new Cargo(datos);
+        return await nuevoCargo.save();
+    }
+
+    async getRoles() {
+        return await Rol.find().sort({ nombre: 1 }).lean();
+    }
 }
 
 module.exports = new CargoRepo();

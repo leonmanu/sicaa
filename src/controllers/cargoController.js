@@ -60,8 +60,6 @@ class CargoController {
     getCargos = async (req, res) => {
         try {
             const cargos = await cargoService.getCargosPorUsuarioTipo(req.user)
-            console.log('DEBUG /cargo/todos -> req.user.tipo:', req.user?.tipo)
-            console.log('DEBUG /cargo/todos -> cargos[0].ocupante:', JSON.stringify(cargos[0]?.ocupante, null, 2))
             res.render('pages/usuario/cargo', {
                 cargos,
                 user: req.user
@@ -70,6 +68,33 @@ class CargoController {
             req.flash('error', error.message)
             res.redirect('/');
         }
+    }
+
+    getFormAltaCargo = async (req, res) => {
+        try {
+            const { ciie, roles, areas } = await cargoService.getDatosParaAlta(req.user.referenciaId);
+            res.render('pages/cargo/cargoForm', {
+                ciie,
+                roles,
+                areas,
+                user: req.user
+            });
+        } catch (error) {
+            console.error('Error en getFormAltaCargo:', error.message);
+            req.flash('error', 'No se pudo cargar el formulario de alta de cargos.');
+            res.redirect('/ciie/dashboard');
+        }
+    }
+
+    postCargo = async (req, res) => {
+        try {
+            const nuevoCargo = await cargoService.postCargo(req.body, req.user.referenciaId);
+            req.flash('success', `Cargo "${nuevoCargo.clave}" creado correctamente.`);
+        } catch (error) {
+            console.error('Error en postCargo:', error.message);
+            req.flash('error', error.message || 'No se pudo crear el cargo.');
+        }
+        res.redirect('/ciie/cargos/nuevo');
     }
 
 }

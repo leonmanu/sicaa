@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Alta de Áreas</title>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+
+    <div class="container py-5">
+        <%- include('../../partials/msj') %>
+
+        <div class="mb-4">
+            <h2 class="fw-bold"><i class="bi bi-grid-3x3-gap me-2"></i>Áreas</h2>
+            <p class="text-muted mb-0">Catálogo de áreas y niveles disponibles para los cargos.</p>
+        </div>
+
+        <div class="card bg-dark border-secondary shadow-lg mb-4">
+            <div class="card-header">
+                <i class="bi bi-plus-circle me-2"></i>Nueva Área
+            </div>
+            <div class="card-body">
+                <form action="" method="post">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="inputNombre" class="form-label">Nombre</label>
+                            <input id="inputNombre" name="nombre" type="text" class="form-control" placeholder="Ej: Educación Primaria" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="inputNombreCorto" class="form-label">Nombre corto</label>
+                            <input id="inputNombreCorto" name="nombreCorto" type="text" class="form-control" placeholder="Ej: Primaria" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="inputClave" class="form-label">Clave</label>
+                            <input id="inputClave" name="clave" type="text" class="form-control" placeholder="Ej: prim" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="inputNivel" class="form-label">Nivel</label>
+                            <select id="inputNivel" name="nivel" class="form-select" required>
+                                <option value="" selected disabled>Seleccione...</option>
+                                <option value="Inicial">Inicial</option>
+                                <option value="Primaria">Primaria</option>
+                                <option value="Secundaria">Secundaria</option>
+                                <option value="Todos">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Guardar Área
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card bg-dark border-secondary shadow-lg">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="tablaAreas" class="table table-dark table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Nombre corto</th>
+                                <th>Clave</th>
+                                <th>Nivel</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% areas.forEach(area => { %>
+                                <tr>
+                                    <td><%= area.nombre %></td>
+                                    <td><%= area.nombreCorto %></td>
+                                    <td><code><%= area.clave %></code></td>
+                                    <td><%= area.nivel %></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+
+    <script>
+        $(document).ready(function() {
+            $('#tablaAreas').DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                responsive: true,
+                paging: false
+            });
+        });
+    </script>
+</body>
+</html>
