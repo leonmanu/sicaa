@@ -496,21 +496,32 @@ class CursoLocalService {
                     return new Date(a.fecha) - new Date(b.fecha);
                 });
 
+            const TZ_ARG = 'America/Argentina/Buenos_Aires';
+
             const diasCursada = lista
                 .filter(e => e && e.fecha)
                 .map(e => {
-                    const etiqueta = new Date(e.fecha).toLocaleDateString('es-AR', {
-                        weekday: 'short', day: '2-digit', month: '2-digit'
-                    }).replace(/\./g, '');
-                    return etiqueta;
+                    const fechaObj = new Date(e.fecha);
+                    const diaSemana = fechaObj.toLocaleDateString('es-AR', { weekday: 'short', timeZone: TZ_ARG }).replace(/\./g, '');
+                    const dia = fechaObj.toLocaleDateString('es-AR', { day: '2-digit', timeZone: TZ_ARG });
+                    const mes = fechaObj.toLocaleDateString('es-AR', { month: '2-digit', timeZone: TZ_ARG });
+                    return `${diaSemana} ${dia}/${mes}`;
                 });
 
+            // El formulario de carga de cursos combina fecha + hora en un solo timestamp
+            // (no usa Encuentro.horaInicio/horaFin, que quedan siempre vacíos). Si la hora
+            // embebida es 00:00 se interpreta como "sin horario cargado" y se deja en blanco.
             const primerEncuentro = lista[0];
             let hora = '';
             if (primerEncuentro?.horaInicio) {
                 hora = primerEncuentro.horaFin
                     ? `${primerEncuentro.horaInicio} a ${primerEncuentro.horaFin}`
                     : primerEncuentro.horaInicio;
+            } else if (primerEncuentro?.fecha) {
+                const horaTexto = new Date(primerEncuentro.fecha).toLocaleTimeString('es-AR', {
+                    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ_ARG
+                });
+                if (horaTexto !== '00:00') hora = horaTexto;
             }
 
             const formadorPersona = curso?.cargoId?.ocupante?.usuarioId?.referenciaId;
