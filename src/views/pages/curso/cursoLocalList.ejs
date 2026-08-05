@@ -819,7 +819,7 @@ $('#btnAltaCurso').on('click', function() {
         function sugerirSiguienteFecha(fechaBase) {
             const base = parseDateOnly(fechaBase);
             if (!base) return '';
-            base.setDate(base.getDate() + 14); // +14 días en lugar de +7
+            base.setDate(base.getDate() + 7); // encuentros semanales
             return toDateOnlyLocal(base);
         }
 
