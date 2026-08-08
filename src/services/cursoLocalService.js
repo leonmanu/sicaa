@@ -542,7 +542,8 @@ class CursoLocalService {
                 formador: formador || 'A designar',
                 diasCursada,
                 hora,
-                formato
+                formato,
+                enlaceInscripcion: this._sanitizeString(curso.enlaceInscripcion)
             };
         });
 
@@ -1915,133 +1916,25 @@ _buildNombreCompleto(inscripto = {}) {
         return fechas.map(f => new Date(f)).filter(d => !isNaN(d.getTime()));
     }
 
-    // ─── Obtener cursos para flyers con filtros ───────────────────────────────
-    async getCursosParaFlyers(filtros = {}) {
-        const {
-            itinerario,
-            areaNombre,
-            estado,
-            nivel,
-            dispositivo,
-            ciieId
-        } = filtros;
-
-        // Construir query base
-        const query = {};
-
-        // Filtro por CIIE si se proporciona
-        if (ciieId) {
-            query.ciieId = this._sanitizeObjectId(ciieId);
-        }
-
-        // Filtro por itinerario
-        if (itinerario !== undefined && itinerario !== null && itinerario !== '') {
-            query.itinerario = this._toNumberOrNull(itinerario);
-        }
-
-        // Filtro por estado
-        if (estado && estado !== '') {
-            query.estado = estado;
-        }
-
-        // Filtro por dispositivo (tipo de flyer)
-        if (dispositivo && dispositivo !== '') {
-            if (dispositivo === 'taller') {
-                query.dispositivo = { $regex: /^Taller/i };
-            } else if (dispositivo === 'seminario') {
-                query.dispositivo = { $regex: /^Seminario/i };
-            } else if (dispositivo === 'extension') {
-                query.dispositivo = 'Extensión CIIE';
-            } else {
-                query.dispositivo = dispositivo;
-            }
-        }
-
-        // Obtener cursos con populate
-        const cursos = await CursoLocal.find(query)
-            .populate({
-                path: 'cargoId',
-                populate: {
-                    path: 'areaId',
-                    select: 'nombre nombreCorto nivel'
-                }
-            })
-            .populate('ciieId', 'nombre clave')
-            .sort({ anio: -1, itinerario: -1, 'cargoId.areaId.nombre': 1 })
-            .lean();
-
-        // Aplicar filtros adicionales que requieren datos populados
-        let cursosFiltrados = cursos;
-
-        if (areaNombre && areaNombre !== '') {
-            cursosFiltrados = cursosFiltrados.filter(curso =>
-                curso.cargoId?.areaId?.nombre?.toLowerCase().includes(areaNombre.toLowerCase()) ||
-                curso.cargoId?.areaId?.nombreCorto?.toLowerCase().includes(areaNombre.toLowerCase())
-            );
-        }
-
-        if (nivel && nivel !== '') {
-            cursosFiltrados = cursosFiltrados.filter(curso =>
-                curso.cargoId?.areaId?.nivel === nivel
-            );
-        }
-
-        // Cargar encuentros para cada curso
-        const cursosConEncuentros = await Promise.all(
-            cursosFiltrados.map(async (curso) => {
-                const encuentros = await encuentroRepo.getPorCursoId(curso._id);
-                return {
-                    ...curso,
-                    encuentros: encuentros || []
-                };
-            })
-        );
-
-        return cursosConEncuentros;
+    // ─── Itinerarios disponibles para flyers (incluye pendiente, igual que el comunicado) ──
+    async getItinerariosParaFlyers(ciieId) {
+        return this.getItinerariosParaComunicado(ciieId);
     }
-    // %%% Obtener cursos para flyers con filtros %%%%%%%%%%%%%%%%%%%%%%%%%%%
-    async getCursosParaFlyers(filtros = {}) {
-        const {
-            itinerario,
-            areaNombre,
-            estado,
-            nivel,
-            dispositivo,
-            ciieId
-        } = filtros;
 
-        // Construir query base
+    // ─── Cursos de un año/itinerario puntual, para armar la lista de flyers ──────
+    // Devuelve TODOS los cursos del itinerario sin aplicar los filtros de
+    // estado/nivel/dispositivo/área (esos se aplican en el controller sobre este
+    // mismo set), para que el desplegable de áreas siempre muestre todas las
+    // áreas del itinerario sin importar qué otro filtro esté activo.
+    async getCursosDelItinerarioParaFlyers(ciieId, anio, itinerario) {
         const query = {};
+        if (ciieId) query.ciieId = this._sanitizeObjectId(ciieId);
 
-        // Filtro por CIIE si se proporciona
-        if (ciieId) {
-            query.ciieId = this._sanitizeObjectId(ciieId);
-        }
+        const anioNum = this._toNumberOrNull(anio);
+        const itinerarioNum = this._toNumberOrNull(itinerario);
+        if (anioNum !== null) query.anio = anioNum;
+        if (itinerarioNum !== null) query.itinerario = itinerarioNum;
 
-        // Filtro por itinerario
-        if (itinerario !== undefined && itinerario !== null && itinerario !== '') {
-            query.itinerario = this._toNumberOrNull(itinerario);
-        }
-
-        // Filtro por estado
-        if (estado && estado !== '') {
-            query.estado = estado;
-        }
-
-        // Filtro por dispositivo (tipo de flyer)
-        if (dispositivo && dispositivo !== '') {
-            if (dispositivo === 'taller') {
-                query.dispositivo = { $regex: /^Taller/i };
-            } else if (dispositivo === 'seminario') {
-                query.dispositivo = { $regex: /^Seminario/i };
-            } else if (dispositivo === 'extension') {
-                query.dispositivo = 'Extensión CIIE';
-            } else {
-                query.dispositivo = dispositivo;
-            }
-        }
-
-        // Obtener cursos con populate
         const cursos = await CursoLocal.find(query)
             .populate({
                 path: 'cargoId',
@@ -2051,28 +1944,11 @@ _buildNombreCompleto(inscripto = {}) {
                 }
             })
             .populate('ciieId', 'nombre clave')
-            .sort({ anio: -1, itinerario: -1, 'cargoId.areaId.nombre': 1 })
+            .sort({ 'cargoId.areaId.nombre': 1, nombrePropuesta: 1 })
             .lean();
 
-        // Aplicar filtros adicionales que requieren datos populados
-        let cursosFiltrados = cursos;
-
-        if (areaNombre && areaNombre !== '') {
-            cursosFiltrados = cursosFiltrados.filter(curso =>
-                curso.cargoId?.areaId?.nombre?.toLowerCase().includes(areaNombre.toLowerCase()) ||
-                curso.cargoId?.areaId?.nombreCorto?.toLowerCase().includes(areaNombre.toLowerCase())
-            );
-        }
-
-        if (nivel && nivel !== '') {
-            cursosFiltrados = cursosFiltrados.filter(curso =>
-                curso.cargoId?.areaId?.nivel === nivel
-            );
-        }
-
-        // Cargar encuentros para cada curso
         const cursosConEncuentros = await Promise.all(
-            cursosFiltrados.map(async (curso) => {
+            cursos.map(async (curso) => {
                 const encuentros = await encuentroRepo.getPorCursoId(curso._id);
                 return {
                     ...curso,

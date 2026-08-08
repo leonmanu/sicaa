@@ -148,6 +148,32 @@ const vincularCursantes = async (req, res) => {
     }
 }
 
+const buscarCursantePorValor = async (req, res) => {
+    try {
+        const { idOfertaOficial } = req.params;
+        const { valor } = req.query;
+
+        const cursoLocal = await cursoLocalService.getPorIdOfertaOficial(idOfertaOficial);
+        const resultado = await inscriptoLocalService.buscarCursantePorValor(valor, cursoLocal?._id);
+
+        res.json(resultado);
+    } catch (error) {
+        console.error('Error en buscarCursantePorValor:', error.message);
+        res.status(500).json({ error: 'No se pudo buscar el cursante.' });
+    }
+}
+
+const postAltaManualCursante = async (req, res) => {
+    try {
+        const { idOfertaOficial } = req.params;
+        const nuevoInscripto = await inscriptoLocalService.altaManual(req.body, idOfertaOficial, req.user.email);
+        res.status(201).json({ success: true, inscripto: nuevoInscripto });
+    } catch (error) {
+        console.error('Error en postAltaManualCursante:', error.message);
+        res.status(400).json({ success: false, message: error.message || 'No se pudo inscribir al cursante.' });
+    }
+}
+
 const putCalificacion = async (req, res) => {
     try {
         const { idOfertaOficial, calificaciones } = req.body;
@@ -183,12 +209,14 @@ const postAsistencia = async (req, res) => {
     }
 }
 
-module.exports = { 
+module.exports = {
     viewInscripto,
     getExternosPorIdOfertaOficial,
     vincularCursantes,
     viewListaAsistencia,
     viewAsistencia,
     putCalificacion,
-    postAsistencia
+    postAsistencia,
+    buscarCursantePorValor,
+    postAltaManualCursante
 }

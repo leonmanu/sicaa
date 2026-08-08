@@ -184,11 +184,11 @@
                         </tr>
                         <tr>
                             <td class="label">Objeto:</td>
-                            <td contenteditable="true">Propuestas formativas <%= seleccion?.anio || '' %></td>
+                            <td contenteditable="true">Propuestas formativas <%= seleccion?.anio || '' %> - Itinerario <%= seleccion?.itinerario || '' %></td>
                         </tr>
                         <tr>
-                            <td class="label">Itinerario:</td>
-                            <td contenteditable="true"><%= seleccion?.itinerario || '' %></td>
+                            <td class="label">Inscripción:</td>
+                            <td contenteditable="false"><a href="https://sicaa.onrender.com/curso/publico/ciie06901" target="_blank" rel="noopener">https://sicaa.onrender.com/curso/publico/ciie06901</a></td>
                         </tr>
                     </table>
                     <img src="/img/logo-pba2.png" alt="Gobierno de la Provincia de Buenos Aires" class="comunicado-logo">
@@ -209,6 +209,7 @@
                                     <th style="width: 10%;">Días de cursada</th>
                                     <th style="width: 8%;">Hora</th>
                                     <th style="width: 8%;">Formato</th>
+                                    <th style="width: 10%;">Inscripción</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -226,6 +227,11 @@
                                         </td>
                                         <td contenteditable="true"><%= curso.hora %></td>
                                         <td contenteditable="true"><%= curso.formato %></td>
+                                        <td>
+                                            <% if (curso.enlaceInscripcion) { %>
+                                                <a href="<%= curso.enlaceInscripcion %>" target="_blank" rel="noopener"><%= curso.enlaceInscripcion %></a>
+                                            <% } %>
+                                        </td>
                                     </tr>
                                 <% }) %>
                             </tbody>

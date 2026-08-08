@@ -51,6 +51,47 @@ class inscriptoExternoRepo {
         );
     }
 
+    // Registra una inscripción manual (cursante que no llegó a anotarse a tiempo)
+    // Respuesta cruda del servidor: "CC~resto", donde CC es un código de 2 dígitos.
+    // CC >= 90 -> éxito, resto = "idInscripcionOficial~nombreCurso~region~nombreCiie"
+    // CC < 90  -> error, resto = mensaje de error (ej: "Debe seleccionar CIIE")
+    async postRegistrarInscripcion(datos) {
+        const params = new URLSearchParams();
+        params.append('apelnom', datos.apelnom || '');
+        params.append('idcurso', datos.idcurso || '');
+        params.append('tipo', datos.tipo || 'A');
+        params.append('cohorte', datos.cohorte ?? '0');
+        params.append('email', datos.email || '');
+        params.append('conmail', datos.conmail || datos.email || '');
+        params.append('region', datos.region ?? '3');
+        params.append('idciie', datos.idciie ?? '65');
+        params.append('cuil', datos.cuil || '');
+        params.append('nombres', datos.nombres || '');
+        params.append('codarea', datos.codarea || '');
+        params.append('idciudad', datos.idciudad ?? '0');
+        params.append('emailalt', datos.emailalt || '');
+        params.append('couli', datos.couli ?? '1');
+        params.append('conemailalt', datos.conemailalt || datos.emailalt || '');
+        params.append('domicilio', datos.domicilio || '');
+        params.append('fechanac', datos.fechanac || '');
+        params.append('opciones', '[]');
+        params.append('cargos', '[]');
+        params.append('anioegre', datos.anioegre || '0');
+        params.append('iddirigida', '1');
+        params.append('idfechaciie', datos.idfechaciie || '');
+        params.append('telefono', datos.telefono || '');
+
+        const urlReferer = `${URLS.CURSANTE.INSCRIPCION}i_f=${datos.idfechaciie}&qi=65`;
+
+        return await client.post(URLS.CURSANTE.REGISTRAR, params.toString(), {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': urlReferer
+            }
+        });
+    }
+
     // Obtiene detalles de un cursante
     async getDetalleCursante(idInscripcionOficial) {
         const url = `${URLS.CURSANTE.DATOS}id=${idInscripcionOficial}&quees=M&qi=65`;

@@ -639,27 +639,64 @@ const getFlyerCurso = async (req, res) => {
 
 const getFlyersList = async (req, res) => {
     try {
-        // Obtener filtros de query params
+        const ciieId = req.user?.referenciaId;
+        const itinerariosDisponibles = await cursoLocalService.getItinerariosParaFlyers(ciieId);
+
+        // Si no viene un año/itinerario válido por query, usar el más alto disponible
+        let seleccion = null;
+        const anioQuery = Number(req.query.anio);
+        const itinerarioQuery = Number(req.query.itinerario);
+        if (Number.isFinite(anioQuery) && Number.isFinite(itinerarioQuery)) {
+            const existe = itinerariosDisponibles.some(i => i.anio === anioQuery && i.itinerario === itinerarioQuery);
+            if (existe) seleccion = { anio: anioQuery, itinerario: itinerarioQuery };
+        }
+        if (!seleccion && itinerariosDisponibles.length > 0) {
+            const ultimo = itinerariosDisponibles.reduce((mejor, actual) => {
+                if (!mejor) return actual;
+                if (actual.anio !== mejor.anio) return actual.anio > mejor.anio ? actual : mejor;
+                return actual.itinerario > mejor.itinerario ? actual : mejor;
+            }, null);
+            seleccion = { anio: ultimo.anio, itinerario: ultimo.itinerario };
+        }
+
+        const cursosDelItinerario = seleccion
+            ? await cursoLocalService.getCursosDelItinerarioParaFlyers(ciieId, seleccion.anio, seleccion.itinerario)
+            : [];
+
+        // El desplegable de áreas siempre muestra TODAS las áreas del itinerario,
+        // sin importar qué otro filtro (estado/nivel/dispositivo/área) esté aplicado.
+        const areasDisponibles = [...new Set(cursosDelItinerario.map(c => c.cargoId?.areaId?.nombre).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, 'es'));
+        const nivelesDisponibles = [...new Set(cursosDelItinerario.map(c => c.cargoId?.areaId?.nivel).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, 'es'));
+        const estadosDisponibles = ['pendiente', 'vinculado', 'modificacion_pendiente', 'eliminacion_pendiente', 'dormido'];
+
         const filtros = {
-            itinerario: req.query.itinerario,
-            areaNombre: req.query.area,
-            estado: req.query.estado,
-            nivel: req.query.nivel,
-            dispositivo: req.query.dispositivo,
-            ciieId: req.user?.referenciaId // Filtrar por CIIE del usuario
+            areaNombre: req.query.area || '',
+            estado: req.query.estado || '',
+            nivel: req.query.nivel || '',
+            dispositivo: req.query.dispositivo || ''
         };
 
-        const cursos = await cursoLocalService.getCursosParaFlyers(filtros);
+        const dispositivoCoincide = (dispositivoCurso, filtro) => {
+            if (!filtro) return true;
+            if (filtro === 'taller') return /^Taller/i.test(dispositivoCurso || '');
+            if (filtro === 'seminario') return /^Seminario/i.test(dispositivoCurso || '');
+            if (filtro === 'extension') return dispositivoCurso === 'Extensión CIIE';
+            return dispositivoCurso === filtro;
+        };
 
-        // Obtener opciones para los filtros
-        const itinerariosDisponibles = await cursoLocalService.getItinerariosDisponiblesPorCiie(req.user?.referenciaId);
-        const areasDisponibles = [...new Set(cursos.map(c => c.cargoId?.areaId?.nombre).filter(Boolean))].sort();
-        const nivelesDisponibles = [...new Set(cursos.map(c => c.cargoId?.areaId?.nivel).filter(Boolean))].sort();
-        const estadosDisponibles = ['pendiente', 'vinculado', 'modificacion_pendiente', 'eliminacion_pendiente', 'dormido'];
+        const cursos = cursosDelItinerario.filter(curso =>
+            (!filtros.areaNombre || curso.cargoId?.areaId?.nombre === filtros.areaNombre) &&
+            (!filtros.estado || curso.estado === filtros.estado) &&
+            (!filtros.nivel || curso.cargoId?.areaId?.nivel === filtros.nivel) &&
+            dispositivoCoincide(curso.dispositivo, filtros.dispositivo)
+        );
 
         res.render('pages/flyer/flyersList', {
             cursos,
             filtros,
+            seleccion,
             itinerariosDisponibles,
             areasDisponibles,
             nivelesDisponibles,

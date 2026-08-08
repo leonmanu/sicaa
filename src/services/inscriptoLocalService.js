@@ -237,6 +237,136 @@ class InscriptoLocalService {
         }
     }
 
+    async buscarCursantePorValor(valor, cursoId) {
+        try {
+            const limpio = (valor || '').replace(/\D/g, '');
+            if (!limpio) return { datos: null, yaInscriptoEnCurso: false };
+
+            const encontrado = await inscriptoLocalRepo.buscarUltimoPorDniOCuil(limpio);
+
+            let yaInscriptoEnCurso = false;
+            if (cursoId) {
+                const dniAConsultar = encontrado?.dni || limpio;
+                const existente = await inscriptoLocalRepo.existeEnCurso(cursoId, dniAConsultar);
+                yaInscriptoEnCurso = !!existente;
+            }
+
+            return {
+                datos: encontrado ? {
+                    dni: encontrado.dni || '',
+                    cuil: encontrado.cuil || '',
+                    apellido: encontrado.apellido || '',
+                    nombres: encontrado.nombres || '',
+                    fechaNacimiento: encontrado.fechaNacimiento
+                        ? new Date(encontrado.fechaNacimiento).toISOString().slice(0, 10)
+                        : '',
+                    domicilio: encontrado.domicilio || '',
+                    telefono: encontrado.telefono || '',
+                    email: encontrado.email || '',
+                    emailAlternativo: encontrado.emailAlternativo || '',
+                    localidad: encontrado.localidad || '',
+                    anioEgreso: encontrado.anioEgreso || ''
+                } : null,
+                yaInscriptoEnCurso
+            };
+        } catch (error) {
+            console.error('Error en InscriptoLocalService.buscarCursantePorValor:', error.message);
+            throw error;
+        }
+    }
+
+    // CIIE 201 (Laferrere) en el nomenclador de ABC: región 3, id de CIIE 65.
+    static REGION_ABC_DEFAULT = '3';
+    static IDCIIE_ABC_DEFAULT = '65';
+
+    async altaManual(datosForm, idOfertaOficial, usuarioEmail) {
+        try {
+            const cursoLocal = await cursoLocalService.getPorIdOfertaOficial(idOfertaOficial);
+            if (!cursoLocal) throw new Error('No se encontró el curso.');
+
+            const dni = (datosForm.dni || '').replace(/\D/g, '');
+            if (!dni) throw new Error('El DNI es obligatorio.');
+            const apellido = (datosForm.apellido || '').trim();
+            const nombres = (datosForm.nombres || '').trim();
+            if (!apellido || !nombres) {
+                throw new Error('Apellido y Nombres son obligatorios.');
+            }
+            const cuil = (datosForm.cuil || '').replace(/\D/g, '');
+            if (!cuil) throw new Error('El CUIL es obligatorio para inscribir en el sistema oficial.');
+            const email = (datosForm.email || '').trim().toLowerCase();
+            if (!email) throw new Error('El email es obligatorio para inscribir en el sistema oficial.');
+
+            const yaExiste = await inscriptoLocalRepo.existeEnCurso(cursoLocal._id, dni);
+            if (yaExiste) {
+                throw new Error(`${yaExiste.apellido}, ${yaExiste.nombres} (DNI ${dni}) ya está inscripto/a en este curso.`);
+            }
+
+            const emailAlternativo = (datosForm.emailAlternativo || '').trim().toLowerCase();
+
+            // 1. Inscripción real en el sistema oficial de ABC
+            const resultadoAbc = await inscriptoExternoService.registrarInscripcion({
+                apelnom: apellido,
+                nombres,
+                cuil,
+                email,
+                conmail: email,
+                emailalt: emailAlternativo,
+                conemailalt: emailAlternativo,
+                telefono: (datosForm.telefono || '').trim(),
+                domicilio: (datosForm.domicilio || '').trim(),
+                fechanac: datosForm.fechaNacimiento || '',
+                anioegre: (datosForm.anioEgreso || '').trim(),
+                idcurso: cursoLocal.idCursoOriginal,
+                idfechaciie: cursoLocal.idOfertaOficial,
+                cohorte: cursoLocal.cohorte ?? '0',
+                tipo: 'A',
+                region: InscriptoLocalService.REGION_ABC_DEFAULT,
+                idciie: InscriptoLocalService.IDCIIE_ABC_DEFAULT,
+                couli: '1'
+            });
+
+            if (!resultadoAbc.exito) {
+                throw new Error(`El sistema oficial rechazó la inscripción: ${resultadoAbc.mensaje}`);
+            }
+
+            // 2. Reflejo local, con el idInscripcionOficial real devuelto por ABC
+            const nuevoInscripto = {
+                idInscripcionOficial: resultadoAbc.idInscripcionOficial,
+                cursoId: cursoLocal._id,
+                idOfertaOficial: cursoLocal.idOfertaOficial,
+
+                cuil,
+                dni,
+                apellido: apellido.toUpperCase(),
+                nombres: nombres.toUpperCase(),
+                fechaNacimiento: datosForm.fechaNacimiento ? new Date(datosForm.fechaNacimiento) : null,
+
+                domicilio: (datosForm.domicilio || '').trim().toUpperCase(),
+                telefono: (datosForm.telefono || '').trim(),
+                email,
+                emailAlternativo,
+
+                localidad: (datosForm.localidad || '').trim().toUpperCase(),
+                anioEgreso: (datosForm.anioEgreso || '').trim(),
+
+                anioInscripcion: String(cursoLocal.anio || ''),
+                cohorte: String(cursoLocal.cohorte || ''),
+
+                creadoPor: usuarioEmail,
+                calificacion: 'Sin Calificar',
+                observaciones: 'Inscripción cargada manualmente (no se anotó en término) e informada al sistema oficial de ABC.'
+            };
+
+            return await inscriptoLocalRepo.post(nuevoInscripto);
+        } catch (error) {
+            if (error.code === 11000) {
+                throw new Error('Ya existe una inscripción con esos datos.');
+            }
+            console.error('Error en InscriptoLocalService.altaManual:', error.message);
+            throw error;
+        }
+    }
+
     async putCalificacion(idOfertaOficial, calificaciones) {
         try {        
             

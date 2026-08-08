@@ -26,8 +26,9 @@ module.exports = {
         DATOS: `${BASE}/propuestas/datosins.php` // Generalmente los datos en este sitio siguen este patrón
     },
     CURSANTE:{
-        DATOS: `${BASE}/propuestas/moddocente.php?`, //ej: ?id=361164&quees=M&qi=65 
+        DATOS: `${BASE}/propuestas/moddocente.php?`, //ej: ?id=361164&quees=M&qi=65
         INSCRIPCION: `${BASE}/propuestas/inscripcion.php?`,
+        REGISTRAR: `${BASE}/propuestas/reginsc.php`,
     },
     LOGIN: {
         LOGIN_CIIE: `${BASE}/login_ciie/index.php`

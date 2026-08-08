@@ -90,6 +90,10 @@
         <button id="btnConsultarAbc" class="btn btn-warning fw-bold px-3">
             <i class="bi bi-cloud-download-fill me-2"></i>Sincronizar con ABC
         </button>
+
+        <button id="btnAbrirAgregarCursante" class="btn btn-outline-info px-3" data-bs-toggle="modal" data-bs-target="#modalAgregarCursante">
+            <i class="bi bi-person-plus-fill me-2"></i>Agregar Cursante
+        </button>
     </div>
 </div>
 
@@ -173,6 +177,83 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="modalAgregarCursante" tabindex="-1" aria-labelledby="modalAgregarCursanteLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content bg-dark text-white border-secondary">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title" id="modalAgregarCursanteLabel">
+                                <i class="bi bi-person-plus-fill me-2"></i>Agregar Cursante
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form id="formAgregarCursante">
+                            <div class="modal-body">
+                                <p class="text-muted small">
+                                    Para cursantes que no llegaron a anotarse a tiempo. Esta acción los
+                                    <strong>inscribe de verdad en el sistema oficial de ABC</strong> (no es solo un registro local).
+                                    Ingresá el DNI o CUIL: si la persona ya cursó algo antes, se completan los datos automáticamente.
+                                </p>
+
+                                <div id="alertaBusquedaCursante" class="alert d-none py-2 small mb-3"></div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">DNI *</label>
+                                        <input type="text" class="form-control" id="inputDniCursante" name="dni" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">CUIL *</label>
+                                        <input type="text" class="form-control" id="inputCuilCursante" name="cuil" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Fecha de Nacimiento</label>
+                                        <input type="date" class="form-control" id="inputFechaNacCursante" name="fechaNacimiento">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Apellido *</label>
+                                        <input type="text" class="form-control" id="inputApellidoCursante" name="apellido" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nombres *</label>
+                                        <input type="text" class="form-control" id="inputNombresCursante" name="nombres" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email *</label>
+                                        <input type="email" class="form-control" id="inputEmailCursante" name="email" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email alternativo</label>
+                                        <input type="email" class="form-control" id="inputEmailAltCursante" name="emailAlternativo">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Teléfono</label>
+                                        <input type="text" class="form-control" id="inputTelefonoCursante" name="telefono">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Domicilio</label>
+                                        <input type="text" class="form-control" id="inputDomicilioCursante" name="domicilio">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Localidad</label>
+                                        <input type="text" class="form-control" id="inputLocalidadCursante" name="localidad">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Año de egreso</label>
+                                        <input type="text" class="form-control" id="inputAnioEgresoCursante" name="anioEgreso">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-secondary">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" id="btnGuardarCursante" class="btn btn-info fw-bold">
+                                    <i class="bi bi-save me-1"></i>Inscribir
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -377,6 +458,141 @@
                                     text: xhr.responseJSON?.error || 'Ocurrió un error. Intente nuevamente.',
                                     confirmButtonColor: '#dc3545'
                                 });
+                            });
+                    }
+
+                    // ===== AGREGAR CURSANTE MANUALMENTE =====
+
+                    const urlBaseCurso = '/inscripto/curso/<%= cursoLocal.idOfertaOficial %>';
+                    let yaInscriptoEnCurso = false;
+
+                    function mostrarAlertaCursante(tipo, mensaje) {
+                        const $alerta = $('#alertaBusquedaCursante');
+                        if (!mensaje) {
+                            $alerta.addClass('d-none').text('');
+                            return;
+                        }
+                        $alerta.removeClass('d-none alert-info alert-warning alert-success')
+                            .addClass('alert-' + tipo)
+                            .text(mensaje);
+                    }
+
+                    function buscarCursantePorValor() {
+                        const valor = ($('#inputDniCursante').val() || $('#inputCuilCursante').val() || '').trim();
+                        yaInscriptoEnCurso = false;
+
+                        if (!valor) {
+                            mostrarAlertaCursante(null, null);
+                            return;
+                        }
+
+                        $.get(`${urlBaseCurso}/buscar-cursante`, { valor })
+                            .done(function (res) {
+                                if (res.yaInscriptoEnCurso) {
+                                    yaInscriptoEnCurso = true;
+                                    mostrarAlertaCursante('warning', '⚠️ Esta persona ya está inscripta en este curso.');
+                                    return;
+                                }
+
+                                if (res.datos) {
+                                    const d = res.datos;
+                                    if (d.cuil) $('#inputCuilCursante').val(d.cuil);
+                                    if (d.apellido) $('#inputApellidoCursante').val(d.apellido);
+                                    if (d.nombres) $('#inputNombresCursante').val(d.nombres);
+                                    if (d.fechaNacimiento) $('#inputFechaNacCursante').val(d.fechaNacimiento);
+                                    if (d.domicilio) $('#inputDomicilioCursante').val(d.domicilio);
+                                    if (d.telefono) $('#inputTelefonoCursante').val(d.telefono);
+                                    if (d.email) $('#inputEmailCursante').val(d.email);
+                                    if (d.emailAlternativo) $('#inputEmailAltCursante').val(d.emailAlternativo);
+                                    if (d.localidad) $('#inputLocalidadCursante').val(d.localidad);
+                                    if (d.anioEgreso) $('#inputAnioEgresoCursante').val(d.anioEgreso);
+
+                                    mostrarAlertaCursante('info', 'ℹ️ Se encontraron datos de una inscripción anterior y se completaron automáticamente. Podés editarlos.');
+                                } else {
+                                    mostrarAlertaCursante(null, null);
+                                }
+                            });
+                    }
+
+                    $('#inputDniCursante, #inputCuilCursante').on('blur', buscarCursantePorValor);
+
+                    $('#modalAgregarCursante').on('hidden.bs.modal', function () {
+                        $('#formAgregarCursante')[0].reset();
+                        mostrarAlertaCursante(null, null);
+                        yaInscriptoEnCurso = false;
+                    });
+
+                    $('#formAgregarCursante').on('submit', function (e) {
+                        e.preventDefault();
+
+                        if (yaInscriptoEnCurso) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Ya está inscripto/a',
+                                text: 'Esta persona ya figura anotada en este curso.',
+                                confirmButtonColor: '#ffc107'
+                            });
+                            return;
+                        }
+
+                        const payload = {
+                            dni: $('#inputDniCursante').val(),
+                            cuil: $('#inputCuilCursante').val(),
+                            apellido: $('#inputApellidoCursante').val(),
+                            nombres: $('#inputNombresCursante').val(),
+                            fechaNacimiento: $('#inputFechaNacCursante').val(),
+                            domicilio: $('#inputDomicilioCursante').val(),
+                            telefono: $('#inputTelefonoCursante').val(),
+                            email: $('#inputEmailCursante').val(),
+                            emailAlternativo: $('#inputEmailAltCursante').val(),
+                            localidad: $('#inputLocalidadCursante').val(),
+                            anioEgreso: $('#inputAnioEgresoCursante').val()
+                        };
+
+                        Swal.fire({
+                            icon: 'question',
+                            title: '¿Inscribir en el sistema oficial?',
+                            html: `Se va a inscribir a <strong>${payload.apellido}, ${payload.nombres}</strong> en ABC de verdad. Esta acción no se puede deshacer desde acá.`,
+                            showCancelButton: true,
+                            confirmButtonText: 'Sí, inscribir',
+                            cancelButtonText: 'Cancelar',
+                            confirmButtonColor: '#0dcaf0',
+                            cancelButtonColor: '#6c757d'
+                        }).then((result) => {
+                            if (!result.isConfirmed) return;
+                            enviarAltaManual(payload);
+                        });
+                    });
+
+                    function enviarAltaManual(payload) {
+                        const $btn = $('#btnGuardarCursante');
+                        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Inscribiendo en ABC...');
+
+                        $.ajax({
+                            url: `${urlBaseCurso}/alta-manual`,
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(payload)
+                        })
+                            .done(function () {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Cursante inscripto en ABC',
+                                    confirmButtonColor: '#198754',
+                                    timer: 1800,
+                                    showConfirmButton: false
+                                }).then(() => location.reload());
+                            })
+                            .fail(function (xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'No se pudo inscribir',
+                                    text: xhr.responseJSON?.message || 'Ocurrió un error. Intente nuevamente.',
+                                    confirmButtonColor: '#dc3545'
+                                });
+                            })
+                            .always(function () {
+                                $btn.prop('disabled', false).html('<i class="bi bi-save me-1"></i>Inscribir');
                             });
                     }
                 </script>

@@ -638,6 +638,15 @@ document.getElementById('cargo-titulo').addEventListener('input', function () {
 });
 
     // Descargar como PNG 2x
+    const nombreArchivoFlyer = <%- JSON.stringify(
+        [
+            curso.cargoId?.areaId?.nombreCorto || curso.cargoId?.areaId?.nombre || 'SinArea',
+            curso.cargoId?.areaId?.nivel || 'SinNivel',
+            curso.dispositivo || 'SinDispositivo',
+            curso.anio || '',
+            curso.itinerario ?? ''
+        ].map(v => String(v).trim().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_')).filter(Boolean).join('-') + '.png'
+    ) %>;
     const btnDescargar = document.getElementById('btnDescargar');
     if (btnDescargar) btnDescargar.addEventListener('click', function () {
         const btn = this;
@@ -655,7 +664,7 @@ document.getElementById('cargo-titulo').addEventListener('input', function () {
             backgroundColor: '#F0EBE3'
         }).then(function (canvas) {
             const link = document.createElement('a');
-            link.download = 'flyer-<%= curso.cargoId?.areaId?.nombreCorto %>-<%= curso.cargoId?.areaId?.nivel %> - <%= curso.dispositivo.split(" ")[0] %> - <%= new Date(curso.encuentros[0].fecha).toLocaleDateString("es-AR", {day:"2-digit", month:"2-digit", year:"numeric", timeZone:"UTC"}).replace(/\//g, "-") %>.png';
+            link.download = nombreArchivoFlyer;
             link.href = canvas.toDataURL('image/png');
             link.click();
 

@@ -518,6 +518,15 @@
     })();
 
     // Descargar como PNG 2x
+    const nombreArchivoFlyer = <%- JSON.stringify(
+        [
+            curso.cargoId?.areaId?.nombreCorto || curso.cargoId?.areaId?.nombre || 'SinArea',
+            curso.cargoId?.areaId?.nivel || 'SinNivel',
+            curso.dispositivo || 'SinDispositivo',
+            curso.anio || '',
+            curso.itinerario ?? ''
+        ].map(v => String(v).trim().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_')).filter(Boolean).join('-') + '.png'
+    ) %>;
     const btnDescargar = document.getElementById('btnDescargar');
     if (btnDescargar) btnDescargar.addEventListener('click', function () {
         const btn = this;
@@ -534,7 +543,7 @@
             backgroundColor: '#F0EBE3'
         }).then(function (canvas) {
             const link = document.createElement('a');
-            link.download = 'flyer-<%= curso.idOfertaOficial || "extensionciie" %>.png';
+            link.download = nombreArchivoFlyer;
             link.href = canvas.toDataURL('image/png');
             link.click();
 

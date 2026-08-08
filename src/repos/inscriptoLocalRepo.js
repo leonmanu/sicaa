@@ -91,6 +91,26 @@ class InscriptoLocalRepo {
         }
     }
 
+    async buscarUltimoPorDniOCuil(valor) {
+        try {
+            return await InscriptoLocal.findOne({ $or: [{ dni: valor }, { cuil: valor }] })
+                .sort({ createdAt: -1 })
+                .lean();
+        } catch (error) {
+            console.error('Error en InscriptoLocalRepo.buscarUltimoPorDniOCuil:', error.message);
+            throw error;
+        }
+    }
+
+    async existeEnCurso(cursoId, dni) {
+        try {
+            return await InscriptoLocal.findOne({ cursoId, dni }).lean();
+        } catch (error) {
+            console.error('Error en InscriptoLocalRepo.existeEnCurso:', error.message);
+            throw error;
+        }
+    }
+
     async putCalificaciones(calificaciones) {
         try {
             const ops = calificaciones.map(cal => ({

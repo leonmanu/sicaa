@@ -420,8 +420,11 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small fw-bold">ITINERARIO <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control bg-dark border-secondary text-white"
-                                   id="itinerario" name="itinerario" value="1" min="1">
+                            <select class="form-select bg-dark border-secondary text-white"
+                                    id="itinerario" name="itinerario">
+                                <option value="1" selected>1</option>
+                                <option value="2">2</option>
+                            </select>
                         </div>
 
                         <div class="col-6">
@@ -759,9 +762,6 @@ $('#btnAltaCurso').on('click', function() {
             });
         }
 
-        // ─── Datos desde EJS ─────────────────────────────────────────────────
-        const cursosExistentes = JSON.parse('<%- JSON.stringify(cursosLocales.map(c => ({ anio: c.anio, itinerario: c.itinerario, dispositivo: c.dispositivo }))) %>');
-
         // ─── Reglas por dispositivo ───────────────────────────────────────────────
         const REGLAS = {
             'Taller en Servicio':       { encuentros: 3, horas: 4 },
@@ -782,10 +782,10 @@ $('#btnAltaCurso').on('click', function() {
             return n >= 8 ? 0.48 : 0.44;
         }
 
-        function proximoItinerario(anio, dispositivo) {
-            const delAnioDispositivo = cursosExistentes.filter(c => c.anio == anio && c.dispositivo === dispositivo);
-            if (delAnioDispositivo.length === 0) return 1;
-            return Math.max(...delAnioDispositivo.map(c => c.itinerario)) + 1;
+        function proximoItinerario(fecha) {
+            if (!fecha) return 1;
+            const corte = new Date(fecha.getFullYear(), 5, 30, 23, 59, 59); // 30 de junio
+            return fecha <= corte ? 1 : 2;
         }
 
         function toDateOnlyLocal(date) {
@@ -841,7 +841,7 @@ $('#btnAltaCurso').on('click', function() {
             $('#drupalDiaDictado').val(dias[primeraFecha.getDay()]);
             
             // Recalcular itinerario
-            $('#itinerario').val(proximoItinerario($('#anio').val(), $('#dispositivoSeleccionado').val()));
+            $('#itinerario').val(proximoItinerario(primeraFecha));
             
             // Completar las siguientes fechas automáticamente
             completarFechasFaltantes();
@@ -908,7 +908,7 @@ $('#btnAltaCurso').on('click', function() {
             $('#drupalDiaDictado').val(dias[primeraFecha.getDay()]);
             
             // Recalcular itinerario
-            $('#itinerario').val(proximoItinerario($('#anio').val(), $('#dispositivoSeleccionado').val()));
+            $('#itinerario').val(proximoItinerario(primeraFecha));
             
             // Completar las siguientes fechas automáticamente
             completarFechasFaltantes();
@@ -933,7 +933,7 @@ $('#btnAltaCurso').on('click', function() {
             $('#cantidadHoras').val(horas);
             $('#drupalPuntaje').val(calcularPuntaje(dispositivo, encuentros));
             // Recalcular itinerario
-            $('#itinerario').val(proximoItinerario($('#anio').val(), dispositivo));
+            $('#itinerario').val(proximoItinerario(parseDateOnly(base)));
         }
 
         $('#cantidadHoras').on('change input', function () {
@@ -968,8 +968,8 @@ $('#btnAltaCurso').on('click', function() {
         renderFechasEncuentros(['']);
 
         $('#anio').on('change input', function () {
-            const dispositivo = $('#dispositivoSeleccionado').val();
-            $('#itinerario').val(proximoItinerario($(this).val(), dispositivo));
+            const primeraFecha = parseDateOnly(getFechasEncuentro()[0]);
+            $('#itinerario').val(proximoItinerario(primeraFecha));
         });
 
         // ─── Widget formadores ────────────────────────────────────────────────────

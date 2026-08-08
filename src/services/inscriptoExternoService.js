@@ -88,6 +88,50 @@ class InscriptoExternoService {
         return response;
     }
 
+    _parseRespuestaRegistro(raw) {
+        const texto = String(raw ?? '').trim();
+        if (texto.length < 3) {
+            return { exito: false, mensaje: 'El sistema oficial no devolvió respuesta.' };
+        }
+
+        const codigo = parseInt(texto.substring(0, 2), 10);
+        const resto = texto.substring(3);
+
+        if (Number.isFinite(codigo) && codigo >= 90) {
+            const [idInscripcionOficial, nombreCurso, region, nombreCiie] = resto.split('~');
+            return {
+                exito: true,
+                idInscripcionOficial: idInscripcionOficial || '',
+                nombreCurso: nombreCurso || '',
+                region: region || '',
+                nombreCiie: nombreCiie || ''
+            };
+        }
+
+        return { exito: false, codigo, mensaje: resto || 'El sistema oficial rechazó la inscripción.' };
+    }
+
+    async registrarInscripcion(datos) {
+        const intentarPeticion = async (esReintento = false) => {
+            await sesionService.asegurarSesion(esReintento);
+            return await inscriptoExternoRepo.postRegistrarInscripcion(datos);
+        };
+
+        try {
+            let response = await intentarPeticion();
+
+            if (typeof response.data === 'string' && response.data.includes('Inicio de Sesión')) {
+                console.log('🔄 Sesión expirada en registrarInscripcion, renovando...');
+                response = await intentarPeticion(true);
+            }
+
+            return this._parseRespuestaRegistro(response.data);
+        } catch (error) {
+            console.error('Error en registrarInscripcion:', error.message);
+            throw error;
+        }
+    }
+
     async getDetalleCursantePorIdInscripcion(idInscripcion, idCurso) {
         try {
             // ✅ AGREGADO: asegurar sesión antes de pedir el detalle
