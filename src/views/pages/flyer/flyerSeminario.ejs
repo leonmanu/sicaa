@@ -2,6 +2,12 @@
 <html lang="es">
 <head>
     <%- include('../../partials/head') %>
+    <% if (locals.bare) { %>
+    <!-- Embebido en iframe de tamaño fijo (ver cursoLocalListPublico.ejs): forzamos el
+         viewport a 540px reales para que el navegador no lo re-layoutee al ancho del
+         dispositivo (algunos móviles ignoran el tamaño CSS del iframe si no se fija esto). -->
+    <meta name="viewport" content="width=540">
+    <% } %>
     <title>Flyer Seminario — <%= curso.tituloFormulario || curso.nombrePropuesta %></title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@100..900&display=swap" rel="stylesheet">

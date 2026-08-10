@@ -4,47 +4,47 @@
     <%- include('../../partials/head') %>
     <title><%= title || 'Oferta de Cursos' %></title>
     <style>
-        .flyer-card {
+        .curso-card {
             background-color: #161b22;
             border: 1px solid #30363d;
-            border-radius: 8px;
-            overflow: hidden;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border-radius: 10px;
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         }
-        .flyer-card:hover {
+        .curso-card:hover {
             transform: translateY(-3px);
+            border-color: #58a6ff;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
-        .flyer-preview-wrapper {
-            width: 100%;
-            overflow: hidden;
-            position: relative;
-            background: #1a1a2e;
-        }
-        .flyer-iframe {
-            width: 540px;
-            height: 675px;
-            border: none;
-            transform-origin: top left;
-            display: block;
-            pointer-events: none;
-        }
-        .flyer-no-disponible {
-            height: 200px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #1a1a2e;
-        }
-        .inscripcion-footer {
-            padding: 8px;
-            border-top: 1px solid #30363d;
-        }
+        .curso-nombre { font-size: 1.05rem; line-height: 1.3; }
+        .curso-detalle { font-size: 0.85rem; }
+        .curso-detalle li { display: flex; align-items: baseline; gap: 0.5rem; padding: 2px 0; }
+        .curso-detalle i { width: 1.1em; flex-shrink: 0; }
         #buscador:focus { border-color: #58a6ff; box-shadow: 0 0 0 0.2rem rgba(88,166,255,.15); }
         .filtro-activo { border-color: #58a6ff !important; }
         #contadorResultados { font-size: 0.8rem; }
         .sin-resultados { display: none; }
+
+        /* Modal "Ver flyer": el flyer se embebe a tamaño fijo (540x675) y se
+           escala visualmente para entrar en el modal, igual que el resto de
+           las vistas que embeben flyers. */
+        #modalFlyerWrapper {
+            width: 100%;
+            max-width: 460px;
+            aspect-ratio: 540 / 675;
+            overflow: hidden;
+            position: relative;
+            background: #1a1a2e;
+            margin: 0 auto;
+        }
+        #modalFlyerIframe {
+            width: 540px;
+            height: 675px;
+            border: none;
+            transform-origin: top left;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
     </style>
 </head>
 <body>
@@ -103,8 +103,8 @@
                         </select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label small text-muted mb-1">Año</label>
-                        <select id="filtroAnio" class="form-select form-select-sm bg-dark border-secondary text-white">
+                        <label class="form-label small text-muted mb-1">Día</label>
+                        <select id="filtroDia" class="form-select form-select-sm bg-dark border-secondary text-white">
                             <option value="">Todos</option>
                         </select>
                     </div>
@@ -128,11 +128,67 @@
         <%
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
-            const cursosVinculados = cursosLocales.filter(c => {
-                if (c.estado !== 'vinculado') return false;
-                if (!c.encuentros || c.encuentros.length === 0) return true;
-                return new Date(c.encuentros[0].fecha) >= hoy;
-            });
+
+            function primeraFechaDe(curso) {
+                const primerEncuentro = (curso.encuentros || [])[0];
+                return primerEncuentro?.fecha ? new Date(primerEncuentro.fecha) : null;
+            }
+
+            function inscripcionVencida(curso) {
+                if (!curso.fechaFinInscripcion) return false;
+                return new Date(curso.fechaFinInscripcion) < hoy;
+            }
+
+            const cursosVinculados = cursosLocales
+                .filter(c => {
+                    if (c.estado !== 'vinculado') return false;
+                    if (!c.encuentros || c.encuentros.length === 0) return true;
+                    return new Date(c.encuentros[0].fecha) >= hoy;
+                })
+                .sort((a, b) => {
+                    const fa = primeraFechaDe(a);
+                    const fb = primeraFechaDe(b);
+                    if (!fa && !fb) return 0;
+                    if (!fa) return 1;
+                    if (!fb) return -1;
+                    return fa - fb;
+                });
+
+            function diaDictadoDe(curso) {
+                const primerEncuentro = (curso.encuentros || [])[0];
+                if (!primerEncuentro?.fecha) return '';
+                const fechaObj = new Date(primerEncuentro.fecha);
+                const diaSemana = fechaObj.toLocaleDateString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+                return diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+            }
+
+            function horaDictadoDe(curso) {
+                const primerEncuentro = (curso.encuentros || [])[0];
+                if (!primerEncuentro?.fecha) return '';
+                if (primerEncuentro.horaInicio) {
+                    return primerEncuentro.horaFin
+                        ? `${primerEncuentro.horaInicio} a ${primerEncuentro.horaFin}`
+                        : primerEncuentro.horaInicio;
+                }
+                const horaTexto = new Date(primerEncuentro.fecha).toLocaleTimeString('es-AR', {
+                    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'
+                });
+                return horaTexto !== '00:00' ? horaTexto : '';
+            }
+
+            const FORMATO_LABELS = { 1: 'Sin definir', 2: 'Presencial', 3: 'Virtual', 4: 'Virtual', 5: 'Combinado' };
+            function formatoDe(curso) {
+                const formatoDictado = (curso.publicacionDrupal?.formatoDictado || '').replace(/\s*\(\d+\)\s*$/, '').trim();
+                return formatoDictado || FORMATO_LABELS[String(curso.idformato)] || '';
+            }
+
+            function fechaInicioDe(curso) {
+                const fecha = primeraFechaDe(curso);
+                if (!fecha) return '';
+                return fecha.toLocaleDateString('es-AR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'
+                });
+            }
         %>
 
         <% if (cursosVinculados.length === 0) { %>
@@ -145,53 +201,86 @@
             <div id="gridCursos" class="row g-3">
                 <% cursosVinculados.forEach(c => {
                     const disponible = String(c.disponible || '').toUpperCase() === 'S';
+                    const vencida = inscripcionVencida(c);
                     const area = c.cargoId?.areaId?.nombre || c.cargoId?.areaId?.nombreCorto || '';
+                    const nivel = c.cargoId?.areaId?.nivel || '';
+                    const dia = diaDictadoDe(c);
+                    const hora = horaDictadoDe(c);
+                    const formato = formatoDe(c);
+                    const fechaInicio = fechaInicioDe(c);
                 %>
-                <div class="col-12 col-sm-6 col-xl-4 curso-item"
+                <div class="col-12 col-md-6 col-lg-4 curso-item"
                      data-nombre="<%= (c.nombrePropuesta || '').toLowerCase() %>"
                      data-formador="<%= (c.formadorAbc || '').toLowerCase() %>"
                      data-area="<%= area.toLowerCase() %>"
                      data-dispositivo="<%= c.dispositivo || '' %>"
-                     data-anio="<%= c.anio || '' %>"
+                     data-dia="<%= dia %>"
                      data-disponible="<%= disponible ? '1' : '0' %>">
-                    <div class="flyer-card">
+                    <div class="card curso-card h-100">
+                        <div class="card-body d-flex flex-column">
 
-                        <!-- Flyer embebido -->
-                        <% if (c.idOfertaOficial) { %>
-                        <div class="flyer-preview-wrapper">
-                            <iframe
-                                src="/curso/flyer/<%= c.idOfertaOficial %>?bare=true"
-                                class="flyer-iframe"
-                                loading="lazy"
-                                scrolling="no"
-                                frameborder="0"
-                                title="<%= c.nombrePropuesta %>">
-                            </iframe>
-                        </div>
-                        <% } else { %>
-                        <div class="flyer-no-disponible">
-                            <i class="bi bi-image text-muted" style="font-size:3rem; opacity:0.3;"></i>
-                            <p class="text-muted mt-2 small mb-0">Vista previa no disponible</p>
-                        </div>
-                        <% } %>
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                <span class="badge bg-secondary"><%= c.dispositivo %></span>
+                                <% if (nivel) { %><span class="badge bg-info text-dark"><%= nivel %></span><% } %>
+                                <% if (formato) { %><span class="badge bg-dark border border-secondary text-light"><%= formato %></span><% } %>
+                            </div>
 
-                        <!-- Enlace de inscripción al pie -->
-                        <div class="inscripcion-footer">
-                            <% if (disponible && c.enlaceInscripcion) { %>
-                            <a href="<%= c.enlaceInscripcion %>" target="_blank" rel="noopener noreferrer"
-                               class="btn btn-success btn-sm w-100 fw-semibold">
-                                <i class="bi bi-box-arrow-up-right me-1"></i>Inscribirse
-                            </a>
-                            <% } else { %>
-                            <button class="btn btn-outline-secondary btn-sm w-100" disabled>
-                                <i class="bi bi-lock me-1"></i>Inscripción no disponible
-                            </button>
-                            <% } %>
-                        </div>
+                            <h6 class="curso-nombre fw-bold mb-2"><%= c.nombrePropuesta %></h6>
 
+                            <ul class="list-unstyled curso-detalle text-muted mb-3 flex-grow-1">
+                                <% if (area) { %><li><i class="bi bi-tag"></i><span><%= area %></span></li><% } %>
+                                <% if (c.formadorAbc) { %><li><i class="bi bi-person"></i><span><%= c.formadorAbc %></span></li><% } %>
+                                <% if (dia) { %><li><i class="bi bi-calendar-event"></i><span><%= dia %><% if (hora) { %> · <%= hora %> hs<% } %></span></li><% } %>
+                                <% if (fechaInicio) { %><li><i class="bi bi-calendar2-check"></i><span>Inicia el <%= fechaInicio %></span></li><% } %>
+                                <% if (c.cantidadHoras) { %><li><i class="bi bi-clock-history"></i><span><%= c.cantidadHoras %> hs. reloj<% if (c.cantidadEncuentros) { %> · <%= c.cantidadEncuentros %> encuentros<% } %></span></li><% } %>
+                                <% if (c.cupo) { %><li><i class="bi bi-people"></i><span><%= c.cantidadInscriptos || 0 %>/<%= c.cupo %> inscriptos/as</span></li><% } %>
+                            </ul>
+
+                            <div class="d-grid gap-2">
+                                <% if (vencida) { %>
+                                <button class="btn btn-danger btn-sm" disabled>
+                                    <i class="bi bi-calendar-x me-1"></i>Inscripción cerrada
+                                </button>
+                                <% } else if (disponible && c.enlaceInscripcion) { %>
+                                <a href="<%= c.enlaceInscripcion %>" target="_blank" rel="noopener noreferrer"
+                                   class="btn btn-success btn-sm fw-semibold">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>Inscribirse
+                                </a>
+                                <% } else { %>
+                                <button class="btn btn-outline-secondary btn-sm" disabled>
+                                    <i class="bi bi-lock me-1"></i>Inscripción no disponible
+                                </button>
+                                <% } %>
+                                <% if (c.idOfertaOficial) { %>
+                                <button type="button" class="btn btn-outline-light btn-sm"
+                                        data-bs-toggle="modal" data-bs-target="#modalFlyer"
+                                        data-oferta-id="<%= c.idOfertaOficial %>"
+                                        data-nombre="<%= c.nombrePropuesta %>">
+                                    <i class="bi bi-image me-1"></i>Ver flyer
+                                </button>
+                                <% } %>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <% }); %>
+            </div>
+
+            <!-- MODAL: VER FLYER -->
+            <div class="modal fade" id="modalFlyer" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content bg-dark border-secondary">
+                        <div class="modal-header border-secondary">
+                            <h6 class="modal-title" id="modalFlyerTitulo">Flyer</h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="modalFlyerWrapper">
+                                <iframe id="modalFlyerIframe" src="" loading="lazy" title="Flyer"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- SIN RESULTADOS -->
@@ -217,19 +306,31 @@
 
     <%- include('../../partials/scripts') %>
     <script>
-    // ─── Escalar iframes al tamaño del contenedor ─────────────────────
-    function scaleFlyerIframes() {
-        document.querySelectorAll('.flyer-preview-wrapper').forEach(function(wrapper) {
-            var iframe = wrapper.querySelector('.flyer-iframe');
-            if (!iframe) return;
-            var scale = wrapper.offsetWidth / 540;
+    // ─── Modal "Ver flyer": carga el iframe recién al abrir (nunca todos a la vez) ──
+    (function () {
+        const modalEl      = document.getElementById('modalFlyer');
+        const iframe       = document.getElementById('modalFlyerIframe');
+        const wrapper      = document.getElementById('modalFlyerWrapper');
+        const tituloEl     = document.getElementById('modalFlyerTitulo');
+        if (!modalEl || !iframe || !wrapper) return;
+
+        function escalarModalFlyer() {
+            const scale = wrapper.offsetWidth / 540;
             iframe.style.transform = 'scale(' + scale + ')';
-            wrapper.style.height = Math.round(675 * scale) + 'px';
+        }
+
+        modalEl.addEventListener('show.bs.modal', function (event) {
+            const boton = event.relatedTarget;
+            if (!boton) return;
+            tituloEl.textContent = boton.dataset.nombre || 'Flyer';
+            iframe.src = `/curso/flyer/${boton.dataset.ofertaId}?bare=true`;
         });
-    }
-    window.addEventListener('load', scaleFlyerIframes);
-    window.addEventListener('resize', scaleFlyerIframes);
-    scaleFlyerIframes();
+        modalEl.addEventListener('shown.bs.modal', escalarModalFlyer);
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            iframe.src = ''; // libera el iframe al cerrar, no queda cargado de fondo
+        });
+        window.addEventListener('resize', escalarModalFlyer);
+    })();
 
     $(document).ready(function () {
 
@@ -239,20 +340,22 @@
         const $contador = $('#contadorResultados');
 
         // ─── Poblar filtros ───────────────────────────────────────────────────
+        const ORDEN_DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
         const dispositivos = [...new Set($items.map((_, el) => $(el).data('dispositivo')).get().filter(Boolean))].sort();
         const areas        = [...new Set($items.map((_, el) => $(el).data('area')).get().filter(Boolean))].sort();
-        const anios        = [...new Set($items.map((_, el) => String($(el).data('anio'))).get().filter(Boolean))].sort((a, b) => b - a);
+        const dias         = [...new Set($items.map((_, el) => $(el).data('dia')).get().filter(Boolean))]
+            .sort((a, b) => ORDEN_DIAS.indexOf(a) - ORDEN_DIAS.indexOf(b));
 
         dispositivos.forEach(d => $('#filtroDispositivo').append(`<option value="${d}">${d}</option>`));
         areas.forEach(a => $('#filtroArea').append(`<option value="${a}">${a}</option>`));
-        anios.forEach(a => $('#filtroAnio').append(`<option value="${a}">${a}</option>`));
+        dias.forEach(d => $('#filtroDia').append(`<option value="${d}">${d}</option>`));
 
         // ─── Filtrar ──────────────────────────────────────────────────────────
         function filtrar() {
             const texto       = $('#buscador').val().toLowerCase().trim();
             const dispositivo = $('#filtroDispositivo').val();
             const area        = $('#filtroArea').val().toLowerCase();
-            const anio        = $('#filtroAnio').val();
+            const dia         = $('#filtroDia').val();
             const soloDisp    = $('#soloDisponibles').is(':checked');
 
             let visibles = 0;
@@ -265,10 +368,10 @@
                     $el.data('area').includes(texto);
                 const matchDisp   = !dispositivo || $el.data('dispositivo') === dispositivo;
                 const matchArea   = !area || $el.data('area').includes(area);
-                const matchAnio   = !anio || String($el.data('anio')) === anio;
+                const matchDia    = !dia || $el.data('dia') === dia;
                 const matchSoloD  = !soloDisp || $el.data('disponible') === 1 || $el.data('disponible') === '1';
 
-                const visible = matchTexto && matchDisp && matchArea && matchAnio && matchSoloD;
+                const visible = matchTexto && matchDisp && matchArea && matchDia && matchSoloD;
                 $el.toggle(visible);
                 if (visible) visibles++;
             });
@@ -281,7 +384,7 @@
             }
 
             // Resaltar filtros activos
-            ['#filtroDispositivo', '#filtroArea', '#filtroAnio'].forEach(sel => {
+            ['#filtroDispositivo', '#filtroArea', '#filtroDia'].forEach(sel => {
                 $(sel).toggleClass('filtro-activo', !!$(sel).val());
             });
             $('#buscador').toggleClass('filtro-activo', !!$('#buscador').val());
@@ -290,14 +393,14 @@
         // ─── Limpiar ──────────────────────────────────────────────────────────
         function limpiar() {
             $('#buscador').val('');
-            $('#filtroDispositivo, #filtroArea, #filtroAnio').val('');
+            $('#filtroDispositivo, #filtroArea, #filtroDia').val('');
             $('#soloDisponibles').prop('checked', true);
             filtrar();
         }
 
         // ─── Eventos ──────────────────────────────────────────────────────────
         $('#buscador').on('input', filtrar);
-        $('#filtroDispositivo, #filtroArea, #filtroAnio, #soloDisponibles').on('change', filtrar);
+        $('#filtroDispositivo, #filtroArea, #filtroDia, #soloDisponibles').on('change', filtrar);
         $('#btnLimpiar, #btnLimpiarSinResultados').on('click', limpiar);
 
         // Inicializar contador
