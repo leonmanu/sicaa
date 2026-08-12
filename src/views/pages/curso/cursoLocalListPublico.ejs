@@ -256,11 +256,8 @@
                             </ul>
 
                             <div class="d-grid gap-2">
-                                <% if (vencida) { %>
-                                <button class="btn btn-danger btn-sm" disabled>
-                                    <i class="bi bi-calendar-x me-1"></i>Inscripción cerrada
-                                </button>
-                                <% } else if (disponible && c.enlaceInscripcion) { %>
+                                
+                                <% if (disponible && c.enlaceInscripcion) { %>
                                 <a href="<%= c.enlaceInscripcion %>" target="_blank" rel="noopener noreferrer"
                                    class="btn btn-success btn-sm fw-semibold">
                                     <i class="bi bi-box-arrow-up-right me-1"></i>Inscribirse
