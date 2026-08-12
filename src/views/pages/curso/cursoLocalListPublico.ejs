@@ -230,6 +230,7 @@
                     const disponible = String(c.disponible || '').toUpperCase() === 'S';
                     const vencida = inscripcionVencida(c);
                     const area = c.cargoId?.areaId?.nombre || c.cargoId?.areaId?.nombreCorto || '';
+                    const nivel = c.cargoId?.areaId?.nivel || '';
                     const dia = diaDictadoDe(c);
                     const hora = horaDictadoDe(c);
                     const formato = formatoDe(c);
@@ -245,8 +246,9 @@
                     <div class="card curso-card h-100">
                         <div class="card-body d-flex flex-column">
 
-                            <div class="d-flex flex-wrap gap-1 mb-2">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                                 <span class="badge" style="background-color: <%= colorDispositivoDe(c.dispositivo || '') %>;"><%= etiquetaDispositivoDe(c.dispositivo) %></span>
+                                <% if (nivel) { %><small class="text-muted"><%= nivel %></small><% } %>
                                 <% if (formato) { %><span class="badge bg-dark border border-secondary text-light"><%= formato %></span><% } %>
                             </div>
 
