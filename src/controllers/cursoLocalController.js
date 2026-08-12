@@ -693,6 +693,15 @@ const getFlyersList = async (req, res) => {
             dispositivoCoincide(curso.dispositivo, filtros.dispositivo)
         );
 
+        // Fecha de inscripción más vieja entre TODOS los cursos del itinerario
+        // (sin importar los filtros de estado/nivel/dispositivo/área), para la portada.
+        const fechaInscripcionMasVieja = cursosDelItinerario.reduce((min, curso) => {
+            if (!curso.fechaInicioInscripcion) return min;
+            const fecha = new Date(curso.fechaInicioInscripcion);
+            if (isNaN(fecha.getTime())) return min;
+            return (!min || fecha < min) ? fecha : min;
+        }, null);
+
         res.render('pages/flyer/flyersList', {
             cursos,
             filtros,
@@ -701,6 +710,7 @@ const getFlyersList = async (req, res) => {
             areasDisponibles,
             nivelesDisponibles,
             estadosDisponibles,
+            fechaInscripcionMasVieja,
             user: req.user,
             title: 'Flyers de Cursos'
         });

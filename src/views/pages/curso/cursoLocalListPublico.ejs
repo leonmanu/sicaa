@@ -45,46 +45,6 @@
             top: 0;
             left: 0;
         }
-
-        /* Portada: banner de presentación, sin controles, solo el itinerario
-           y la fecha de inscripción más próxima entre los cursos listados. */
-        .portada-cursos {
-            width: 100%;
-            height: 220px;
-            background-image: url('/img/frenteCIIE.png');
-            background-size: cover;
-            background-position: center 65%;
-            position: relative;
-        }
-        .portada-overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, rgba(13,17,23,0.35) 0%, rgba(13,17,23,0.85) 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 16px;
-            text-align: center;
-        }
-        .portada-itinerario {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: #fff;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
-            letter-spacing: 0.02em;
-        }
-        .portada-inscripcion {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #f47920;
-            text-shadow: 0 1px 4px rgba(0,0,0,0.6);
-        }
-        @media (max-width: 576px) {
-            .portada-cursos { height: 160px; }
-            .portada-itinerario { font-size: 1.1rem; }
-        }
     </style>
 </head>
 <body>
@@ -179,20 +139,6 @@
             for (let i = 0; i < dispositivo.length; i++) hash = dispositivo.charCodeAt(i) + ((hash << 5) - hash);
             return PALETA_DISPOSITIVO_FALLBACK[Math.abs(hash) % PALETA_DISPOSITIVO_FALLBACK.length];
         }
-
-        // Datos para la portada: itinerario más alto y fecha de inscripción más vieja
-        // entre los cursos que se están mostrando.
-        const itinerarioPortada = cursosVinculados.reduce((max, c) => {
-            const it = Number(c.itinerario);
-            return Number.isFinite(it) && it > max ? it : max;
-        }, 0);
-
-        const fechaInscripcionMasVieja = cursosVinculados.reduce((min, c) => {
-            if (!c.fechaInicioInscripcion) return min;
-            const f = new Date(c.fechaInicioInscripcion);
-            if (isNaN(f.getTime())) return min;
-            return (!min || f < min) ? f : min;
-        }, null);
     %>
 
     <!-- HEADER PÚBLICO -->
@@ -207,21 +153,6 @@
             </span>
         </div>
     </nav>
-
-    <!-- PORTADA -->
-    <div class="portada-cursos">
-        <div class="portada-overlay">
-            <% if (itinerarioPortada > 0) { %>
-                <span class="portada-itinerario"><%= itinerarioPortada %>° Itinerario formativo</span>
-            <% } %>
-            <% if (fechaInscripcionMasVieja) { %>
-                <span class="portada-inscripcion">
-                    <i class="bi bi-calendar-event me-1"></i>Inscripción desde el
-                    <%= fechaInscripcionMasVieja.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' }) %>
-                </span>
-            <% } %>
-        </div>
-    </div>
 
     <div class="container py-4">
 
