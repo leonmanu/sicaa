@@ -45,9 +45,155 @@
             top: 0;
             left: 0;
         }
+
+        /* Portada: banner de presentación, sin controles, solo el itinerario
+           y la fecha de inscripción más próxima entre los cursos listados. */
+        .portada-cursos {
+            width: 100%;
+            height: 220px;
+            background-image: url('/img/frenteCIIE.png');
+            background-size: cover;
+            background-position: center 65%;
+            position: relative;
+        }
+        .portada-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(13,17,23,0.35) 0%, rgba(13,17,23,0.85) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .portada-itinerario {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+            letter-spacing: 0.02em;
+        }
+        .portada-inscripcion {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #f47920;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+        }
+        @media (max-width: 576px) {
+            .portada-cursos { height: 160px; }
+            .portada-itinerario { font-size: 1.1rem; }
+        }
     </style>
 </head>
 <body>
+
+    <%
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
+        function primeraFechaDe(curso) {
+            const primerEncuentro = (curso.encuentros || [])[0];
+            return primerEncuentro?.fecha ? new Date(primerEncuentro.fecha) : null;
+        }
+
+        function inscripcionVencida(curso) {
+            if (!curso.fechaFinInscripcion) return false;
+            return new Date(curso.fechaFinInscripcion) < hoy;
+        }
+
+        const cursosVinculados = cursosLocales
+            .filter(c => {
+                if (c.estado !== 'vinculado') return false;
+                if (!c.encuentros || c.encuentros.length === 0) return true;
+                return new Date(c.encuentros[0].fecha) >= hoy;
+            })
+            .sort((a, b) => {
+                const fa = primeraFechaDe(a);
+                const fb = primeraFechaDe(b);
+                if (!fa && !fb) return 0;
+                if (!fa) return 1;
+                if (!fb) return -1;
+                return fa - fb;
+            });
+
+        function diaDictadoDe(curso) {
+            const primerEncuentro = (curso.encuentros || [])[0];
+            if (!primerEncuentro?.fecha) return '';
+            const fechaObj = new Date(primerEncuentro.fecha);
+            const diaSemana = fechaObj.toLocaleDateString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+            return diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+        }
+
+        function horaDictadoDe(curso) {
+            const primerEncuentro = (curso.encuentros || [])[0];
+            if (!primerEncuentro?.fecha) return '';
+            if (primerEncuentro.horaInicio) {
+                return primerEncuentro.horaFin
+                    ? `${primerEncuentro.horaInicio} a ${primerEncuentro.horaFin}`
+                    : primerEncuentro.horaInicio;
+            }
+            const horaTexto = new Date(primerEncuentro.fecha).toLocaleTimeString('es-AR', {
+                hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'
+            });
+            return horaTexto !== '00:00' ? horaTexto : '';
+        }
+
+        const FORMATO_LABELS = { 1: 'Sin definir', 2: 'Presencial', 3: 'Virtual', 4: 'Virtual', 5: 'Combinado' };
+        function formatoDe(curso) {
+            const formatoDictado = (curso.publicacionDrupal?.formatoDictado || '').replace(/\s*\(\d+\)\s*$/, '').trim();
+            return formatoDictado || FORMATO_LABELS[String(curso.idformato)] || '';
+        }
+
+        function fechaInicioDe(curso) {
+            const fecha = primeraFechaDe(curso);
+            if (!fecha) return '';
+            return fecha.toLocaleDateString('es-AR', {
+                day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'
+            });
+        }
+
+        const ETIQUETAS_DISPOSITIVO = {
+            'Taller Fuera de Servicio': 'Taller'
+        };
+        function etiquetaDispositivoDe(dispositivo) {
+            return ETIQUETAS_DISPOSITIVO[dispositivo] || dispositivo;
+        }
+
+        const COLORES_DISPOSITIVO = {
+            'Taller en Servicio': '#f47920',
+            'Taller Fuera de Servicio': '#5c6bc0',
+            'Seminario': '#00adc5',
+            'Seminario Distancia': '#0a8fa0',
+            'Extensión CIIE': '#8e6fce',
+            'MADP + Ateneo': '#c2185b',
+            'Ateneo Distancia': '#ad1457',
+            'Curso Distancia': '#2e7d32'
+        };
+        const PALETA_DISPOSITIVO_FALLBACK = ['#0d6efd', '#fd7e14', '#20c997', '#6f42c1', '#d63384', '#198754'];
+        function colorDispositivoDe(dispositivo) {
+            if (COLORES_DISPOSITIVO[dispositivo]) return COLORES_DISPOSITIVO[dispositivo];
+            // Color estable (por hash) para dispositivos que no están en la lista de arriba
+            let hash = 0;
+            for (let i = 0; i < dispositivo.length; i++) hash = dispositivo.charCodeAt(i) + ((hash << 5) - hash);
+            return PALETA_DISPOSITIVO_FALLBACK[Math.abs(hash) % PALETA_DISPOSITIVO_FALLBACK.length];
+        }
+
+        // Datos para la portada: itinerario más alto y fecha de inscripción más vieja
+        // entre los cursos que se están mostrando.
+        const itinerarioPortada = cursosVinculados.reduce((max, c) => {
+            const it = Number(c.itinerario);
+            return Number.isFinite(it) && it > max ? it : max;
+        }, 0);
+
+        const fechaInscripcionMasVieja = cursosVinculados.reduce((min, c) => {
+            if (!c.fechaInicioInscripcion) return min;
+            const f = new Date(c.fechaInicioInscripcion);
+            if (isNaN(f.getTime())) return min;
+            return (!min || f < min) ? f : min;
+        }, null);
+    %>
 
     <!-- HEADER PÚBLICO -->
     <nav class="navbar navbar-dark bg-dark border-bottom border-secondary border-opacity-25 shadow-sm">
@@ -61,6 +207,21 @@
             </span>
         </div>
     </nav>
+
+    <!-- PORTADA -->
+    <div class="portada-cursos">
+        <div class="portada-overlay">
+            <% if (itinerarioPortada > 0) { %>
+                <span class="portada-itinerario"><%= itinerarioPortada %>° Itinerario formativo</span>
+            <% } %>
+            <% if (fechaInscripcionMasVieja) { %>
+                <span class="portada-inscripcion">
+                    <i class="bi bi-calendar-event me-1"></i>Inscripción desde el
+                    <%= fechaInscripcionMasVieja.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' }) %>
+                </span>
+            <% } %>
+        </div>
+    </div>
 
     <div class="container py-4">
 
@@ -125,91 +286,6 @@
         </div>
 
         <!-- GRILLA DE CURSOS -->
-        <%
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-
-            function primeraFechaDe(curso) {
-                const primerEncuentro = (curso.encuentros || [])[0];
-                return primerEncuentro?.fecha ? new Date(primerEncuentro.fecha) : null;
-            }
-
-            function inscripcionVencida(curso) {
-                if (!curso.fechaFinInscripcion) return false;
-                return new Date(curso.fechaFinInscripcion) < hoy;
-            }
-
-            const cursosVinculados = cursosLocales
-                .filter(c => {
-                    if (c.estado !== 'vinculado') return false;
-                    if (!c.encuentros || c.encuentros.length === 0) return true;
-                    return new Date(c.encuentros[0].fecha) >= hoy;
-                })
-                .sort((a, b) => {
-                    const fa = primeraFechaDe(a);
-                    const fb = primeraFechaDe(b);
-                    if (!fa && !fb) return 0;
-                    if (!fa) return 1;
-                    if (!fb) return -1;
-                    return fa - fb;
-                });
-
-            function diaDictadoDe(curso) {
-                const primerEncuentro = (curso.encuentros || [])[0];
-                if (!primerEncuentro?.fecha) return '';
-                const fechaObj = new Date(primerEncuentro.fecha);
-                const diaSemana = fechaObj.toLocaleDateString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
-                return diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
-            }
-
-            function horaDictadoDe(curso) {
-                const primerEncuentro = (curso.encuentros || [])[0];
-                if (!primerEncuentro?.fecha) return '';
-                if (primerEncuentro.horaInicio) {
-                    return primerEncuentro.horaFin
-                        ? `${primerEncuentro.horaInicio} a ${primerEncuentro.horaFin}`
-                        : primerEncuentro.horaInicio;
-                }
-                const horaTexto = new Date(primerEncuentro.fecha).toLocaleTimeString('es-AR', {
-                    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'
-                });
-                return horaTexto !== '00:00' ? horaTexto : '';
-            }
-
-            const FORMATO_LABELS = { 1: 'Sin definir', 2: 'Presencial', 3: 'Virtual', 4: 'Virtual', 5: 'Combinado' };
-            function formatoDe(curso) {
-                const formatoDictado = (curso.publicacionDrupal?.formatoDictado || '').replace(/\s*\(\d+\)\s*$/, '').trim();
-                return formatoDictado || FORMATO_LABELS[String(curso.idformato)] || '';
-            }
-
-            function fechaInicioDe(curso) {
-                const fecha = primeraFechaDe(curso);
-                if (!fecha) return '';
-                return fecha.toLocaleDateString('es-AR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'
-                });
-            }
-
-            const COLORES_DISPOSITIVO = {
-                'Taller en Servicio': '#f47920',
-                'Taller Fuera de Servicio': '#e6693e',
-                'Seminario': '#00adc5',
-                'Seminario Distancia': '#0a8fa0',
-                'Extensión CIIE': '#8e6fce',
-                'MADP + Ateneo': '#c2185b',
-                'Ateneo Distancia': '#ad1457',
-                'Curso Distancia': '#2e7d32'
-            };
-            const PALETA_DISPOSITIVO_FALLBACK = ['#0d6efd', '#fd7e14', '#20c997', '#6f42c1', '#d63384', '#198754'];
-            function colorDispositivoDe(dispositivo) {
-                if (COLORES_DISPOSITIVO[dispositivo]) return COLORES_DISPOSITIVO[dispositivo];
-                // Color estable (por hash) para dispositivos que no están en la lista de arriba
-                let hash = 0;
-                for (let i = 0; i < dispositivo.length; i++) hash = dispositivo.charCodeAt(i) + ((hash << 5) - hash);
-                return PALETA_DISPOSITIVO_FALLBACK[Math.abs(hash) % PALETA_DISPOSITIVO_FALLBACK.length];
-            }
-        %>
-
         <% if (cursosVinculados.length === 0) { %>
             <div class="text-center py-5 text-muted">
                 <i class="bi bi-journal-x fs-1 d-block mb-3 opacity-25"></i>
@@ -239,7 +315,7 @@
                         <div class="card-body d-flex flex-column">
 
                             <div class="d-flex flex-wrap gap-1 mb-2">
-                                <span class="badge" style="background-color: <%= colorDispositivoDe(c.dispositivo || '') %>;"><%= c.dispositivo %></span>
+                                <span class="badge" style="background-color: <%= colorDispositivoDe(c.dispositivo || '') %>;"><%= etiquetaDispositivoDe(c.dispositivo) %></span>
                                 <% if (nivel) { %><span class="badge bg-info text-dark"><%= nivel %></span><% } %>
                                 <% if (formato) { %><span class="badge bg-dark border border-secondary text-light"><%= formato %></span><% } %>
                             </div>
