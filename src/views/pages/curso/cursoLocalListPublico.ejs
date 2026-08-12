@@ -115,6 +115,7 @@
         }
 
         const ETIQUETAS_DISPOSITIVO = {
+            'Taller en Servicio': 'Taller',
             'Taller Fuera de Servicio': 'Taller'
         };
         function etiquetaDispositivoDe(dispositivo) {
@@ -229,7 +230,6 @@
                     const disponible = String(c.disponible || '').toUpperCase() === 'S';
                     const vencida = inscripcionVencida(c);
                     const area = c.cargoId?.areaId?.nombre || c.cargoId?.areaId?.nombreCorto || '';
-                    const nivel = c.cargoId?.areaId?.nivel || '';
                     const dia = diaDictadoDe(c);
                     const hora = horaDictadoDe(c);
                     const formato = formatoDe(c);
@@ -247,7 +247,6 @@
 
                             <div class="d-flex flex-wrap gap-1 mb-2">
                                 <span class="badge" style="background-color: <%= colorDispositivoDe(c.dispositivo || '') %>;"><%= etiquetaDispositivoDe(c.dispositivo) %></span>
-                                <% if (nivel) { %><span class="badge bg-info text-dark"><%= nivel %></span><% } %>
                                 <% if (formato) { %><span class="badge bg-dark border border-secondary text-light"><%= formato %></span><% } %>
                             </div>
 
