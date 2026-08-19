@@ -240,22 +240,26 @@ class CursoLocalService {
         // Obtener los cargos (asignaciones) del docente
         const asignacionRepo = require('../repos/asignacionRepo');
         const asignaciones = await asignacionRepo.getByAgente(usuarioId);
-        
+
         if (!asignaciones || asignaciones.length === 0) {
             return [];
         }
 
-        // Obtener todos los cursos de todos sus cargos
+        // Obtener todos los cursos de todos sus cargos: tanto los propios (titular)
+        // como aquellos donde el docente figura solo como formador invitado.
         const cargoIds = asignaciones.map(a => a.cargoId._id);
-        const cursos = await cursoLocalRepo.getTodosPorCargosIds(cargoIds);
-        
+        const cargoIdsPropios = new Set(cargoIds.map(id => String(id)));
+        const cursos = await cursoLocalRepo.getPorCargosIdsConInvitados(cargoIds);
+
         // Cargar encuentros para cada curso
         const cursosConEncuentros = await Promise.all(
             cursos.map(async (curso) => {
                 const encuentros = await encuentroRepo.getPorCursoId(curso._id);
+                const esTitular = cargoIdsPropios.has(String(curso.cargoId?._id || curso.cargoId));
                 return {
-                    ...curso.toObject(),
-                    encuentros: encuentros || []
+                    ...curso,
+                    encuentros: encuentros || [],
+                    esInvitado: !esTitular
                 };
             })
         );

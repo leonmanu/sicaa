@@ -62,7 +62,13 @@
                                     <tr>
                                         <td class="fw-bold text-info"><%= c.anio %> • I<%= c.itinerario %></td>
                                         <td>
-                                            <b><%= c.nombrePropuesta || 'Sin nombre' %></b><br>
+                                            <b><%= c.nombrePropuesta || 'Sin nombre' %></b>
+                                            <% if (c.esInvitado) { %>
+                                                <span class="badge bg-info text-dark ms-1" title="Sos formador/a invitado/a en este curso: podés consultarlo, pero la asistencia y las calificaciones las maneja el/la titular.">
+                                                    <i class="bi bi-person-plus-fill me-1"></i>Invitado/a
+                                                </span>
+                                            <% } %>
+                                            <br>
                                             <small class="text-muted"><%= c.dispositivo || 'Dispositivo' %></small>
                                         </td>
                                         <td>
@@ -102,19 +108,21 @@
                                                             <i class="bi bi-eye me-2"></i>Ver Detalles
                                                         </button>
                                                     </li>
+                                                    <% if (!c.esInvitado) { %>
                                                     <li>
-                                                        <button class="dropdown-item text-warning btn-editar-curso-docente" 
+                                                        <button class="dropdown-item text-warning btn-editar-curso-docente"
                                                                 data-id="<%= c._id %>">
                                                             <i class="bi bi-pencil me-2"></i>Editar
                                                         </button>
                                                     </li>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
-                                                        <button class="dropdown-item text-danger btn-eliminar-curso-docente" 
+                                                        <button class="dropdown-item text-danger btn-eliminar-curso-docente"
                                                                 data-id="<%= c._id %>">
                                                             <i class="bi bi-trash me-2"></i>Eliminar
                                                         </button>
                                                     </li>
+                                                    <% } %>
                                                 </ul>
                                             </div>
                                         </td>

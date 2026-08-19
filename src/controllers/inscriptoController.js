@@ -37,7 +37,13 @@ const viewListaAsistencia = async (req, res) => {
         
         const inscriptosLocales = await inscriptoLocalService.getPorCursoId(cursoLocal._id)
 
-        res.render('pages/cursante/listaAsistencia', { 
+        // Extensión CIIE tiene 1 solo encuentro: usamos la planilla vertical
+        // para no desperdiciar la hoja en columnas de encuentros que no existen.
+        const vista = cursoLocal.dispositivo === 'Extensión CIIE'
+            ? 'pages/cursante/listaAsistenciaExtension'
+            : 'pages/cursante/listaAsistencia';
+
+        res.render(vista, {
             inscriptoExterno: [], // El array raw del ABC
             inscriptosLocales,          // Para comparar quién ya tiene pareja
             cursoLocal,                 // Para llenar el <select> del modal

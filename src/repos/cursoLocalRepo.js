@@ -328,9 +328,9 @@ class CursoLocalRepo {
     async getPorAgente(usuarioId) {
         try {
             // 1. Buscamos los cargoId activos del agente
-            const asignaciones = await Asignacion.find({ 
-                usuarioId: new mongoose.Types.ObjectId(usuarioId), 
-                estado: 'Activo' 
+            const asignaciones = await Asignacion.find({
+                usuarioId: new mongoose.Types.ObjectId(usuarioId),
+                estado: 'Activo'
             }).lean();
 
             const cargoIds = asignaciones.map(a => a.cargoId);
@@ -343,6 +343,28 @@ class CursoLocalRepo {
                 .lean();
         } catch (error) {
             console.error('Error en CursoLocalRepo.getPorAgente:', error.message);
+            throw error;
+        }
+    }
+
+    // Cursos donde alguno de los cargoIds dados es el titular (cargoId) o
+    // figura como formador invitado (cargosInvitados). No populamos
+    // cargosInvitados: solo se usa para que el service determine, por
+    // comparación de ids, si el docente es titular o invitado en cada curso.
+    async getPorCargosIdsConInvitados(cargoIds) {
+        try {
+            if (!cargoIds || cargoIds.length === 0) return [];
+            return await CursoLocal.find({
+                $or: [
+                    { cargoId: { $in: cargoIds } },
+                    { cargosInvitados: { $in: cargoIds } }
+                ]
+            })
+                .populate(populateCargoBase)
+                .sort({ anio: -1 })
+                .lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getPorCargosIdsConInvitados:', error.message);
             throw error;
         }
     }
