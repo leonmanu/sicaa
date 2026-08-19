@@ -14,9 +14,16 @@
                 <h2>💼 Mis Cargos <small>(<%= cargos.length  %>)</small></h2>
                 <p class="text-muted">Seleccioná el cargo con el que vas a operar hoy</p>
             </div>
-            <a href="#" class="btn btn-success disabled">
-                ➕ Solicitar Nueva Asignación
-            </a>
+            <div class="d-flex gap-2">
+                <% if (user.tipo === 'agente') { %>
+                    <a href="/curso/mi-cursos" class="btn btn-outline-primary">
+                        📚 Mis Cursos
+                    </a>
+                <% } %>
+                <a href="#" class="btn btn-success disabled">
+                    ➕ Solicitar Nueva Asignación
+                </a>
+            </div>
         </div>
 
         <div class="table-responsive shadow-sm rounded">

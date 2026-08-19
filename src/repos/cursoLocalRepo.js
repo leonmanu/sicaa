@@ -360,9 +360,11 @@ class CursoLocalRepo {
                     { cargosInvitados: { $in: cargoIds } }
                 ]
             })
-                .populate(populateCargoBase)
-                .sort({ anio: -1 })
-                .lean();
+                // populateCargoConOcupante trae también el/la titular del cargo,
+                // así el service puede mostrar quién es cuando el docente es invitado.
+                .populate(populateCargoConOcupante)
+                .sort({ createdAt: -1 })
+                .lean({ virtuals: true });
         } catch (error) {
             console.error('Error en CursoLocalRepo.getPorCargosIdsConInvitados:', error.message);
             throw error;
