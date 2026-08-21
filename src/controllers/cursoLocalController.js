@@ -809,6 +809,40 @@ const getMisCursos = async (req, res) => {
     }
 };
 
+const getEstadisticasCursos = async (req, res) => {
+    try {
+        const esCiie = req.user.tipo === 'institucion';
+        const params = {
+            anio: req.query.anio,
+            itinerario: req.query.itinerario
+        };
+        if (esCiie) {
+            params.ciieId = req.user.referenciaId;
+        } else {
+            params.usuarioId = req.user._id;
+        }
+
+        const { itinerarios, seleccion, cursos } = await cursoLocalService.getEstadisticasCursos(params);
+
+        const areas = [...new Set(cursos.map(c => c.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+        const dispositivos = [...new Set(cursos.map(c => c.dispositivo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+
+        res.render('pages/curso/estadisticasCursos', {
+            itinerarios,
+            seleccion,
+            cursos,
+            areas,
+            dispositivos,
+            esCiie,
+            user: req.user,
+            title: 'Estadísticas de cursos'
+        });
+    } catch (error) {
+        console.error('Error en getEstadisticasCursos:', error.message);
+        res.status(500).send("Error en el servidor: " + error.message);
+    }
+};
+
 module.exports = {
     vincularCurso,
     getCursosLocales,
@@ -841,5 +875,6 @@ module.exports = {
     getMisCursos,
     getPorCiieDrupal,
     getCursoByIdEdit,
-    getPorCiiePublico
+    getPorCiiePublico,
+    getEstadisticasCursos
 }

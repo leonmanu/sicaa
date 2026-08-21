@@ -267,6 +267,127 @@ class CursoLocalService {
         return cursosConEncuentros;
     }
 
+    // ─── Estadísticas de cursos (inscriptos, asistencia por encuentro, aprobados) ──
+    // ciieId: ve todos los cursos del CIIE. usuarioId: ve solo los propios + invitado.
+    async getEstadisticasCursos({ ciieId, usuarioId, anio, itinerario }) {
+        let cursosBase = [];
+
+        if (ciieId) {
+            cursosBase = await cursoLocalRepo.getPorCiieId(ciieId);
+        } else if (usuarioId) {
+            const asignacionRepo = require('../repos/asignacionRepo');
+            const asignaciones = await asignacionRepo.getByAgente(usuarioId);
+            const cargoIds = asignaciones.map(a => a.cargoId._id);
+            cursosBase = cargoIds.length > 0
+                ? await cursoLocalRepo.getPorCargosIdsConInvitados(cargoIds)
+                : [];
+        }
+
+        // Itinerarios disponibles (pares año/itinerario únicos), ordenados del más
+        // alto al más bajo, para poblar el selector y para elegir el default.
+        const mapaItinerarios = new Map();
+        for (const c of cursosBase) {
+            const a = this._toNumberOrNull(c.anio);
+            const it = this._toNumberOrNull(c.itinerario);
+            if (a === null || it === null) continue;
+            const clave = `${a}-${it}`;
+            if (!mapaItinerarios.has(clave)) mapaItinerarios.set(clave, { anio: a, itinerario: it, cantidadCursos: 0 });
+            mapaItinerarios.get(clave).cantidadCursos++;
+        }
+        const itinerarios = [...mapaItinerarios.values()]
+            .map(i => ({ ...i, clave: `${i.anio}-${i.itinerario}`, etiqueta: `${i.anio} - ${i.itinerario}` }))
+            .sort((a, b) => (b.anio - a.anio) || (b.itinerario - a.itinerario));
+
+        let seleccion = null;
+        const anioNum = this._toNumberOrNull(anio);
+        const itinerarioNum = this._toNumberOrNull(itinerario);
+        if (anioNum !== null && itinerarioNum !== null && itinerarios.some(i => i.anio === anioNum && i.itinerario === itinerarioNum)) {
+            seleccion = { anio: anioNum, itinerario: itinerarioNum };
+        } else if (itinerarios.length > 0) {
+            seleccion = { anio: itinerarios[0].anio, itinerario: itinerarios[0].itinerario };
+        }
+
+        if (!seleccion) {
+            return { itinerarios, seleccion: null, cursos: [] };
+        }
+
+        const cursosDelItinerario = cursosBase.filter(c => c.anio === seleccion.anio && c.itinerario === seleccion.itinerario);
+        if (cursosDelItinerario.length === 0) {
+            return { itinerarios, seleccion, cursos: [] };
+        }
+
+        const cursoIds = cursosDelItinerario.map(c => c._id);
+        const [inscriptos, encuentros] = await Promise.all([
+            inscriptoLocalRepo.getPorListaDeCursos(cursoIds),
+            encuentroRepo.getPorCursoIds(cursoIds)
+        ]);
+
+        const cursosConStats = cursosDelItinerario.map(curso => {
+            const inscriptosCurso = inscriptos.filter(i => String(i.cursoId) === String(curso._id));
+            const encuentrosCurso = encuentros
+                .filter(e => String(e.cursoId) === String(curso._id))
+                .sort((a, b) => a.numero - b.numero);
+
+            const cantidadInscriptos = inscriptosCurso.length;
+            // El valor real guardado es 'Aprobó' (UI) o 'Aprobado' (enum del modelo)
+            // según de dónde venga el dato: contemplamos ambos.
+            const cantidadAprobados = inscriptosCurso.filter(i => /^aprob/i.test(i.calificacion || '')).length;
+            const porcentajeAprobados = cantidadInscriptos > 0
+                ? Math.round((cantidadAprobados / cantidadInscriptos) * 100)
+                : null;
+
+            // El porcentaje por encuentro es sobre el total de inscriptos (no solo
+            // los ya marcados), para que un encuentro recién arrancado no aparezca
+            // artificialmente alto. Si nadie fue marcado todavía, se distingue con
+            // "sinMarcar" en vez de mostrar 0%.
+            const asistenciaPorEncuentro = encuentrosCurso.map(enc => {
+                let presentes = 0;
+                let ausentes = 0;
+                inscriptosCurso.forEach(insc => {
+                    const registro = (insc.asistencia || []).find(a => String(a.encuentroId) === String(enc._id));
+                    if (registro?.estado === 'Presente') presentes++;
+                    else if (registro?.estado === 'Ausente') ausentes++;
+                });
+                const totalProcesados = presentes + ausentes;
+                return {
+                    numero: enc.numero,
+                    presentes,
+                    ausentes,
+                    pendientes: cantidadInscriptos - totalProcesados,
+                    sinMarcar: totalProcesados === 0,
+                    porcentaje: cantidadInscriptos > 0 ? Math.round((presentes / cantidadInscriptos) * 100) : null
+                };
+            });
+
+            const encuentrosMarcados = asistenciaPorEncuentro.filter(e => !e.sinMarcar);
+            const asistenciaPromedio = encuentrosMarcados.length > 0
+                ? Math.round(encuentrosMarcados.reduce((s, e) => s + e.porcentaje, 0) / encuentrosMarcados.length)
+                : null;
+
+            return {
+                _id: curso._id,
+                idOfertaOficial: curso.idOfertaOficial,
+                nombrePropuesta: curso.nombrePropuesta,
+                dispositivo: curso.dispositivo,
+                estado: curso.estado,
+                cierreAdministrativo: curso.cierreAdministrativo || null,
+                formadorAbc: curso.formadorAbc,
+                area: curso.cargoId?.areaId?.nombre || '',
+                nivel: curso.cargoId?.areaId?.nivel || '',
+                claveCargo: curso.cargoId?.clave || '',
+                cantidadInscriptos,
+                cantidadAprobados,
+                porcentajeAprobados,
+                asistenciaPorEncuentro,
+                asistenciaPromedio
+            };
+        });
+
+        cursosConStats.sort((a, b) => (a.nombrePropuesta || '').localeCompare(b.nombrePropuesta || '', 'es'));
+
+        return { itinerarios, seleccion, cursos: cursosConStats };
+    }
+
     async getTodos() {
         return await cursoLocalRepo.getTodos();
     }

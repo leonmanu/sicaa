@@ -18,13 +18,15 @@ const {
     getCursoByIdEdit,
     putCurso,
     getMisCursos,
-    getPorCiiePublico
+    getPorCiiePublico,
+    getEstadisticasCursos
 } = require('../controllers/cursoLocalController');
 
 router
     // ─── rutas estáticas primero ───
     .get('/lista', cursoExternoController.getCursos)
     .get('/mi-cursos', asegurarRegistro, getMisCursos)
+    .get('/estadisticas', asegurarRegistro, getEstadisticasCursos)
     .get('/ciie', asegurarRegistro, getPorCiie)
     .get('/publico/:ciieClave', getPorCiiePublico)
     .get('/drupal', asegurarRegistro, getPorCiieDrupal)
