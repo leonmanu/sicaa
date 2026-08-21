@@ -298,6 +298,19 @@ class CursoLocalRepo {
         }
     }
 
+    async actualizarCierreAdministrativo(cursoId, dataCierre) {
+        try {
+            return await CursoLocal.findByIdAndUpdate(
+                new mongoose.Types.ObjectId(cursoId),
+                { $set: { cierreAdministrativo: dataCierre } },
+                { new: true }
+            ).lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.actualizarCierreAdministrativo:', error.message);
+            throw error;
+        }
+    }
+
     async getPorCargoId(cargoId) {
         try {
             return await CursoLocal.find({ cargoId: new mongoose.Types.ObjectId(cargoId) })

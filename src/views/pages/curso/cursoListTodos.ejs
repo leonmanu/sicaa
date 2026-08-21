@@ -102,11 +102,16 @@
                                                     color = dMap[c.dispositivo].c; 
                                                 }
                                             %>
-                                            <span class="badge border" 
-                                                  style="color: <%= color %>; border-color: <%= color %>; background-color: <%= color %>15;" 
+                                            <span class="badge border"
+                                                  style="color: <%= color %>; border-color: <%= color %>; background-color: <%= color %>15;"
                                                   title="<%= c.dispositivo %>">
                                                 <%= sigla %>
                                             </span>
+                                            <% if (c.cierreAdministrativo?.cerrado) { %>
+                                                <i class="bi bi-lock-fill text-success" title="Cierre administrativo: cerrado<%= c.cierreAdministrativo?.fecha ? ' el ' + new Date(c.cierreAdministrativo.fecha).toLocaleDateString('es-AR') : '' %>"></i>
+                                            <% } else { %>
+                                                <i class="bi bi-unlock-fill text-muted" title="Cierre administrativo: abierto"></i>
+                                            <% } %>
                                         </td>
 
                                         <td class="small">
@@ -130,7 +135,7 @@
                                                 <a href="/ciie/inscriptos/curso/<%= c.idOfertaOficial %>" 
                                                    class="btn btn-outline-primary btn-sm" 
                                                    style="width: 35px; height: 35px; border-radius: 8px;" 
-                                                   title="Ver alumnos">
+                                                   title="Ver cursantes">
                                                     <i class="bi bi-people-fill"></i>
                                                 </a>
                                                 <button class="btn btn-outline-secondary btn-sm" 

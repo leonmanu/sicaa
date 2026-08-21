@@ -202,16 +202,52 @@ const putCalificacion = async (req, res) => {
 }
 
 const postAsistencia = async (req, res) => {
-    try {        
+    try {
         console.log('Datos recibidos para nueva asistencia:', req.body);
         const {encuentroNumero, idOfertaOficial, asistencias} = await req.body;
-        
+
         //console.log('Datos recibidos para nueva asistencia:', data);
         const resultado = await asistenciaService.postPorIdInscripcionOficial(idOfertaOficial, encuentroNumero, asistencias)
         res.status(201).json(resultado);
     } catch (error) {
         console.error('Error al guardar la asistencia:', error);
         res.status(500).json({ error: 'No se pudo guardar la asistencia.' });
+    }
+}
+
+const getCierreAdministrativo = async (req, res) => {
+    try {
+        const { idOfertaOficial } = req.params;
+        const estado = await cursoLocalService.getEstadoCierreAdministrativo(idOfertaOficial);
+        res.status(200).json(estado);
+    } catch (error) {
+        const status = error.statusCode || 500;
+        res.status(status).json({ error: error.message || 'No se pudo consultar el estado de cierre.' });
+    }
+}
+
+const postCierreAdministrativo = async (req, res) => {
+    try {
+        const { idOfertaOficial } = req.params;
+        const curso = await cursoLocalService.cerrarCursoAdministrativamente(idOfertaOficial, req.user?.email);
+        res.status(200).json({ success: true, curso });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        res.status(status).json({ error: error.message || 'No se pudo cerrar el curso.', motivos: error.motivos });
+    }
+}
+
+const deleteCierreAdministrativo = async (req, res) => {
+    try {
+        if (req.user?.tipo !== 'institucion') {
+            return res.status(403).json({ error: 'Solo el CIIE puede reabrir un curso cerrado.' });
+        }
+        const { idOfertaOficial } = req.params;
+        const curso = await cursoLocalService.reabrirCursoAdministrativamente(idOfertaOficial, req.user?.email);
+        res.status(200).json({ success: true, curso });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        res.status(status).json({ error: error.message || 'No se pudo reabrir el curso.' });
     }
 }
 
@@ -224,5 +260,8 @@ module.exports = {
     putCalificacion,
     postAsistencia,
     buscarCursantePorValor,
-    postAltaManualCursante
+    postAltaManualCursante,
+    getCierreAdministrativo,
+    postCierreAdministrativo,
+    deleteCierreAdministrativo
 }

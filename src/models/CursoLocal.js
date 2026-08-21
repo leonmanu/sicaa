@@ -64,6 +64,14 @@ const cursoSchema = new mongoose.Schema({
         fechaActaImpresa: Date,
         actualizadoPor: String
     },
+    // Cierre administrativo: certifica que asistencia y calificaciones están
+    // completas. Lo abre cualquiera con acceso al curso, pero solo el CIIE
+    // puede reabrirlo una vez cerrado.
+    cierreAdministrativo: {
+        cerrado: { type: Boolean, default: false },
+        fecha: Date,
+        cerradoPor: String
+    },
 
     // Publicación en sitio visual Drupal
     publicacionDrupal: {

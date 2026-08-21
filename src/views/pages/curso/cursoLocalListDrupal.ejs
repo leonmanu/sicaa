@@ -258,6 +258,11 @@
                                         <span class="badge rounded-pill <%= coloresEstado[c.estado] || 'bg-light text-dark' %>" style="font-size:0.7rem;">
                                             <%= etiquetasEstado[c.estado] || c.estado %>
                                         </span>
+                                        <% if (c.cierreAdministrativo?.cerrado) { %>
+                                            <i class="bi bi-lock-fill text-success" title="Cierre administrativo: cerrado<%= c.cierreAdministrativo?.fecha ? ' el ' + new Date(c.cierreAdministrativo.fecha).toLocaleDateString('es-AR') : '' %>"></i>
+                                        <% } else { %>
+                                            <i class="bi bi-unlock-fill text-muted" title="Cierre administrativo: abierto"></i>
+                                        <% } %>
                                     </td>
                                     <td data-order="<%= c.createdAt ? new Date(c.createdAt).toISOString() : '' %>">
                                         <small class="text-muted"><%= c.createdAt ? new Date(c.createdAt).toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '-' %></small>

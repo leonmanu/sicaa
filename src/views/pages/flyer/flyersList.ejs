@@ -217,6 +217,11 @@
                                                 <strong>Área:</strong> <%= curso.cargoId?.areaId?.nombre || 'Sin área' %><br>
                                                 <strong>Año:</strong> <%= curso.anio %> | <strong>Itinerario:</strong> <%= curso.itinerario || 0 %><br>
                                                 <strong>Estado:</strong> <%= curso.estado || 'pendiente' %>
+                                                <% if (curso.cierreAdministrativo?.cerrado) { %>
+                                                    <i class="bi bi-lock-fill text-success" title="Cierre administrativo: cerrado<%= curso.cierreAdministrativo?.fecha ? ' el ' + new Date(curso.cierreAdministrativo.fecha).toLocaleDateString('es-AR') : '' %>"></i>
+                                                <% } else { %>
+                                                    <i class="bi bi-unlock-fill text-muted" title="Cierre administrativo: abierto"></i>
+                                                <% } %>
                                             </p>
 
                                             <!-- Botones -->

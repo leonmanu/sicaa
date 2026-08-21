@@ -745,6 +745,98 @@ class CursoLocalService {
         return await cursoLocalRepo.actualizarImpresionDocumentos(curso._id, dataImpresion);
     }
 
+    // ─── Cierre administrativo ──────────────────────────────────────────────
+    // Certifica que ya se marcó asistencia (Presente/Ausente, sin pendientes)
+    // y se cargaron todas las calificaciones (nadie en 'Sin Calificar').
+    async getEstadoCierreAdministrativo(idOfertaOficial) {
+        const curso = await cursoLocalRepo.getPorIdOfertaOficial(idOfertaOficial);
+        if (!curso) {
+            const err = new Error('Curso no encontrado.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        const [inscriptos, encuentros] = await Promise.all([
+            inscriptoLocalRepo.getPorCursoId(curso._id),
+            encuentroRepo.getPorCursoId(curso._id)
+        ]);
+
+        const motivos = [];
+
+        if (!encuentros || encuentros.length === 0) {
+            motivos.push('El curso todavía no tiene encuentros cargados.');
+        }
+        if (!inscriptos || inscriptos.length === 0) {
+            motivos.push('El curso no tiene cursantes inscriptos.');
+        }
+
+        let asistenciasFaltantes = 0;
+        let calificacionesFaltantes = 0;
+
+        for (const insc of (inscriptos || [])) {
+            for (const enc of (encuentros || [])) {
+                const registro = (insc.asistencia || []).find(a => String(a.encuentroId) === String(enc._id));
+                const estado = registro?.estado;
+                if (estado !== 'Presente' && estado !== 'Ausente') asistenciasFaltantes++;
+            }
+            const calificacion = insc.calificacion || 'Sin Calificar';
+            if (calificacion === 'Sin Calificar') calificacionesFaltantes++;
+        }
+
+        if (asistenciasFaltantes > 0) {
+            motivos.push(`Faltan marcar ${asistenciasFaltantes} asistencia/s como Presente o Ausente.`);
+        }
+        if (calificacionesFaltantes > 0) {
+            motivos.push(`Hay ${calificacionesFaltantes} cursante/s sin calificar.`);
+        }
+
+        return {
+            cerrado: !!curso.cierreAdministrativo?.cerrado,
+            fecha: curso.cierreAdministrativo?.fecha || null,
+            cerradoPor: curso.cierreAdministrativo?.cerradoPor || null,
+            puedeCerrarse: motivos.length === 0,
+            motivos
+        };
+    }
+
+    async cerrarCursoAdministrativamente(idOfertaOficial, usuarioEmail) {
+        const curso = await cursoLocalRepo.getPorIdOfertaOficial(idOfertaOficial);
+        if (!curso) {
+            const err = new Error('Curso no encontrado.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        const estado = await this.getEstadoCierreAdministrativo(idOfertaOficial);
+        if (!estado.puedeCerrarse) {
+            const err = new Error('No se puede cerrar el curso: faltan datos por completar.');
+            err.statusCode = 409;
+            err.motivos = estado.motivos;
+            throw err;
+        }
+
+        return await cursoLocalRepo.actualizarCierreAdministrativo(curso._id, {
+            cerrado: true,
+            fecha: new Date(),
+            cerradoPor: this._sanitizeString(usuarioEmail)
+        });
+    }
+
+    async reabrirCursoAdministrativamente(idOfertaOficial, usuarioEmail) {
+        const curso = await cursoLocalRepo.getPorIdOfertaOficial(idOfertaOficial);
+        if (!curso) {
+            const err = new Error('Curso no encontrado.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        return await cursoLocalRepo.actualizarCierreAdministrativo(curso._id, {
+            cerrado: false,
+            fecha: new Date(),
+            cerradoPor: this._sanitizeString(usuarioEmail)
+        });
+    }
+
     async actualizarCalificacionesYEnviarCurso(idOfertaOficial, calificaciones = [], usuario = {}) {
         const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
 

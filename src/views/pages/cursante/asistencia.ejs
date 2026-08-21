@@ -123,7 +123,12 @@
     <%- include('../../partials/msj') %>
 
     <div class="container-fluid px-4 mt-4">
-        
+        <%
+            const cierre = cursoLocal.cierreAdministrativo || {};
+            const cursoCerrado = !!cierre.cerrado;
+            const esCiie = user?.tipo === 'institucion';
+        %>
+
         <div class="row mb-4 g-3">
             <div class="col-md-8">
                 <h2 class="h3 mb-2 fw-bold text-uppercase">
@@ -137,7 +142,29 @@
                     <span class="badge bg-dark border border-info px-3 py-2">
                         <i class="bi bi-person-badge me-1"></i> <%= cursoLocal.formadorAbc %>
                     </span>
+                    <% if (cursoCerrado) { %>
+                        <span class="badge bg-success px-3 py-2">
+                            <i class="bi bi-lock-fill me-1"></i>Cerrado
+                            <% if (cierre.fecha) { %>
+                                el <%= new Date(cierre.fecha).toLocaleDateString('es-AR') %>
+                            <% } %>
+                            <% if (cierre.cerradoPor) { %>· <%= cierre.cerradoPor %><% } %>
+                        </span>
+                    <% } %>
                 </div>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <% if (cursoCerrado) { %>
+                    <% if (esCiie) { %>
+                        <button class="btn btn-outline-warning fw-bold" id="btnReabrirCurso">
+                            <i class="bi bi-unlock-fill me-1"></i>Reabrir curso
+                        </button>
+                    <% } %>
+                <% } else { %>
+                    <button class="btn btn-success fw-bold" id="btnCerrarCurso">
+                        <i class="bi bi-check-circle-fill me-1"></i>Cerrar curso
+                    </button>
+                <% } %>
             </div>
         </div>
 
@@ -161,7 +188,7 @@
                                             <i class="bi bi-calendar3 me-1"></i>Encuentros
                                             <small class="text-muted ms-1">(<%= encOrdenados.length %>/<%= cursoLocal.cantidadEncuentros %>)</small>
                                         </span>
-                                        <button class="btn btn-warning btn-sm text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalGestionarEncuentros">
+                                        <button class="btn btn-warning btn-sm text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalGestionarEncuentros" <%= cursoCerrado ? 'disabled' : '' %>>
                                             <i class="bi bi-gear-fill me-1"></i>Gestionar
                                         </button>
                                     </div>
@@ -171,7 +198,7 @@
                                     <div class="text-info small">Asist.</div>
                                 </th>
                                 <th class="bg-info bg-opacity-10" rowspan="2" style="min-width: 80px; vertical-align: middle;">
-                                    <button class="btn btn-info btn-sm text-dark fw-bold" id="btnAbrirCalificaciones">
+                                    <button class="btn btn-info btn-sm text-dark fw-bold" id="btnAbrirCalificaciones" <%= cursoCerrado ? 'disabled' : '' %>>
                                         <i class="bi bi-award-fill me-1"></i>Calificar
                                     </button>
                                 </th>
@@ -189,7 +216,8 @@
                                         <button class="btn btn-outline-warning btn-sm btn-tomar-asistencia w-100"
                                                 data-encuentro-id="<%= enc._id %>"
                                                 data-encuentro-numero="<%= enc.numero %>"
-                                                data-encuentro-fecha="<%= fechaFmt %>">
+                                                data-encuentro-fecha="<%= fechaFmt %>"
+                                                <%= cursoCerrado ? 'disabled' : '' %>>
                                             <div>
                                                 <b>
                                                     E<%= enc.numero %> · 
@@ -725,11 +753,71 @@
                         calificaciones: payload
                     }),
                     success: () => location.reload(),
-                    error: () => { 
-                        btn.prop('disabled', false).text('Guardar'); 
-                        Swal.fire('Error', 'No se pudo guardar', 'error'); 
+                    error: () => {
+                        btn.prop('disabled', false).text('Guardar');
+                        Swal.fire('Error', 'No se pudo guardar', 'error');
                     }
                 });
+            });
+
+            // --- 4. CIERRE ADMINISTRATIVO ---
+
+            const urlCierre = '/inscripto/curso/<%= cursoLocal.idOfertaOficial %>/cierre-administrativo';
+
+            $('#btnCerrarCurso').click(async function () {
+                const btn = $(this);
+                btn.prop('disabled', true);
+                try {
+                    const estado = await $.get(urlCierre);
+                    if (!estado.puedeCerrarse) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Todavía no se puede cerrar',
+                            html: '<ul class="text-start mb-0">' + estado.motivos.map(m => `<li>${m}</li>`).join('') + '</ul>'
+                        });
+                        return;
+                    }
+
+                    const confirmacion = await Swal.fire({
+                        icon: 'question',
+                        title: '¿Cerrar el curso?',
+                        text: 'Ya no se va a poder tomar asistencia ni cargar calificaciones hasta que el CIIE lo reabra.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, cerrar',
+                        cancelButtonText: 'Cancelar'
+                    });
+                    if (!confirmacion.isConfirmed) return;
+
+                    await $.ajax({ url: urlCierre, method: 'POST' });
+                    Swal.fire({ icon: 'success', title: 'Curso cerrado', showConfirmButton: false, timer: 1500 })
+                        .then(() => location.reload());
+                } catch (xhr) {
+                    const mensaje = xhr.responseJSON?.error || 'No se pudo cerrar el curso.';
+                    Swal.fire('Error', mensaje, 'error');
+                } finally {
+                    btn.prop('disabled', false);
+                }
+            });
+
+            $('#btnReabrirCurso').click(async function () {
+                const confirmacion = await Swal.fire({
+                    icon: 'warning',
+                    title: '¿Reabrir el curso?',
+                    text: 'El/la formador/a va a poder volver a modificar asistencia y calificaciones.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, reabrir',
+                    cancelButtonText: 'Cancelar'
+                });
+                if (!confirmacion.isConfirmed) return;
+
+                try {
+                    await $.ajax({ url: urlCierre, method: 'DELETE' });
+                    Swal.fire({ icon: 'success', title: 'Curso reabierto', showConfirmButton: false, timer: 1500 })
+                        .then(() => location.reload());
+                } catch (xhr) {
+                    const mensaje = xhr.responseJSON?.error || 'No se pudo reabrir el curso.';
+                    Swal.fire('Error', mensaje, 'error');
+                }
             });
 
         });

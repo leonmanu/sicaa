@@ -235,6 +235,11 @@
                                                 <span class="badge rounded-pill <%= coloresEstado[c.estado] || 'bg-light text-dark' %>" style="font-size: 0.7rem;">
                                                     <%= etiquetasEstado[c.estado] || c.estado %>
                                                 </span>
+                                                <% if (c.cierreAdministrativo?.cerrado) { %>
+                                                    <i class="bi bi-lock-fill text-success" title="Cierre administrativo: cerrado<%= c.cierreAdministrativo?.fecha ? ' el ' + new Date(c.cierreAdministrativo.fecha).toLocaleDateString('es-AR') : '' %>"></i>
+                                                <% } else { %>
+                                                    <i class="bi bi-unlock-fill text-muted" title="Cierre administrativo: abierto"></i>
+                                                <% } %>
                                             </div>
                                             <div class="mt-1">
                                                 <% if (String(c.disponible || '').toUpperCase() === 'S') { %>
@@ -257,7 +262,7 @@
         <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
             <li>
                 <a class="dropdown-item text-white" href="/inscripto/curso/<%= c.idOfertaOficial %>">
-                    <i class="bi bi-people-fill me-2 text-primary"></i>Ver alumnos
+                    <i class="bi bi-people-fill me-2 text-primary"></i>Ver cursantes
                 </a>
             </li>
             <li>

@@ -105,6 +105,11 @@
                                             <% } else { %>
                                                 <span class="badge bg-secondary"><%= c.estado %></span>
                                             <% } %>
+                                            <% if (c.cierreAdministrativo?.cerrado) { %>
+                                                <i class="bi bi-lock-fill text-success ms-1" title="Cierre administrativo: cerrado<%= c.cierreAdministrativo?.fecha ? ' el ' + new Date(c.cierreAdministrativo.fecha).toLocaleDateString('es-AR') : '' %>"></i>
+                                            <% } else { %>
+                                                <i class="bi bi-unlock-fill text-muted ms-1" title="Cierre administrativo: abierto"></i>
+                                            <% } %>
                                         </td>
                                         <td class="text-center">
                                             <div class="dropdown">
@@ -116,7 +121,7 @@
                                                     <% if (tieneOferta) { %>
                                                         <li>
                                                             <a class="dropdown-item text-white" href="/inscripto/curso/<%= c.idOfertaOficial %>">
-                                                                <i class="bi bi-people-fill me-2 text-primary"></i>Ver alumnos
+                                                                <i class="bi bi-people-fill me-2 text-primary"></i>Ver cursantes
                                                             </a>
                                                         </li>
                                                         <% if (c.enlaceInscripcion) { %>
