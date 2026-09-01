@@ -592,6 +592,18 @@
                                                            class="form-control bg-dark border-secondary text-white"
                                                            maxlength="120" value="DFDP" required>
                                                 </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">UBICACIÓN <small class="text-muted">(para el flyer, opcional)</small></label>
+                                                    <input type="text" id="ubicacion" name="ubicacion"
+                                                           class="form-control bg-dark border-secondary text-white"
+                                                           maxlength="150" placeholder="Ej: Museo Municipal, Plaza San Martín...">
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-bold">DETALLE / OBSERVACIÓN <small class="text-muted">(para el flyer, opcional)</small></label>
+                                                    <input type="text" id="detalleFlyer" name="detalleFlyer"
+                                                           class="form-control bg-dark border-secondary text-white"
+                                                           maxlength="200" placeholder="Ej: Traer material propio...">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1284,6 +1296,8 @@ $('#btnAltaCurso').on('click', function() {
             $('#drupalDiaDictado').val('');
             $('#drupalPuntaje').val('');
             $('#alcance').val('1');
+            $('#ubicacion').val('');
+            $('#detalleFlyer').val('');
             
             // Limpiar formadores
             
@@ -1400,6 +1414,8 @@ $('#btnAltaCurso').on('click', function() {
                 nombrePropuesta:    $('#nombrePropuesta').val(),
                 dispositivo:        $('#dispositivo').val(),
                 tituloFormulario:   $('#tituloFormulario').val(),
+                ubicacion:          $('#ubicacion').val(),
+                detalleFlyer:       $('#detalleFlyer').val(),
                 anio:               Number($('#anio').val()),
                 itinerario:         Number($('#itinerario').val()),
                 idformato:          Number($('#idformato').val()),  // ← esta línea
@@ -1466,6 +1482,8 @@ $('#horaEncuentro').val(horaEncuentro);
                     $('#cupo').val(curso.cupo || 30);
                     $('#cantidadHoras').val(curso.cantidadHoras || '');
                     $('#tituloFormulario').val(curso.tituloFormulario || '');
+                    $('#ubicacion').val(curso.ubicacion || '');
+                    $('#detalleFlyer').val(curso.detalleFlyer || '');
                     $('#drupalNivel').val(curso.publicacionDrupal?.nivel || '');
                     $('#drupalSede').val(curso.publicacionDrupal?.sede || '');
                     $('#drupalOrganiza').val(curso.publicacionDrupal?.organiza || '');

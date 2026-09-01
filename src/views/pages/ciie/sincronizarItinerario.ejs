@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Sincronizar itinerario</title>
+    <style>
+        #tablaSincronizar tbody tr.fila-en-curso { background: rgba(255, 193, 7, 0.15); }
+        #tablaSincronizar tbody tr.fila-ok { background: rgba(25, 135, 84, 0.12); }
+        #tablaSincronizar tbody tr.fila-error { background: rgba(220, 53, 69, 0.15); }
+        .estado-curso { font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container py-5">
+        <h2 class="fw-bold mb-1"><i class="bi bi-cloud-download-fill me-2 text-primary"></i>Sincronizar itinerario con el sitio oficial</h2>
+        <p class="text-muted mb-4">
+            Consulta las nuevas inscripciones en el sistema oficial de ABC para varios cursos a la vez.
+            Solo se muestran los cursos con inscripción disponible ("Disponible: S").
+        </p>
+
+        <div class="card bg-dark border-secondary shadow-sm mb-4">
+            <div class="card-body py-3">
+                <form action="/ciie/itinerario/sincronizar" method="get" id="formItinerario" class="row g-3 align-items-end">
+                    <div class="col-md-12">
+                        <label class="form-label text-light small">Itinerario</label>
+                        <select name="itinerarioClave" class="form-select" id="itinerarioClave" <%= itinerarios.length ? '' : 'disabled' %>>
+                            <% if (itinerarios.length === 0) { %>
+                                <option value="">No hay itinerarios disponibles</option>
+                            <% } else { %>
+                                <% itinerarios.forEach(item => { %>
+                                    <% const selected = seleccion && item.anio === seleccion.anio && item.itinerario === seleccion.itinerario; %>
+                                    <option value="<%= item.anio %>|<%= item.itinerario %>" <%= selected ? 'selected' : '' %>>
+                                        <%= item.etiqueta %> (<%= item.cantidadCursos %> curso/s)
+                                    </option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                        <input type="hidden" name="anio" id="anio" value="<%= seleccion?.anio ?? '' %>">
+                        <input type="hidden" name="itinerario" id="itinerario" value="<%= seleccion?.itinerario ?? '' %>">
+                    </div>
+                </form>
+
+                <% if (dispositivos.length > 0) { %>
+                    <hr class="border-secondary">
+                    <label class="form-label text-light mb-2">Dispositivos a mostrar</label>
+                    <div id="filtroDispositivos" class="d-flex flex-wrap gap-3">
+                        <% dispositivos.forEach(dispositivo => { %>
+                            <div class="form-check">
+                                <input class="form-check-input chk-dispositivo" type="checkbox" value="<%= dispositivo %>" id="chk-<%= dispositivo.replace(/\s+/g, '-') %>" checked>
+                                <label class="form-check-label text-light" for="chk-<%= dispositivo.replace(/\s+/g, '-') %>">
+                                    <%= dispositivo %>
+                                </label>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <% if (seleccion && cursos.length === 0) { %>
+            <div class="alert alert-secondary">No hay cursos con inscripción disponible en este itinerario.</div>
+        <% } else if (cursos.length > 0) { %>
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="chkTodos" checked>
+                    <label class="form-check-label text-light" for="chkTodos">Seleccionar / deseleccionar todos</label>
+                </div>
+                <button type="button" class="btn btn-success fw-bold" id="btnSincronizar">
+                    <i class="bi bi-cloud-download-fill me-1"></i>Sincronizar seleccionados
+                </button>
+            </div>
+
+            <div id="resumenSincronizacion" class="alert alert-info d-none mb-3"></div>
+
+            <div class="card shadow-sm border-0 bg-dark text-white">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table id="tablaSincronizar" class="table table-dark table-hover align-middle mb-0">
+                            <thead class="bg-black text-muted small text-uppercase">
+                                <tr>
+                                    <th style="width:3%;"></th>
+                                    <th>Curso</th>
+                                    <th>Dispositivo</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% cursos.forEach(c => { %>
+                                    <tr class="fila-curso" data-dispositivo="<%= c.dispositivo %>" data-id-oferta="<%= c.idOfertaOficial %>">
+                                        <td>
+                                            <input class="form-check-input chk-curso" type="checkbox" checked value="<%= c.idOfertaOficial %>">
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold" style="font-size:0.85rem;"><%= c.nombrePropuesta %></div>
+                                            <small class="text-muted"><%= c.cargoId?.areaId?.nombre || '' %> · <%= c.formadorAbc || 'A designar' %></small>
+                                        </td>
+                                        <td><small class="text-muted"><%= c.dispositivo %></small></td>
+                                        <td class="estado-curso text-muted">En espera</td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+    </div>
+
+    <%- include('../../partials/footer') %>
+    <%- include('../../partials/scripts') %>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Itinerario: dispara la búsqueda apenas cambia el select, sin botón.
+        (function () {
+            const select = document.getElementById('itinerarioClave');
+            const anioInput = document.getElementById('anio');
+            const itinerarioInput = document.getElementById('itinerario');
+            if (!select) return;
+            select.addEventListener('change', function () {
+                if (!select.value) return;
+                const [anio, itinerario] = select.value.split('|');
+                anioInput.value = anio || '';
+                itinerarioInput.value = itinerario || '';
+                document.getElementById('formItinerario').submit();
+            });
+        })();
+
+        // Filtro por dispositivo, en tiempo real.
+        (function () {
+            const checks = document.querySelectorAll('.chk-dispositivo');
+            if (checks.length === 0) return;
+
+            function aplicarFiltro() {
+                const activos = new Set(Array.from(checks).filter(c => c.checked).map(c => c.value));
+                document.querySelectorAll('#tablaSincronizar tbody tr.fila-curso').forEach(fila => {
+                    const visible = activos.has(fila.dataset.dispositivo);
+                    fila.style.display = visible ? '' : 'none';
+                    // Si se oculta un curso por el filtro, también se destilda para no sincronizarlo.
+                    const chk = fila.querySelector('.chk-curso');
+                    if (chk && !visible) chk.checked = false;
+                });
+            }
+
+            checks.forEach(c => c.addEventListener('change', aplicarFiltro));
+            aplicarFiltro();
+        })();
+
+        // Seleccionar / deseleccionar todos (solo entre los visibles).
+        const chkTodos = document.getElementById('chkTodos');
+        if (chkTodos) {
+            chkTodos.addEventListener('change', function () {
+                document.querySelectorAll('#tablaSincronizar tbody tr.fila-curso').forEach(fila => {
+                    if (fila.style.display === 'none') return;
+                    const chk = fila.querySelector('.chk-curso');
+                    if (chk) chk.checked = chkTodos.checked;
+                });
+            });
+        }
+
+        // Sincronización con progreso en vivo (Server-Sent Events).
+        const btnSincronizar = document.getElementById('btnSincronizar');
+        if (btnSincronizar) {
+            btnSincronizar.addEventListener('click', function () {
+                const ids = Array.from(document.querySelectorAll('.chk-curso:checked')).map(chk => chk.value);
+                if (ids.length === 0) {
+                    Swal.fire('Nada para sincronizar', 'Seleccioná al menos un curso.', 'warning');
+                    return;
+                }
+
+                document.querySelectorAll('#tablaSincronizar tbody tr.fila-curso').forEach(fila => {
+                    fila.classList.remove('fila-ok', 'fila-error', 'fila-en-curso');
+                    const celda = fila.querySelector('.estado-curso');
+                    if (ids.includes(fila.dataset.idOferta)) {
+                        celda.textContent = 'En cola...';
+                        celda.className = 'estado-curso text-muted';
+                    } else {
+                        celda.textContent = 'No seleccionado';
+                        celda.className = 'estado-curso text-muted';
+                    }
+                });
+
+                btnSincronizar.disabled = true;
+                btnSincronizar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sincronizando...';
+
+                const resumen = document.getElementById('resumenSincronizacion');
+                resumen.classList.remove('d-none', 'alert-success', 'alert-danger');
+                resumen.classList.add('alert-info');
+                resumen.textContent = `Iniciando sincronización de ${ids.length} curso/s. Esto puede tardar varios minutos: se consulta un curso por vez para no saturar el sitio oficial...`;
+
+                const url = '/ciie/itinerario/sincronizar-stream?ids=' + encodeURIComponent(ids.join(','));
+                const eventSource = new EventSource(url);
+
+                eventSource.onmessage = function (event) {
+                    const data = JSON.parse(event.data);
+
+                    if (data.tipo === 'inicio') {
+                        resumen.textContent = `Sincronizando 0 / ${data.total}...`;
+                    }
+
+                    if (data.tipo === 'progreso') {
+                        const fila = document.querySelector(`#tablaSincronizar tr[data-id-oferta="${data.idOfertaOficial}"]`);
+                        if (fila) {
+                            const celda = fila.querySelector('.estado-curso');
+                            fila.classList.remove('fila-en-curso');
+                            if (data.ok) {
+                                fila.classList.add('fila-ok');
+                                celda.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i>+${data.nuevos} nuevo/s (${data.totalEnAbc} en total)`;
+                            } else {
+                                fila.classList.add('fila-error');
+                                celda.innerHTML = `<i class="bi bi-x-circle-fill text-danger me-1"></i>${data.error}`;
+                            }
+                        }
+                        resumen.textContent = `Sincronizando ${data.actual} / ${data.total}...`;
+                    }
+
+                    if (data.tipo === 'fin') {
+                        eventSource.close();
+                        btnSincronizar.disabled = false;
+                        btnSincronizar.innerHTML = '<i class="bi bi-cloud-download-fill me-1"></i>Sincronizar seleccionados';
+                        resumen.classList.remove('alert-info');
+                        resumen.classList.add(data.errores > 0 ? 'alert-danger' : 'alert-success');
+                        resumen.textContent = `Listo: ${data.ok} curso/s sincronizados, ${data.nuevosTotal} inscripto/s nuevo/s vinculados` + (data.errores > 0 ? `, ${data.errores} con error.` : '.');
+                    }
+                };
+
+                eventSource.onerror = function () {
+                    eventSource.close();
+                    btnSincronizar.disabled = false;
+                    btnSincronizar.innerHTML = '<i class="bi bi-cloud-download-fill me-1"></i>Sincronizar seleccionados';
+                    resumen.classList.remove('alert-info');
+                    resumen.classList.add('alert-danger');
+                    resumen.textContent = 'Se cortó la conexión con el servidor antes de terminar. Los cursos ya sincronizados quedaron guardados; podés reintentar con el resto.';
+                };
+            });
+        }
+    </script>
+</body>
+</html>

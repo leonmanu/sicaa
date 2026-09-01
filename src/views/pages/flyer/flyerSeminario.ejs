@@ -242,6 +242,16 @@
             padding-bottom: 10px;
         }
 
+        .ubicacion-strip-sem {
+            font-size: 15px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.85);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
         .panel-fechas-footer {
             background: var(--orange);
             border-radius: 0 0 16px 16px;
@@ -472,11 +482,22 @@
                                     <div class="dia-semana-sem"><%= dias[primerEnc.getUTCDay()] %></div>
                                     <div class="fecha-linea-sem" id="ed-fecha" contenteditable="true"><%= listaFechas %></div>
                                     <div class="hora-badge-sem" id="ed-hora" contenteditable="true"><%= hora %></div>
+                                    <% if (curso.ubicacion) { %>
+                                        <div class="ubicacion-strip-sem" id="ed-ubicacion" contenteditable="true">
+                                            <i class="bi bi-geo-alt-fill"></i><span><%= curso.ubicacion %></span>
+                                        </div>
+                                    <% } %>
                                     <div class="distrito-strip-sem" id="ed-distrito" contenteditable="true">
                                         <%= curso.cargoId?.ciieId?.distrito %>, Bs.As
                                     </div>
                                 <% } else { %>
                                     <div class="fecha-linea-sem">SIN FECHAS</div>
+                                <% } %>
+
+                                <% if (curso.detalleFlyer) { %>
+                                    <div class="distrito-strip-sem" id="ed-detalle" contenteditable="true" style="margin-top: 0; padding-bottom: 6px; font-size: 12px;">
+                                        Detalle: <%= curso.detalleFlyer %>
+                                    </div>
                                 <% } %>
 
                                 <div class="panel-fechas-footer" id="ed-panel-footer" contenteditable="true">

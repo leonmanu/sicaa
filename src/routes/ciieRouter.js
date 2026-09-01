@@ -27,7 +27,11 @@ const {
     getCalificaciones,
     getPlanillaAprobadosItinerario,
     getComunicadoItinerario,
-    getTrayectoriaCursantes
+    getTrayectoriaCursantes,
+    getRegistroCursantesMasivo,
+    getListaAsistenciaMasiva,
+    getSincronizarItinerario,
+    getSincronizarItinerarioStream
 } = require('../controllers/cursoLocalController')
 const { viewInscripto, getExternosPorIdOfertaOficial, vincularCursantes } = require('../controllers/inscriptoController')
 
@@ -54,6 +58,10 @@ router
     .post('/cursos/nuevo/editar', postEditarCursoPendiente)
     .post('/cursos/nuevo/publicar', postCrearYVincularConSitioOficial)
     .get('/comunicado', getComunicadoItinerario)
+    .get('/registro-cursantes-masivo', soloCiie, getRegistroCursantesMasivo)
+    .get('/lista-asistencia-masiva', soloCiie, getListaAsistenciaMasiva)
+    .get('/itinerario/sincronizar', soloCiie, getSincronizarItinerario)
+    .get('/itinerario/sincronizar-stream', soloCiie, getSincronizarItinerarioStream)
 
     // URL calificaciones
     .get('/calificaciones', getCalificaciones)

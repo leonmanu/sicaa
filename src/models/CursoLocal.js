@@ -11,7 +11,11 @@ const cursoSchema = new mongoose.Schema({
     dispositivo: { type: String },
     formadorAbc: { type: String },
     tituloFormulario: { type: String, default: '' },
-    
+
+    // Datos opcionales para el flyer (solo se muestran si tienen contenido)
+    ubicacion: { type: String, default: '' },
+    detalleFlyer: { type: String, default: '' },
+
     // Tiempos
     anio: Number,
     cohorte: { type: Number, default: 0 },

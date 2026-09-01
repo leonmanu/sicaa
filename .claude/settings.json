@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"require\\('dotenv'\\).config\\(\\); const c = require\\('./src/controllers/cursoLocalController'\\); console.log\\('required OK, has getSincronizarItinerario:', typeof c.getSincronizarItinerario\\);\")",
+      "Bash(grep -n \"getListaAsistenciaMasiva$\" src/controllers/cursoLocalController.js)",
+      "Bash(node -e \"const c = require\\('./src/controllers/cursoLocalController'\\); console.log\\(typeof c.getSincronizarItinerario, typeof c.getSincronizarItinerarioStream\\);\")",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

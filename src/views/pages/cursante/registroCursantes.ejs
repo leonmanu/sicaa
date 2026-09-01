@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <%- include('../../partials/head') %>
+    <%
+        // Nombre de archivo base para el título (usado por el navegador como
+        // sugerencia al "Guardar como PDF") y para la descarga de Excel:
+        // dispositivo-área-apellido del formador-idOfertaOficial.
+        const apellidoFormador = (cursoLocal.formadorAbc || '').split(';')[0].split(',')[0].trim();
+        const nombreArchivoBase = [
+            cursoLocal.dispositivo,
+            cursoLocal.cargoId?.areaId?.nombreCorto || cursoLocal.cargoId?.areaId?.nombre,
+            apellidoFormador,
+            cursoLocal.idOfertaOficial
+        ].map(v => String(v || '').trim().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_'))
+         .filter(Boolean)
+         .join('-');
+    %>
+    <title>Registro-Cursantes-<%= nombreArchivoBase %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Registro de cursantes: solo para consulta/impresión, no se firma nada,
+           así que las filas son más chicas que en la planilla de asistencia y
+           entran muchas más por hoja. */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0.5cm 0.8cm;
+            }
+
+            .no-print {
+                display: none;
+            }
+
+            .page-break {
+                page-break-after: always;
+            }
+        }
+
+        body {
+            background-color: white;
+            color: black;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            min-height: 94vh;
+        }
+
+        .font-small {
+            font-size: 0.78rem;
+        }
+
+        .font-xsmall {
+            font-size: 0.6rem;
+        }
+
+        .tabla-print {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .tabla-print th,
+        .tabla-print td {
+            border: 1px solid #000 !important;
+            padding: 1px 5px;
+            vertical-align: middle;
+            height: 20px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .header-titulo-container {
+            display: flex;
+            align-items: baseline;
+            overflow: hidden;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .titulo-recortado {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0;
+        }
+
+        .toolbar-descarga {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #f1f1f1;
+        }
+    </style>
+</head>
+
+<body onload="window.print()">
+
+    <div class="toolbar-descarga no-print">
+        <button type="button" class="btn btn-success btn-sm" onclick="descargarExcel()">
+            <i class="bi bi-file-earmark-excel"></i> Descargar Excel
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <i class="bi bi-printer"></i> Imprimir
+        </button>
+    </div>
+
+    <% let limit = 30; let inscriptosTotal = inscriptosLocales.length; let hojas = Math.ceil(inscriptosTotal / limit) || 1; %>
+
+        <% for (let x = 1; x <= hojas; x++) { %>
+            <div class="container-fluid py-2 page-wrapper <%= x < hojas ? 'page-break' : '' %>">
+
+                <div class="header-section">
+                    <div class="d-flex justify-content-between align-items-end gap-3">
+                        <div class="font-small pb-1">
+                            <%= cursoLocal.dispositivo %> |
+                            <%= cursoLocal.cargoId.clave %> | <%= cursoLocal.anio %> • I<%= cursoLocal.itinerario %> |
+                            idabc: <%= cursoLocal.idOfertaOficial %> |
+                            ciie: <%= cursoLocal.cargoId?.ciieId?.nombre || 'Distrital' %> |
+                            <strong>Formador:</strong> <%= cursoLocal.formadorAbc %>
+                        </div>
+                        <div class="text-end flex-shrink-0">
+                            <div class="text-uppercase fw-bold text-muted" style="font-size: 9px; margin-top: 2px;">
+                                Hoja <%= x %> / <%= hojas %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="header-titulo-container">
+                        <h5 class="titulo-recortado">
+                            <strong>Registro de Cursantes</strong> —
+                            <%= cursoLocal.cargoId.areaId.nombre %>
+                            <span class="text-muted small"><%= cursoLocal.cargoId.comision > 1 ? cursoLocal.cargoId.comision : '' %></span>:
+                            <span class="text-muted fw-normal small">
+                                <%= cursoLocal.nombrePropuesta %>
+                            </span>
+                        </h5>
+                    </div>
+
+                    <hr class="mt-0 mb-2" style="border-top: 2px solid #000; opacity: 1;">
+                </div>
+
+                <div style="flex-grow: 1;">
+                    <table class="tabla-print">
+                        <thead>
+                            <% if (x === 1) { %>
+                                <tr class="bg-light text-center">
+                                    <th style="width: 4%;">#</th>
+                                    <th style="width: 20%;">Apellido y Nombre</th>
+                                    <th style="width: 9%;">DNI</th>
+                                    <th style="width: 11%;">CUIL</th>
+                                    <th style="width: 20%;">Email</th>
+                                    <th style="width: 10%;">Teléfono</th>
+                                    <th style="width: 16%;">Domicilio</th>
+                                    <th style="width: 10%;">Localidad</th>
+                                </tr>
+                            <% } %>
+                        </thead>
+                        <tbody>
+                            <% for (let y = limit * (x - 1); y < limit * x; y++) { %>
+                                <% let nro = y + 1; %>
+                                    <tr>
+                                        <td class="text-center font-small"><%= nro %></td>
+                                        <% if (y < inscriptosTotal) {
+                                            const insc = inscriptosLocales[y];
+                                        %>
+                                            <td class="text-uppercase font-small">
+                                                <%= insc.apellido %>, <%= insc.nombres %>
+                                            </td>
+                                            <td class="text-center font-small"><%= insc.dni || '' %></td>
+                                            <td class="text-center font-small"><%= insc.cuil || '' %></td>
+                                            <td class="font-small"><%= insc.email || '' %></td>
+                                            <td class="text-center font-small"><%= insc.telefono || '' %></td>
+                                            <td class="font-small"><%= insc.domicilio || '' %></td>
+                                            <td class="font-small"><%= insc.localidad || '' %></td>
+                                        <% } else { %>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                        <% } %>
+                                    </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <% } %>
+
+    <script>
+        function escaparHtml(valor) {
+            return String(valor ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        function descargarExcel() {
+            const inscriptos = JSON.parse('<%- JSON.stringify(inscriptosLocales.map(i => ({
+                apellido: i.apellido || '',
+                nombres: i.nombres || '',
+                dni: i.dni || '',
+                cuil: i.cuil || '',
+                email: i.email || '',
+                telefono: i.telefono || '',
+                domicilio: i.domicilio || '',
+                localidad: i.localidad || ''
+            }))) %>');
+
+            const filas = inscriptos.map((i, idx) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${escaparHtml(i.apellido)}, ${escaparHtml(i.nombres)}</td>
+                    <td>${escaparHtml(i.dni)}</td>
+                    <td>${escaparHtml(i.cuil)}</td>
+                    <td>${escaparHtml(i.email)}</td>
+                    <td>${escaparHtml(i.telefono)}</td>
+                    <td>${escaparHtml(i.domicilio)}</td>
+                    <td>${escaparHtml(i.localidad)}</td>
+                </tr>
+            `).join('');
+
+            const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" '
+                + 'xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
+                + '<head><meta charset="UTF-8">'
+                + '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>'
+                + '<x:Name>Registro</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>'
+                + '</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
+                + '</head><body>'
+                + '<table border="1"><thead><tr>'
+                + '<th>#</th><th>Apellido y Nombre</th><th>DNI</th><th>CUIL</th><th>Email</th><th>Teléfono</th><th>Domicilio</th><th>Localidad</th>'
+                + '</tr></thead><tbody>' + filas + '</tbody></table>'
+                + '</body></html>';
+
+            const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Registro-Cursantes-<%= nombreArchivoBase %>.xls';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>

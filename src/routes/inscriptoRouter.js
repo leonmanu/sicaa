@@ -8,6 +8,7 @@ const {
     getExternosPorIdOfertaOficial,
     vincularCursantes,
     viewListaAsistencia,
+    viewRegistroCursantes,
     viewAsistencia,
     putCalificacion,
     postAsistencia,
@@ -24,6 +25,7 @@ router
 
     //asistencia
     .get('/curso/:idOfertaOficial/listaAsistencia', viewListaAsistencia)
+    .get('/curso/:idOfertaOficial/registro', viewRegistroCursantes)
     .get('/curso/:idOfertaOficial/asistencia', viewAsistencia)
     .post('/asistencia', postAsistencia)//ajax asistencia
 

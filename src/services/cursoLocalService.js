@@ -57,6 +57,8 @@ class CursoLocalService {
             dispositivo:      dispositivo,
             formadorAbc:      this._sanitizeString(data.formadorAbc)      || 'A designar',
             tituloFormulario: this._sanitizeString(data.tituloFormulario) || '',
+            ubicacion:        this._sanitizeString(data.ubicacion)        || '',
+            detalleFlyer:     this._sanitizeString(data.detalleFlyer)     || '',
 
             // Tiempos
             anio:    anio,
@@ -455,6 +457,53 @@ class CursoLocalService {
                 etiqueta: `${anio} - ${itinerario}`
             };
         }).filter(item => item.anio !== null && item.itinerario !== null);
+    }
+
+    // ─── Impresión masiva por itinerario (registro de cursantes / listas para firmar) ──
+    // Trae todos los cursos del itinerario con sus inscriptos y encuentros ya
+    // resueltos, para armar un único documento imprimible con todos los cursos.
+    async getCursosConInscriptosParaImpresion(ciieId, anio, itinerario) {
+        const anioNum = this._toNumberOrNull(anio);
+        const itinerarioNum = this._toNumberOrNull(itinerario);
+        if (anioNum === null || itinerarioNum === null) {
+            const err = new Error('Debes seleccionar un itinerario válido.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const cursos = await cursoLocalRepo.getPorCiieAnioItinerarioParaComunicado(ciieId, anioNum, itinerarioNum);
+        if (!cursos || cursos.length === 0) return [];
+
+        const cursoIds = cursos.map(c => c._id);
+        const [inscriptos, encuentros] = await Promise.all([
+            inscriptoLocalRepo.getPorListaDeCursos(cursoIds),
+            encuentroRepo.getPorCursoIds(cursoIds)
+        ]);
+
+        return cursos.map(curso => ({
+            ...curso,
+            inscriptosLocales: inscriptos
+                .filter(i => String(i.cursoId) === String(curso._id))
+                .sort((a, b) => (a.apellido || '').localeCompare(b.apellido || '', 'es')),
+            encuentros: encuentros
+                .filter(e => String(e.cursoId) === String(curso._id))
+                .sort((a, b) => a.numero - b.numero)
+        }));
+    }
+
+    // Cursos vinculados y con inscripción abierta ('disponible' = 'S') de un
+    // itinerario, para elegir cuáles sincronizar con el sitio oficial.
+    async getCursosDisponiblesParaSincronizar(ciieId, anio, itinerario) {
+        const anioNum = this._toNumberOrNull(anio);
+        const itinerarioNum = this._toNumberOrNull(itinerario);
+        if (anioNum === null || itinerarioNum === null) {
+            const err = new Error('Debes seleccionar un itinerario válido.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const cursos = await cursoLocalRepo.getPorCiieAnioItinerario(ciieId, anioNum, itinerarioNum);
+        return (cursos || []).filter(c => String(c.disponible || '').toUpperCase() === 'S');
     }
 
     async getPlanillaAprobadosPorItinerario(ciieId, anio, itinerario) {
@@ -1403,6 +1452,8 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
         dispositivo:        dispositivoNuevo,
         formadorAbc:        this._sanitizeString(data.formadorAbc) || cursoLocal.formadorAbc,
         tituloFormulario:   this._sanitizeString(data.tituloFormulario),
+        ubicacion:          this._sanitizeString(data.ubicacion),
+        detalleFlyer:       this._sanitizeString(data.detalleFlyer),
         anio:               anioNuevo,
         itinerario:         itinerarioFinal,
         idformato:          this._toNumberOrNull(data.idformato) ?? cursoLocal.idformato,

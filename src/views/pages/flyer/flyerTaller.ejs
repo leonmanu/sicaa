@@ -338,6 +338,17 @@
             margin-top: 12px;
         }
 
+        .ubicacion-strip {
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
         .destinatarios-strip {
             font-size: 12px;
             font-weight: 700;
@@ -494,6 +505,12 @@
                                 Destinatarios: <%= (curso.publicacionDrupal?.nivel || '').toUpperCase() %>
                             </span>
                         </div>
+
+                        <% if (curso.detalleFlyer) { %>
+                        <div class="destinatarios-strip" style="margin-top: 8px;" id="ed-detalle" contenteditable="true">
+                            <span>Detalle: <%= curso.detalleFlyer %></span>
+                        </div>
+                        <% } %>
 </div>
                     </div>
 
@@ -537,6 +554,11 @@
         </div>
     <% } else { %>
         <div class="fecha-linea">SIN FECHAS</div>
+    <% } %>
+    <% if (curso.ubicacion) { %>
+        <div class="ubicacion-strip" id="ed-ubicacion" contenteditable="true">
+            <i class="bi bi-geo-alt-fill"></i><span><%= curso.ubicacion %></span>
+        </div>
     <% } %>
     <div class="distrito-strip" id="ed-distrito" contenteditable="true">
         <%= curso.cargoId?.ciieId.distrito %>, Bs.As

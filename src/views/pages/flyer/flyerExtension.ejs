@@ -264,6 +264,18 @@
             margin-bottom: 0;
         }
 
+        .ubicacion-strip {
+            background: var(--orange-lt);
+            padding: 8px 18px;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: white;
+            margin-top: 12px;
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+
         .distrito-strip {
             background: var(--orange-lt);
             padding: 9px 18px;
@@ -393,11 +405,17 @@
                             </div>
 
                             <div style="margin-top: 8px;">
-                                <strong>Destinatarios:</strong> 
+                                <strong>Destinatarios:</strong>
                                 <span id="ed-destinatarios" contenteditable="true">
                                     <%= curso.publicacionDrupal?.nivel || 'Todos' %>
                                 </span>
                             </div>
+
+                            <% if (curso.detalleFlyer) { %>
+                            <div style="margin-top: 8px;" id="ed-detalle" contenteditable="true">
+                                <strong>Detalle:</strong> <span><%= curso.detalleFlyer %></span>
+                            </div>
+                            <% } %>
                         </div>
                     </div>
 
@@ -448,11 +466,15 @@
 %></div>
 
                         </div>
-                        <div class="distrito-strip" id="ed-distrito" contenteditable="true"><%=
-                            curso.cargoId?.ciieId?.distrito
-                        %>, Bs.As</div>
-                    </div>
-
+                        <% if (curso.ubicacion) { %>
+                            <div class="ubicacion-strip" id="ed-ubicacion" contenteditable="true">
+                                <i class="bi bi-geo-alt-fill"></i><span><%= curso.ubicacion %></span>
+                            </div>
+                        <% } else {%>
+                        <div class="distrito-strip" id="ed-distrito" contenteditable="true">
+                            <%= curso.cargoId?.ciieId?.distrito %>, Bs.As.</div>
+                        </div>
+                        <% } %>
                 </div><!-- /flyer -->
             </div>
 

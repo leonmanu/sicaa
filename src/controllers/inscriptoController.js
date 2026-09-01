@@ -59,6 +59,27 @@ const viewListaAsistencia = async (req, res) => {
     }
 }
 
+const viewRegistroCursantes = async (req, res) => {
+    try {
+        const { idOfertaOficial } = req.params;
+
+        const cursoLocal = await cursoLocalService.getPorIdOfertaOficial(idOfertaOficial);
+        const inscriptosLocales = await inscriptoLocalService.getPorCursoId(cursoLocal._id);
+
+        res.render('pages/cursante/registroCursantes', {
+            inscriptosLocales,
+            cursoLocal,
+            title: "Registro de Cursantes",
+            user: req.user
+        });
+
+    } catch (error) {
+        console.error('Error en viewRegistroCursantes:', error.message);
+        req.flash('error', 'No se pudo generar el registro de cursantes.');
+        res.redirect('back');
+    }
+}
+
 const viewAsistencia = async (req, res) => {
     try{
         const { idOfertaOficial } = req.params
@@ -256,6 +277,7 @@ module.exports = {
     getExternosPorIdOfertaOficial,
     vincularCursantes,
     viewListaAsistencia,
+    viewRegistroCursantes,
     viewAsistencia,
     putCalificacion,
     postAsistencia,

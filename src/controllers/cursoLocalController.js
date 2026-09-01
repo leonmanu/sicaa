@@ -1,6 +1,8 @@
 const cargoService = require('../services/cargoService');
 const ciieService = require('../services/ciieService');
 const cursoLocalService = require('../services/cursoLocalService');
+const inscriptoExternoService = require('../services/inscriptoExternoService');
+const inscriptoLocalService = require('../services/inscriptoLocalService');
 
 const vincularCurso = async (req, res) => {
     try {
@@ -257,6 +259,179 @@ const getComunicadoItinerario = async (req, res) => {
         req.flash('error', message);
         return res.redirect('/ciie/dashboard');
     }
+}
+
+// Resuelve la selección de año/itinerario a partir del query, o el más alto por defecto.
+const _resolverSeleccionItinerario = (itinerarios, query) => {
+    const anioQuery = Number(query.anio);
+    const itinerarioQuery = Number(query.itinerario);
+    if (Number.isFinite(anioQuery) && Number.isFinite(itinerarioQuery)) {
+        const existe = itinerarios.some(i => i.anio === anioQuery && i.itinerario === itinerarioQuery);
+        if (existe) return { anio: anioQuery, itinerario: itinerarioQuery };
+    }
+    if (itinerarios.length > 0) {
+        const ultimo = itinerarios.reduce((mejor, actual) => {
+            if (!mejor) return actual;
+            if (actual.anio !== mejor.anio) return actual.anio > mejor.anio ? actual : mejor;
+            return actual.itinerario > mejor.itinerario ? actual : mejor;
+        }, null);
+        return { anio: ultimo.anio, itinerario: ultimo.itinerario };
+    }
+    return null;
+}
+
+const getRegistroCursantesMasivo = async (req, res) => {
+    try {
+        const ciieId = req.user.referenciaId;
+        const itinerarios = await cursoLocalService.getItinerariosParaComunicado(ciieId);
+        const seleccion = _resolverSeleccionItinerario(itinerarios, req.query);
+
+        const cursos = seleccion
+            ? await cursoLocalService.getCursosConInscriptosParaImpresion(ciieId, seleccion.anio, seleccion.itinerario)
+            : [];
+
+        return res.render('pages/ciie/registroCursantesMasivo', {
+            itinerarios,
+            seleccion,
+            cursos,
+            user: req.user,
+            title: 'Registro de cursantes por itinerario'
+        });
+    } catch (error) {
+        const message = error.message || 'No se pudo generar el registro.';
+        console.error('Error en getRegistroCursantesMasivo:', error);
+        req.flash('error', message);
+        return res.redirect('/ciie/dashboard');
+    }
+}
+
+const getListaAsistenciaMasiva = async (req, res) => {
+    try {
+        const ciieId = req.user.referenciaId;
+        const itinerarios = await cursoLocalService.getItinerariosParaComunicado(ciieId);
+        const seleccion = _resolverSeleccionItinerario(itinerarios, req.query);
+
+        const cursos = seleccion
+            ? await cursoLocalService.getCursosConInscriptosParaImpresion(ciieId, seleccion.anio, seleccion.itinerario)
+            : [];
+
+        return res.render('pages/ciie/listaAsistenciaMasiva', {
+            itinerarios,
+            seleccion,
+            cursos,
+            user: req.user,
+            title: 'Listas para firmar por itinerario'
+        });
+    } catch (error) {
+        const message = error.message || 'No se pudo generar las listas para firmar.';
+        console.error('Error en getListaAsistenciaMasiva:', error);
+        req.flash('error', message);
+        return res.redirect('/ciie/dashboard');
+    }
+}
+
+// ─── Sincronización masiva de inscriptos con el sitio oficial, por itinerario ──
+const getSincronizarItinerario = async (req, res) => {
+    try {
+        const ciieId = req.user.referenciaId;
+        const itinerarios = await cursoLocalService.getItinerariosParaComunicado(ciieId);
+        const seleccion = _resolverSeleccionItinerario(itinerarios, req.query);
+
+        const cursos = seleccion
+            ? await cursoLocalService.getCursosDisponiblesParaSincronizar(ciieId, seleccion.anio, seleccion.itinerario)
+            : [];
+
+        const dispositivos = [...new Set(cursos.map(c => c.dispositivo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+
+        return res.render('pages/ciie/sincronizarItinerario', {
+            itinerarios,
+            seleccion,
+            cursos,
+            dispositivos,
+            user: req.user,
+            title: 'Sincronizar itinerario con el sitio oficial'
+        });
+    } catch (error) {
+        const message = error.message || 'No se pudo cargar la vista de sincronización.';
+        console.error('Error en getSincronizarItinerario:', error);
+        req.flash('error', message);
+        return res.redirect('/ciie/dashboard');
+    }
+}
+
+// Server-Sent Events: sincroniza curso por curso, con una pausa entre cada
+// uno para no saturar el sitio oficial, y va emitiendo el progreso.
+const getSincronizarItinerarioStream = async (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+    const enviar = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    const ids = String(req.query.ids || '').split(',').map(s => s.trim()).filter(Boolean);
+    const usuarioEmail = req.user?.email;
+
+    if (ids.length === 0) {
+        enviar({ tipo: 'fin', ok: 0, errores: 0, nuevosTotal: 0 });
+        return res.end();
+    }
+
+    enviar({ tipo: 'inicio', total: ids.length });
+
+    let ok = 0, errores = 0, nuevosTotal = 0;
+
+    for (let i = 0; i < ids.length; i++) {
+        const idOfertaOficial = ids[i];
+        try {
+            const cursoLocal = await cursoLocalService.getPorIdOfertaOficial(idOfertaOficial);
+            if (!cursoLocal) throw new Error('Curso no encontrado en la base local.');
+
+            const inscriptosRaw = await inscriptoExternoService.listarCursantes(
+                cursoLocal.idOfertaOficial,
+                cursoLocal.idCursoOriginal
+            );
+            const inscripcionesLocalesIds = await inscriptoLocalService.getIdInscripcionPorCursoId(cursoLocal._id);
+            const nuevos = inscriptosRaw.filter(ins => !inscripcionesLocalesIds.includes(String(ins[0])));
+
+            let vinculados = 0;
+            if (nuevos.length > 0) {
+                const resultado = await inscriptoLocalService.vincularColeccion(nuevos, idOfertaOficial, usuarioEmail);
+                vinculados = resultado.count ?? 0;
+            }
+
+            nuevosTotal += vinculados;
+            ok++;
+            enviar({
+                tipo: 'progreso',
+                actual: i + 1,
+                total: ids.length,
+                idOfertaOficial,
+                nombrePropuesta: cursoLocal.nombrePropuesta,
+                totalEnAbc: inscriptosRaw.length,
+                nuevos: vinculados,
+                ok: true
+            });
+        } catch (error) {
+            errores++;
+            enviar({
+                tipo: 'progreso',
+                actual: i + 1,
+                total: ids.length,
+                idOfertaOficial,
+                ok: false,
+                error: error.message || 'Error desconocido'
+            });
+        }
+
+        // Pausa entre cursos para no saturar al sitio oficial con pedidos seguidos.
+        if (i < ids.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1200));
+        }
+    }
+
+    enviar({ tipo: 'fin', ok, errores, nuevosTotal });
+    res.end();
 }
 
 const getTrayectoriaCursantes = async (req, res) => {
@@ -876,5 +1051,9 @@ module.exports = {
     getPorCiieDrupal,
     getCursoByIdEdit,
     getPorCiiePublico,
-    getEstadisticasCursos
+    getEstadisticasCursos,
+    getRegistroCursantesMasivo,
+    getListaAsistenciaMasiva,
+    getSincronizarItinerario,
+    getSincronizarItinerarioStream
 }
