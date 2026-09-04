@@ -4,3 +4,4 @@ google-credentials.json
 *.env
 nomenclatura.txt
 node_modules/
+src/public/uploads/

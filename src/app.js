@@ -15,7 +15,7 @@ mongoose.connect(process.env.MONGO_URI)
 const app = express();
 
 // 1. Middlewares de base
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -56,6 +56,8 @@ app.use('/cargo', require('./routes/cargoRoutes'));
 app.use('/asignaciones', require('./routes/asignacionRoutes'));
 app.use('/inscripto', require('./routes/inscriptoRouter'));
 app.use('/certificado', require('./routes/certificadoRouter'));
+app.use('/publicaciones', require('./routes/publicacionRoutes'));
+app.use('/plantillas-dispositivo', require('./routes/plantillaDispositivoRoutes'));
 //test-drupal para probar sesión Drupal
 app.use('/test', require('./test/sesionDrupalTest'));
 

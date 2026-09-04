@@ -4,7 +4,31 @@
       "Bash(node -e \"require\\('dotenv'\\).config\\(\\); const c = require\\('./src/controllers/cursoLocalController'\\); console.log\\('required OK, has getSincronizarItinerario:', typeof c.getSincronizarItinerario\\);\")",
       "Bash(grep -n \"getListaAsistenciaMasiva$\" src/controllers/cursoLocalController.js)",
       "Bash(node -e \"const c = require\\('./src/controllers/cursoLocalController'\\); console.log\\(typeof c.getSincronizarItinerario, typeof c.getSincronizarItinerarioStream\\);\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/publicaciones)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(node \"C:\\\\Users\\\\manul\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-manul-wraping\\\\ec847cf4-904e-4913-963d-37805b246ccd\\\\scratchpad\\\\testRenderEjs.js\")",
+      "Bash(cp \"C:\\\\Users\\\\manul\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-manul-wraping\\\\ec847cf4-904e-4913-963d-37805b246ccd\\\\scratchpad\\\\testRenderEjs.js\" ./__testRenderEjs.js)",
+      "Bash(node __testRenderEjs.js)",
+      "Bash(rm ./__testRenderEjs.js)",
+      "Bash(node -c scripts/generarTokenLargo.js)",
+      "Bash(tasklist //FI \"IMAGENAME eq node.exe\" //FO CSV)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //F //PID 32568)",
+      "Bash(taskkill //F //PID 41856)",
+      "Bash(node -c src/repos/publicacionRepo.js)",
+      "Bash(node -c src/services/cursoLocalService.js)",
+      "Bash(node -c src/services/publicacionService.js)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://sicaa.onrender.com/uploads/flyers/6a99e210e8612b651643f641-0.png)",
+      "Bash(curl -s -I https://sicaa.onrender.com/uploads/flyers/6a99e210e8612b651643f641-0.png)",
+      "Bash(grep -n \"panel-back\\\\|panel-teal\\\\|panel-detalle\\\\|panel-orange\\\\|</div>\" /tmp/flyer25034.html | sed -n '1,40p')",
+      "Bash(sed -n '233,290p' /tmp/flyer25034.html)",
+      "Bash(npx --yes playwright@1 install chromium --with-deps)",
+      "Bash(npx --yes playwright@1 screenshot --viewport-size=700,900 --wait-for-timeout=1000 http://localhost:3000/curso/flyer/25034 /tmp/flyer25034_full.png)",
+      "Bash(npx --yes playwright@1 install chromium)",
+      "Bash(npx --yes playwright@1 screenshot --viewport-size=700,900 --wait-for-timeout=800 http://localhost:3000/curso/flyer/25034 /tmp/flyer25034_fixed.png)"
     ]
   }
 }

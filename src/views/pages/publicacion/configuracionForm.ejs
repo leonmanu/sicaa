@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Configuración de publicaciones</title>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container py-5" style="max-width: 700px;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h2 class="fw-bold mb-1"><i class="bi bi-gear me-2 text-info"></i>Configuración de publicaciones</h2>
+                <p class="text-muted mb-0">Textos por defecto usados al armar el copy de cada publicación.</p>
+            </div>
+            <a href="/publicaciones" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+        </div>
+
+        <div class="card bg-dark border-secondary">
+            <div class="card-body">
+                <form method="POST" action="/publicaciones/configuracion">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Requisitos por defecto (una línea por bullet)</label>
+                        <textarea name="requisitosDefaultBullets" rows="4" class="form-control bg-dark text-white border-secondary"><%= (configuracion.requisitosDefaultBullets || []).join('\n') %></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Cierre para Facebook</label>
+                        <input type="text" name="cierreFacebook" class="form-control bg-dark text-white border-secondary" value="<%= configuracion.cierreFacebook %>">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Cierre para Instagram</label>
+                        <input type="text" name="cierreInstagram" class="form-control bg-dark text-white border-secondary" value="<%= configuracion.cierreInstagram %>">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Hashtags fijos (uno por línea, ej. #FormaciónDocente, #CIIELaferrere)</label>
+                        <textarea name="hashtagsFijos" rows="3" class="form-control bg-dark text-white border-secondary"><%= (configuracion.hashtagsFijos || []).join('\n') %></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+</body>
+</html>

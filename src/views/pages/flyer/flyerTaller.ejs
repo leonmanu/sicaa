@@ -296,6 +296,24 @@
         }
         .info-box strong { font-weight: 900; }
 
+        /* ─── Detalle/Observación (arriba del panel de fecha) ─ */
+        .panel-detalle {
+            position: absolute;
+            top: 65px;
+            right: 35px;
+            width: 206px;
+            background: var(--sky);
+            color: var(--text-dark);
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            z-index: 3;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
         /* ─── Panel naranja fecha ────────────────────────── */
         .panel-orange {
             position: absolute;
@@ -506,13 +524,14 @@
                             </span>
                         </div>
 
-                        <% if (curso.detalleFlyer) { %>
-                        <div class="destinatarios-strip" style="margin-top: 8px;" id="ed-detalle" contenteditable="true">
-                            <span>Detalle: <%= curso.detalleFlyer %></span>
                         </div>
-                        <% } %>
-</div>
                     </div>
+
+                    <% if (curso.detalleFlyer) { %>
+                        <div class="panel-detalle" id="ed-detalle" contenteditable="true">
+                            <i class="bi bi-asterisk"></i><span><%= curso.detalleFlyer %></span>
+                        </div>
+                    <% } %>
 
                     <!-- Panel naranja fecha/hora -->
                     <div class="panel-orange">

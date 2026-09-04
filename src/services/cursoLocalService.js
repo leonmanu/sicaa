@@ -12,6 +12,7 @@ const ciieService = require('./ciieService');
 const encuentroRepo = require('../repos/encuentroRepo');
 const CursoLocal = require('../models/CursoLocal');
 const Cargo = require('../models/Cargo');
+const CuilHelper = require('../utils/cuilHelper');
 
 class CursoLocalService {
 
@@ -236,6 +237,27 @@ class CursoLocalService {
 
     async getPorCargoId(cargoId) {
         return await cursoLocalRepo.getPorCargoId(cargoId);
+    }
+
+    async getPorId(cursoLocalId) {
+        const curso = await cursoLocalRepo.getPorId(cursoLocalId);
+        if (!curso) return curso;
+        const encuentros = await encuentroRepo.getPorCursoId(curso._id);
+        return { ...curso, encuentros };
+    }
+
+    async getVariosPorIds(cursoLocalIds, ciieId) {
+        const cursos = await cursoLocalRepo.getPorIdsYCiie(cursoLocalIds, ciieId);
+        const orden = cursoLocalIds.map(id => String(id));
+        const ordenados = cursos.slice().sort((a, b) => orden.indexOf(String(a._id)) - orden.indexOf(String(b._id)));
+
+        const todosLosEncuentros = await encuentroRepo.getPorCursoIds(ordenados.map(c => c._id));
+        return ordenados.map(curso => ({
+            ...curso,
+            encuentros: todosLosEncuentros
+                .filter(e => String(e.cursoId) === String(curso._id))
+                .sort((a, b) => a.numero - b.numero)
+        }));
     }
 
     async getCursosPorDocente(usuarioId) {
@@ -780,6 +802,7 @@ class CursoLocalService {
                 personasPorClave.set(clave, {
                     nombreCompleto: this._buildNombreCompleto(inscripto),
                     dni: this._sanitizeString(inscripto.dni) || '',
+                    cuil: CuilHelper.formatear(this._sanitizeString(inscripto.cuil)) || '',
                     cursos: []
                 });
             }

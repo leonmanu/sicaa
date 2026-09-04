@@ -325,6 +325,27 @@
             return result;
         }
 
+        async function encolarPublicacion(cursoLocalId) {
+            const response = await fetch('/publicaciones', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cursoLocalId })
+            });
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'No se pudo encolar la publicación en redes.');
+            }
+            return result;
+        }
+
+        const CHECKBOX_REDES_HTML = `
+            <div class="form-check text-start mt-3 ps-4">
+                <input class="form-check-input" type="checkbox" id="swalPublicarRedes" checked>
+                <label class="form-check-label" for="swalPublicarRedes">
+                    Publicar también en redes sociales (Facebook / Instagram)
+                </label>
+            </div>`;
+
         async function procesarCreacionEnLote(ids = []) {
             if (!ids.length) {
                 Swal.fire('Atencion', 'No hay cursos seleccionados para crear.', 'warning');
@@ -334,13 +355,16 @@
             const confirm = await Swal.fire({
                 icon: 'question',
                 title: 'Crear cursos en ABC',
-                text: `Se crearán ${ids.length} cursos con una pausa aleatoria de 3 a 4 segundos entre cada alta.`,
+                html: `Se crearán ${ids.length} cursos con una pausa aleatoria de 3 a 4 segundos entre cada alta.${CHECKBOX_REDES_HTML}`,
                 showCancelButton: true,
                 confirmButtonText: 'Si, comenzar',
-                cancelButtonText: 'Cancelar'
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => document.getElementById('swalPublicarRedes').checked
             });
 
             if (!confirm.isConfirmed) return;
+
+            const publicarEnRedes = confirm.value;
 
             setBotonesLoteEstado(true);
 
@@ -362,6 +386,9 @@
                 try {
                     await crearCursoEnAbc(cursoId);
                     ok += 1;
+                    if (publicarEnRedes) {
+                        encolarPublicacion(cursoId).catch(err => console.error('No se pudo encolar la publicación en redes:', err));
+                    }
                 } catch (error) {
                     errores.push(`${curso?.nombrePropuesta || cursoId}: ${error.message}`);
                 }
@@ -605,16 +632,34 @@
                 const confirm = await Swal.fire({
                     icon: 'question',
                     title: 'Crear oferta en ABC',
-                    text: `Se va a crear y vincular la oferta oficial para: ${nombre}`,
+                    html: `Se va a crear y vincular la oferta oficial para: ${nombre}${CHECKBOX_REDES_HTML}`,
                     showCancelButton: true,
                     confirmButtonText: 'Si, crear y vincular',
-                    cancelButtonText: 'Cancelar'
+                    cancelButtonText: 'Cancelar',
+                    preConfirm: () => document.getElementById('swalPublicarRedes').checked
                 });
 
                 if (!confirm.isConfirmed) return;
 
                 try {
                     const result = await crearCursoEnAbc(cursoLocalId);
+
+                    if (confirm.value) {
+                        try {
+                            const pubResult = await encolarPublicacion(cursoLocalId);
+                            await Swal.fire({
+                                icon: 'success',
+                                title: 'Curso creado en ABC',
+                                text: `ID Oficial generado: ${result.abc?.idOfertaOficial || 'sin dato'}. Te llevamos a revisar la publicación en redes.`,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            window.location.href = `/publicaciones/${pubResult.publicacion._id}/preview`;
+                            return;
+                        } catch (err) {
+                            console.error('No se pudo encolar la publicación en redes:', err);
+                        }
+                    }
 
                     await Swal.fire({
                         icon: 'success',

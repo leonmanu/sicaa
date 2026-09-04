@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <%- include('../../partials/head') %>
+    <title>Publicar en redes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --teal:       #00ADC5;
+            --orange:     #F47920;
+            --orange-lt:  #FBAA5A;
+            --sky:        #B8DFF0;
+            --cream:      #F0EBE3;
+            --white:      #FFFFFF;
+            --text-dark:  #1A4A5A;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #1a1a2e; font-family: 'Nunito', sans-serif; min-height: 100vh; }
+
+        .page-layout {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+            padding: 2rem;
+            max-width: 1250px;
+            margin: 0 auto;
+        }
+
+        .slides-scroller {
+            display: flex;
+            gap: 1.5rem;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+            max-width: 700px;
+        }
+
+        .flyer {
+            width: 540px;
+            height: 675px;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+            background: var(--cream);
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .flyer-bg {
+            position: absolute; inset: 0; background-color: var(--cream);
+            background-image:
+                radial-gradient(ellipse 120% 80% at 70% 60%, rgba(200,185,168,0.35) 0%, transparent 70%),
+                repeating-linear-gradient(-30deg, transparent 0px, transparent 18px, rgba(180,165,145,0.09) 18px, rgba(180,165,145,0.09) 19px);
+            z-index: 0;
+        }
+        .badge-ciie { position: absolute; top: -20px; right: -25px; background: var(--sky); color: var(--text-dark); border-radius: 10px; padding: 7px 18px; font-size: 12px; font-weight: 700; z-index: 10; white-space: nowrap; }
+        .badge-ciie strong { font-size: 14px; font-weight: 900; }
+        .panel-teal { position: absolute; top: 100px; left: 35px; width: 316px; min-height: 440px; background: var(--teal); border-radius: 24px; padding: 20px; z-index: 2; display: flex; flex-direction: column; }
+        .panel-back { position: relative; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 420px; min-height: 570px; background: var(--white); border-radius: 15px; z-index: 2; }
+        .badge-dispositivo { position: absolute; top: -18px; left: 16px; background: var(--orange-lt); color: white; border-radius: 12px; padding: 10px 16px; font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap; box-shadow: 0 4px 12px rgba(244,121,32,0.4); }
+        .curso-subtitulo { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.82); letter-spacing: 1.5px; text-transform: uppercase; margin: 6px 0; }
+        .curso-titulo { font-size: 22px; font-weight: 900; color: white; line-height: 1.15; margin-bottom: 16px; height: 200px; overflow: hidden; word-break: break-word; }
+        .pill-modalidad { display: inline-block; position: relative; left: -20px; background: var(--orange); color: white; padding: 7px 18px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 50px; width: 230px; }
+        .info-box { background: var(--sky); position: relative; left: -20px; padding: 10px; font-size: 10.5px; color: var(--text-dark); width: 230px; }
+        .info-box strong { font-weight: 900; }
+        .panel-detalle { position: absolute; top: 65px; right: 35px; width: 206px; background: var(--sky); color: var(--text-dark); border-radius: 12px; padding: 8px 12px; font-size: 11px; font-weight: 600; z-index: 3; display: flex; align-items: flex-start; gap: 6px; }
+        .panel-orange { position: absolute; bottom: 200px; right: 35px; width: 206px; background: var(--orange); border-radius: 20px; z-index: 3; color: white; }
+        .panel-orange-inner { padding: 22px 18px 14px 18px; }
+        .fecha-linea { font-size: 22px; font-weight: 900; line-height: 1.1; text-transform: uppercase; }
+        .hora-badge { display: inline-block; background: var(--orange-lt); border-radius: 7px; padding: 5px 12px; font-size: 20px; font-weight: 900; margin-top: 10px; }
+        .distrito-strip { background: var(--orange-lt); padding: 9px 18px; font-size: 11.5px; font-weight: 700; text-align: center; color: white; margin-top: 12px; }
+        .icono-cal { position: absolute; top: -16px; right: 10px; width: 42px; height: 42px; background: var(--teal); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+        .icono-cal svg { width: 24px; height: 24px; }
+        .slide-caption { font-size: 0.75rem; color: #aaa; text-align: center; margin-top: 6px; }
+
+        .caratula-titulo { font-size: 26px; font-weight: 900; color: white; text-align: center; text-transform: uppercase; }
+        .caratula-sub { font-size: 14px; font-weight: 700; color: white; text-align: center; margin-top: 12px; }
+
+        .edit-panel { width: 380px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+
+    <div class="container-fluid py-3">
+        <div class="row mb-3 px-3">
+            <div class="col">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a href="/publicaciones" class="text-decoration-none">Publicaciones</a></li>
+                        <li class="breadcrumb-item active">Generar y publicar</li>
+                    </ol>
+                </nav>
+                <h4 class="fw-bold mb-0 text-white">
+                    <i class="bi bi-megaphone me-2 text-primary"></i>Publicar en redes sociales
+                    <% if (publicacion.totalPartes > 1) { %>
+                        <span class="badge bg-info text-dark">Parte <%= publicacion.parteActual %> de <%= publicacion.totalPartes %></span>
+                    <% } %>
+                </h4>
+            </div>
+        </div>
+
+        <div class="page-layout">
+            <div class="slides-scroller" id="slidesScroller">
+                <% let indiceSlide = 0; %>
+                <% if (publicacion.incluirCaratula) { %>
+                    <div>
+        <div class="flyer" id="slide-<%= indiceSlide %>">
+                            <div class="flyer-bg"></div>
+                            <div class="panel-teal" style="top: 130px; display:flex; align-items:center; justify-content:center; min-height:410px;">
+                                <div>
+                                    <div class="caratula-titulo">
+                                        <%= (plantilla?.nombrePlural || publicacion.dispositivoTipo || 'CURSOS').toUpperCase() %>
+                                        <% if (publicacion.totalPartes > 1) { %><br>Parte <%= publicacion.parteActual %><% } %>
+                                    </div>
+                                    <% if (publicacion.tipoAgrupacion === 'itinerario' && cursos[0]?.itinerario) { %>
+                                        <div class="caratula-sub"><%= cursos[0].itinerario %>° Itinerario <%= cursos[0].anio || '' %></div>
+                                    <% } %>
+                                    <div class="caratula-sub"><%= cursos.length %> propuesta<%= cursos.length === 1 ? '' : 's' %></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slide-caption">Carátula</div>
+                    </div>
+                    <% indiceSlide++; %>
+                <% } %>
+
+                <% cursos.forEach(curso => { %>
+                    <div>
+                        <div class="flyer" id="slide-<%= indiceSlide %>">
+                            <div class="flyer-bg"></div>
+                            <div class="panel-back">
+                                <div class="badge-ciie">
+                                    CIIE <strong><%= (curso.cargoId?.ciieId?.nombre || '').replace(/ciie\s*/i, '').toUpperCase() %></strong>
+                                </div>
+                                <img src="/img/logo-pba.svg" alt="" style="position:absolute; bottom:15px; right:10px; height:50px;">
+                            </div>
+                            <div class="panel-teal">
+                                <div class="badge-dispositivo"><i class="bi bi-puzzle"></i> <%= curso.dispositivo || '' %></div>
+                                <div class="curso-subtitulo">Experiencia CIIE:</div>
+                                <div class="curso-titulo"><%= (curso.tituloFormulario || curso.nombrePropuesta || '').toUpperCase() %></div>
+                                <div class="pill-modalidad"><%= (curso.publicacionDrupal?.formatoDictado || 'Presencial').replace(/\s*\(\d+\)/, '').toUpperCase() %></div>
+                                <div class="info-box">
+                                    <div><strong>Formador/a:</strong> <%= (curso.formadorAbc || 'A DESIGNAR').split(';').map(n => n.trim()).filter(Boolean).join(' ; ') %></div>
+                                    <div style="margin-top:8px;"><strong>Destinatarios:</strong> <%= curso.publicacionDrupal?.nivel || 'Todos' %></div>
+                                </div>
+                            </div>
+                            <% if (curso.detalleFlyer) { %>
+                                <div class="panel-detalle">
+                                    <i class="bi bi-asterisk"></i><span><%= curso.detalleFlyer %></span>
+                                </div>
+                            <% } %>
+                            <div class="panel-orange">
+                                <div style="position:relative;"><div class="icono-cal"><i class="bi bi-calendar3"></i></div></div>
+                                <div class="panel-orange-inner">
+                                    <div class="fecha-linea"><%=
+                                        (() => {
+                                            if (!curso.encuentros || curso.encuentros.length === 0) return 'FECHA';
+                                            const fecha = curso.encuentros[0].fecha;
+                                            const dateStr = typeof fecha === 'string' ? fecha.split('T')[0] : fecha.toISOString().split('T')[0];
+                                            const [yyyy, mm, dd] = dateStr.split('-').map(Number);
+                                            const d = new Date(yyyy, mm - 1, dd);
+                                            const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+                                            const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+                                            return `${dias[d.getDay()]}, ${d.getDate()} DE ${meses[d.getMonth()]}`;
+                                        })()
+                                    %></div>
+                                    <div class="hora-badge"><%=
+                                        (() => {
+                                            if (!curso.encuentros || curso.encuentros.length === 0) return '00:00hs';
+                                            const d = new Date(curso.encuentros[0].fecha);
+                                            const formatter = new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false });
+                                            return `${formatter.format(d)}hs`;
+                                        })()
+                                    %></div>
+                                </div>
+                                <div class="distrito-strip"><%= curso.cargoId?.ciieId?.distrito || '' %>, Bs.As</div>
+                            </div>
+                        </div>
+                        <div class="slide-caption"><%= (curso.tituloFormulario || curso.nombrePropuesta || '').slice(0, 30) %></div>
+                    </div>
+                    <% indiceSlide++; %>
+                <% }) %>
+            </div>
+
+            <div class="edit-panel">
+                <div class="card bg-dark border-secondary">
+                    <div class="card-header border-secondary">
+                        <h6 class="mb-0 fw-bold text-white"><i class="bi bi-share me-2"></i>Publicar</h6>
+                        <small class="text-muted"><%= cursos.length %> imagen(es) en esta publicación. Revisá el texto de cada red antes de publicar.</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="chkFacebook"
+                                <%= publicacion.facebook.seleccionado ? 'checked' : '' %>
+                                <%= publicacion.facebook.estado === 'publicado' ? 'disabled' : '' %>>
+                            <label class="form-check-label" for="chkFacebook">Facebook <span class="text-muted small">(<%= publicacion.facebook.estado %>)</span></label>
+                        </div>
+                        <textarea id="captionFacebook" class="form-control bg-dark text-white border-secondary mb-3" rows="8"><%= publicacion.facebook.caption %></textarea>
+
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="chkInstagram"
+                                <%= publicacion.instagram.seleccionado ? 'checked' : '' %>
+                                <%= publicacion.instagram.estado === 'publicado' ? 'disabled' : '' %>>
+                            <label class="form-check-label" for="chkInstagram">Instagram <span class="text-muted small">(<%= publicacion.instagram.estado %>)</span></label>
+                        </div>
+                        <textarea id="captionInstagram" class="form-control bg-dark text-white border-secondary mb-3" rows="8"><%= publicacion.instagram.caption %></textarea>
+
+                        <div class="d-grid">
+                            <button class="btn btn-success fw-bold" id="btnPublicar">
+                                <i class="bi bi-send me-2"></i>Generar imágenes y publicar ahora
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/scripts') %>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script>
+        const publicacionId = '<%= publicacion._id %>';
+        const totalSlides = <%= indiceSlide %>;
+
+        async function generarImagenes() {
+            const imagenes = [];
+            for (let i = 0; i < totalSlides; i += 1) {
+                const el = document.getElementById(`slide-${i}`);
+                const canvas = await html2canvas(el, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#F0EBE3'
+                });
+                imagenes.push(canvas.toDataURL('image/png'));
+            }
+            return imagenes;
+        }
+
+        document.getElementById('btnPublicar').addEventListener('click', async function () {
+            const btn = this;
+            const facebookSeleccionado = document.getElementById('chkFacebook').checked;
+            const instagramSeleccionado = document.getElementById('chkInstagram').checked;
+
+            if (!facebookSeleccionado && !instagramSeleccionado) {
+                Swal.fire('Atención', 'Tildá al menos una red social para publicar.', 'warning');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Publicando...';
+
+            try {
+                await fetch(`/publicaciones/${publicacionId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        facebook: { seleccionado: facebookSeleccionado, caption: document.getElementById('captionFacebook').value },
+                        instagram: { seleccionado: instagramSeleccionado, caption: document.getElementById('captionInstagram').value }
+                    })
+                });
+
+                const imagenesBase64 = await generarImagenes();
+
+                const response = await fetch(`/publicaciones/${publicacionId}/publicar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imagenesBase64 })
+                });
+                const result = await response.json();
+                if (!result.success) throw new Error(result.error || 'No se pudo publicar.');
+
+                const { facebook, instagram } = result.resultado;
+                const lineas = [];
+                if (facebook) lineas.push(facebook.ok ? '✅ Facebook: publicado' : `❌ Facebook: ${facebook.error}`);
+                if (instagram) lineas.push(instagram.ok ? '✅ Instagram: publicado' : `❌ Instagram: ${instagram.error}`);
+
+                await Swal.fire({
+                    icon: (facebook?.ok !== false && instagram?.ok !== false) ? 'success' : 'warning',
+                    title: 'Resultado de la publicación',
+                    html: lineas.join('<br>') || 'No había redes seleccionadas.'
+                });
+
+                window.location.href = '/publicaciones';
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-send me-2"></i>Generar imágenes y publicar ahora';
+            }
+        });
+    </script>
+</body>
+</html>
