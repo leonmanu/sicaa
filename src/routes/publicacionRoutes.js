@@ -11,12 +11,14 @@ const {
     putActualizar,
     deleteEliminar,
     getConfiguracion,
-    postConfiguracion
+    postConfiguracion,
+    getDiagnosticoMeta
 } = require('../controllers/publicacionController');
 
 router
     // ─── rutas estáticas primero ───
     .get('/', soloCiie, getLista)
+    .get('/diagnostico-meta', soloCiie, getDiagnosticoMeta)
     .get('/configuracion', soloCiie, getConfiguracion)
     .post('/configuracion', soloCiie, postConfiguracion)
     .post('/agrupada', soloCiie, postCrearAgrupada)

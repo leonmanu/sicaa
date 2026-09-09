@@ -1,6 +1,7 @@
 const publicacionService = require('../services/publicacionService');
 const configuracionPublicacionesService = require('../services/configuracionPublicacionesService');
 const plantillaDispositivoService = require('../services/plantillaDispositivoService');
+const metaGraphService = require('../services/metaGraphService');
 
 class PublicacionController {
 
@@ -97,6 +98,18 @@ class PublicacionController {
         } catch (error) {
             console.error('Error en deleteEliminar (publicaciones):', error.message);
             res.status(error.statusCode || 500).json({ success: false, error: error.message });
+        }
+    }
+
+    // Diagnóstico temporal de solo lectura: confirma, desde ESTE proceso
+    // (el que realmente tiene cargadas las env vars en uso), qué permisos
+    // tiene el token de Meta configurado. No modifica ni publica nada.
+    getDiagnosticoMeta = async (req, res) => {
+        try {
+            const resultado = await metaGraphService.diagnosticar();
+            res.json({ success: true, ...resultado });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
         }
     }
 

@@ -23,6 +23,43 @@ class MetaGraphService {
         return detalle ? `Error de Meta Graph API: ${detalle}` : error.message;
     }
 
+    // Diagnóstico de solo lectura: corre desde este mismo proceso (con el token
+    // que ESTE entorno tiene cargado en env) para confirmar tasks/permisos
+    // reales, sin exponer nunca el token crudo en la respuesta.
+    async diagnosticar() {
+        const pageId = this._requireEnv('FACEBOOK_PAGE_ID');
+        const accessToken = this._requireEnv('FACEBOOK_PAGE_ACCESS_TOKEN');
+        const resultado = {
+            pageIdConfigurado: pageId,
+            tokenPrefijo: accessToken.slice(0, 10) + '...' + accessToken.slice(-6)
+        };
+
+        try {
+            const { data } = await axios.get(`${this._baseUrl()}/me/accounts`, { params: { access_token: accessToken } });
+            resultado.paginasVisibles = (data.data || []).map(p => ({ id: p.id, name: p.name, tasks: p.tasks }));
+            const pagina = (data.data || []).find(p => p.id === pageId);
+            resultado.paginaObjetivoEncontrada = !!pagina;
+            if (pagina) resultado.tasksSobrePaginaObjetivo = pagina.tasks;
+        } catch (error) {
+            resultado.errorMeAccounts = this._mensajeErrorGraph(error);
+        }
+
+        try {
+            const { data } = await axios.get(`${this._baseUrl()}/debug_token`, {
+                params: { input_token: accessToken, access_token: accessToken }
+            });
+            resultado.tokenTipo = data.data?.type;
+            resultado.tokenValido = data.data?.is_valid;
+            resultado.tokenVence = data.data?.expires_at === 0 ? 'nunca' : new Date((data.data?.expires_at || 0) * 1000);
+            resultado.tokenScopes = data.data?.scopes;
+            resultado.tokenAppId = data.data?.app_id;
+        } catch (error) {
+            resultado.errorDebugToken = this._mensajeErrorGraph(error);
+        }
+
+        return resultado;
+    }
+
     async publicarEnFacebook(imageUrls, caption) {
         const pageId = this._requireEnv('FACEBOOK_PAGE_ID');
         const accessToken = this._requireEnv('FACEBOOK_PAGE_ACCESS_TOKEN');
