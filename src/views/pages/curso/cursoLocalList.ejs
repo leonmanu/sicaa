@@ -985,10 +985,18 @@ $('#btnAltaCurso').on('click', function() {
             renderFechasEncuentros(fechas);
         });
 
-        $(document).on('change input', '.input-fecha-encuentro', function () {
+        // "input" dispara en cada tecla/segmento que se tipea en un <input type="date">
+        // (día, mes, año por separado): solo actualizamos el contador, que no toca el DOM.
+        $(document).on('input', '.input-fecha-encuentro', function () {
+            actualizarCantidadEncuentrosDesdeFechas();
+        });
+
+        // "change" recién dispara con la fecha ya completa/confirmada (tipeada o del
+        // calendario): acá sí es seguro reconstruir la lista de fechas.
+        $(document).on('change', '.input-fecha-encuentro', function () {
             const idx = $(this).closest('.fecha-encuentro-row').index();
             actualizarCantidadEncuentrosDesdeFechas();
-            
+
             // Si es la primera fecha, actualizar día de dictado, itinerario y auto-completar
             if (idx === 0) {
                 actualizarDesdePrimeraFecha();
