@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const publicacionRepo = require('../repos/publicacionRepo');
 const plantillaDispositivoRepo = require('../repos/plantillaDispositivoRepo');
 const configuracionPublicacionesRepo = require('../repos/configuracionPublicacionesRepo');
+const encuentroRepo = require('../repos/encuentroRepo');
 const cursoLocalService = require('./cursoLocalService');
 const metaGraphService = require('./metaGraphService');
 
@@ -196,6 +197,22 @@ class PublicacionService {
         return await publicacionRepo.getTodas();
     }
 
+    // Mapa cursoLocalId (string) -> { facebook: estado, instagram: estado }, para
+    // pintar el estado de publicación en listados de cursos (ej. /curso/flyers).
+    async getEstadosPorCursoLocalIds(cursoLocalIds) {
+        const publicaciones = await publicacionRepo.getIndividualesPorCursoLocalIds(cursoLocalIds);
+        const mapa = {};
+        for (const pub of publicaciones) {
+            for (const cursoLocalId of pub.cursoLocalIds) {
+                mapa[String(cursoLocalId)] = {
+                    facebook: pub.facebook?.estado || 'pendiente',
+                    instagram: pub.instagram?.estado || 'pendiente'
+                };
+            }
+        }
+        return mapa;
+    }
+
     async getPorId(id) {
         const publicacion = await publicacionRepo.getPorId(id);
         if (!publicacion) {
@@ -203,6 +220,19 @@ class PublicacionService {
             err.statusCode = 404;
             throw err;
         }
+
+        // El populate de cursoLocalIds no trae los encuentros (viven en otra
+        // colección): sin esto, el flyer del preview no puede mostrar fecha/hora.
+        const cursos = publicacion.cursoLocalIds || [];
+        if (cursos.length > 0) {
+            const encuentros = await encuentroRepo.getPorCursoIds(cursos.map(c => c._id));
+            cursos.forEach(curso => {
+                curso.encuentros = encuentros
+                    .filter(e => String(e.cursoId) === String(curso._id))
+                    .sort((a, b) => a.numero - b.numero);
+            });
+        }
+
         return publicacion;
     }
 

@@ -50,6 +50,22 @@ class PublicacionRepo {
         }
     }
 
+    // Para pintar el estado de publicación (Facebook/Instagram) en listados de
+    // cursos, sin populate pesado: solo lo necesario por curso.
+    async getIndividualesPorCursoLocalIds(cursoLocalIds) {
+        try {
+            return await Publicacion.find({
+                tipoAgrupacion: 'individual',
+                cursoLocalIds: { $in: cursoLocalIds }
+            })
+                .select('cursoLocalIds facebook.estado instagram.estado')
+                .lean();
+        } catch (error) {
+            console.error('Error en PublicacionRepo.getIndividualesPorCursoLocalIds:', error.message);
+            throw error;
+        }
+    }
+
     async actualizar(id, datos) {
         try {
             return await Publicacion.findByIdAndUpdate(id, { $set: datos }, { new: true });

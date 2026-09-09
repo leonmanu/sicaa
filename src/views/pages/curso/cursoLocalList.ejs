@@ -903,12 +903,19 @@ $('#btnAltaCurso').on('click', function() {
 
         function completarFechasFaltantes() {
             const fechas = getFechasEncuentro();
+            let seCompletoAlgo = false;
             for (let i = 1; i < fechas.length; i += 1) {
                 if (!fechas[i]) {
                     fechas[i] = sugerirSiguienteFecha(fechas[i - 1]);
+                    seCompletoAlgo = true;
                 }
             }
-            renderFechasEncuentros(fechas);
+            // Si no había nada para completar (ej: se está editando una fecha ya cargada,
+            // con las demás ya completas), no reconstruir la lista: eso destruye el <input>
+            // que el usuario puede estar tipeando en ese momento y le corta la edición.
+            if (seCompletoAlgo) {
+                renderFechasEncuentros(fechas);
+            }
         }
 
         function sincronizarPrimeraFechaEncuentro(fechaInicioDate) {

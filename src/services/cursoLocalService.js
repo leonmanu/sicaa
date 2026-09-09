@@ -2487,7 +2487,7 @@ _buildNombreCompleto(inscripto = {}) {
                 }
             })
             .populate('ciieId', 'nombre clave')
-            .sort({ 'cargoId.areaId.nombre': 1, nombrePropuesta: 1 })
+            .sort({ updatedAt: -1 })
             .lean();
 
         const cursosConEncuentros = await Promise.all(

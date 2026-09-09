@@ -4,6 +4,7 @@ const cursoLocalService = require('../services/cursoLocalService');
 const inscriptoExternoService = require('../services/inscriptoExternoService');
 const inscriptoLocalService = require('../services/inscriptoLocalService');
 const acreditacionSeminariosService = require('../services/acreditacionSeminariosService');
+const publicacionService = require('../services/publicacionService');
 
 const vincularCurso = async (req, res) => {
     try {
@@ -989,8 +990,14 @@ const getFlyersList = async (req, res) => {
             return (!min || fecha < min) ? fecha : min;
         }, null);
 
+        // Estado de publicación en redes (Facebook/Instagram) por curso, para pintar los íconos.
+        const estadosPublicacion = cursos.length > 0
+            ? await publicacionService.getEstadosPorCursoLocalIds(cursos.map(c => c._id))
+            : {};
+
         res.render('pages/flyer/flyersList', {
             cursos,
+            estadosPublicacion,
             filtros,
             seleccion,
             itinerariosDisponibles,

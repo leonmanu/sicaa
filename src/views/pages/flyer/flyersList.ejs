@@ -226,7 +226,10 @@
                                                 <strong>Dispositivo:</strong> <%= curso.dispositivo %><br>
                                                 <strong>Área:</strong> <%= curso.cargoId?.areaId?.nombre || 'Sin área' %><br>
                                                 <strong>Año:</strong> <%= curso.anio %> | <strong>Itinerario:</strong> <%= curso.itinerario || 0 %><br>
-                                                <strong>Estado:</strong> <%= curso.estado || 'pendiente' %>
+                                                <% const coloresEstado = { pendiente: 'bg-warning text-dark', vinculado: 'bg-success', modificacion_pendiente: 'bg-info text-dark', eliminacion_pendiente: 'bg-danger', dormido: 'bg-secondary' }; %>
+                                                <% const etiquetasEstado = { pendiente: 'Pendiente', vinculado: 'Vinculado', modificacion_pendiente: 'Modif. pendiente', eliminacion_pendiente: 'Baja pendiente', dormido: 'Dormido' }; %>
+                                                <strong>Estado:</strong>
+                                                <span class="badge rounded-pill <%= coloresEstado[curso.estado] || 'bg-light text-dark' %>"><%= etiquetasEstado[curso.estado] || curso.estado || 'Pendiente' %></span>
                                                 <% if (curso.cierreAdministrativo?.cerrado) { %>
                                                     <i class="bi bi-lock-fill text-success" title="Cierre administrativo: cerrado<%= curso.cierreAdministrativo?.fecha ? ' el ' + new Date(curso.cierreAdministrativo.fecha).toLocaleDateString('es-AR') : '' %>"></i>
                                                 <% } else { %>
@@ -234,17 +237,31 @@
                                                 <% } %>
                                             </p>
 
+                                            <% const estadoPub = estadosPublicacion[String(curso._id)] || {}; %>
+                                            <p class="mb-2">
+                                                <i class="bi bi-facebook <%= estadoPub.facebook === 'publicado' ? 'text-primary' : 'text-secondary opacity-50' %>" title="Facebook: <%= estadoPub.facebook === 'publicado' ? 'publicado' : 'pendiente' %>"></i>
+                                                <i class="bi bi-instagram ms-2 <%= estadoPub.instagram === 'publicado' ? '' : 'text-secondary opacity-50' %>" style="<%= estadoPub.instagram === 'publicado' ? 'color:#C13584;' : '' %>" title="Instagram: <%= estadoPub.instagram === 'publicado' ? 'publicado' : 'pendiente' %>"></i>
+                                                <% if (estadoPub.facebook === 'publicado' || estadoPub.instagram === 'publicado') { %>
+                                                    <span class="badge bg-success ms-1">Publicado</span>
+                                                <% } %>
+                                            </p>
+
                                             <!-- Botones -->
                                             <div class="mt-2">
                                                 <a href="/curso/flyer/<%= curso.idOfertaOficial %>"
-                                                   class="btn btn-sm btn-outline-primary btn-download"
-                                                   target="_blank">
+                                                   class="btn btn-sm btn-outline-primary btn-download <%= curso.estado === 'pendiente' ? 'disabled' : '' %>"
+                                                   <%= curso.estado === 'pendiente' ? 'aria-disabled="true" tabindex="-1"' : 'target="_blank"' %>>
                                                     <i class="bi bi-eye"></i> Ver
                                                 </a>
                                                 <button class="btn btn-sm btn-success btn-download descargar-individual"
                                                         data-oferta-id="<%= curso.idOfertaOficial %>">
                                                     <i class="bi bi-download"></i> Descargar
                                                 </button>
+                                                <% if (curso.estado === 'vinculado') { %>
+                                                    <a href="/curso/flyer/<%= curso.idOfertaOficial %>?publicar=1" class="btn btn-sm btn-outline-info">
+                                                        <i class="bi bi-megaphone"></i> Publicar
+                                                    </a>
+                                                <% } %>
                                             </div>
                                         </div>
                                     </div>

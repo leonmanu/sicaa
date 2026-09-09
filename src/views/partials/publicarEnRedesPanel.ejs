@@ -1,0 +1,158 @@
+<% if (typeof usuario !== 'undefined' && usuario && usuario.tipoModel == 'Ciie') { %>
+<hr class="border-secondary mt-3 mb-3">
+<button class="btn btn-outline-info fw-bold w-100" id="btnAbrirPublicar" type="button" data-bs-toggle="collapse" data-bs-target="#panelPublicarRedes">
+    <i class="bi bi-megaphone me-2"></i>Publicar en redes sociales
+</button>
+<div class="collapse mt-3" id="panelPublicarRedes" data-curso-id="<%= curso._id %>">
+    <div id="publicarCargando" class="text-center text-muted small py-2">Cargando...</div>
+    <div id="publicarContenido" class="d-none">
+        <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="chkPubFacebook" checked>
+            <label class="form-check-label small text-white" for="chkPubFacebook">
+                <i class="bi bi-facebook me-1"></i>Facebook <span id="estadoPubFacebook" class="text-muted"></span>
+            </label>
+        </div>
+        <textarea id="captionPubFacebook" class="form-control bg-dark text-white border-secondary mb-3" rows="6"></textarea>
+
+        <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="chkPubInstagram" checked>
+            <label class="form-check-label small text-white" for="chkPubInstagram">
+                <i class="bi bi-instagram me-1"></i>Instagram <span id="estadoPubInstagram" class="text-muted"></span>
+            </label>
+        </div>
+        <textarea id="captionPubInstagram" class="form-control bg-dark text-white border-secondary mb-3" rows="6"></textarea>
+
+        <div id="resultadoPublicar" class="alert d-none py-2 small mb-2"></div>
+
+        <button class="btn btn-success fw-bold w-100" id="btnPublicarAhora">
+            <i class="bi bi-send me-2"></i>Generar imagen y publicar ahora
+        </button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const panel = document.getElementById('panelPublicarRedes');
+    if (!panel) return;
+
+    const cursoId = panel.dataset.cursoId;
+    let publicacionId = null;
+    let cargado = false;
+
+    async function cargarPublicacion() {
+        if (cargado) return;
+        cargado = true;
+        try {
+            const response = await fetch('/publicaciones', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cursoLocalId: cursoId })
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'No se pudo preparar la publicación.');
+
+            const pub = result.publicacion;
+            publicacionId = pub._id;
+            document.getElementById('captionPubFacebook').value = pub.facebook.caption || '';
+            document.getElementById('captionPubInstagram').value = pub.instagram.caption || '';
+            document.getElementById('chkPubFacebook').checked = pub.facebook.seleccionado;
+            document.getElementById('chkPubInstagram').checked = pub.instagram.seleccionado;
+
+            if (pub.facebook.estado === 'publicado') {
+                document.getElementById('chkPubFacebook').disabled = true;
+                document.getElementById('estadoPubFacebook').textContent = '(ya publicado)';
+            }
+            if (pub.instagram.estado === 'publicado') {
+                document.getElementById('chkPubInstagram').disabled = true;
+                document.getElementById('estadoPubInstagram').textContent = '(ya publicado)';
+            }
+
+            document.getElementById('publicarCargando').classList.add('d-none');
+            document.getElementById('publicarContenido').classList.remove('d-none');
+        } catch (error) {
+            document.getElementById('publicarCargando').textContent = 'Error: ' + error.message;
+        }
+    }
+
+    panel.addEventListener('shown.bs.collapse', cargarPublicacion);
+
+    const btnPublicarAhora = document.getElementById('btnPublicarAhora');
+    if (btnPublicarAhora) {
+        btnPublicarAhora.addEventListener('click', async function () {
+            if (!publicacionId) return;
+            const btn = this;
+            const facebookSel = document.getElementById('chkPubFacebook').checked;
+            const instagramSel = document.getElementById('chkPubInstagram').checked;
+
+            if (!facebookSel && !instagramSel) {
+                alert('Tildá al menos una red social.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Publicando...';
+
+            const resultado = document.getElementById('resultadoPublicar');
+            resultado.classList.add('d-none');
+
+            try {
+                await fetch(`/publicaciones/${publicacionId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        facebook: { seleccionado: facebookSel, caption: document.getElementById('captionPubFacebook').value },
+                        instagram: { seleccionado: instagramSel, caption: document.getElementById('captionPubInstagram').value }
+                    })
+                });
+
+                const editables = document.querySelectorAll('[contenteditable="true"]');
+                editables.forEach(el => el.setAttribute('contenteditable', 'false'));
+
+                const canvas = await html2canvas(document.getElementById('flyer'), {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#F0EBE3'
+                });
+
+                editables.forEach(el => el.setAttribute('contenteditable', 'true'));
+
+                const imagenBase64 = canvas.toDataURL('image/png');
+
+                const response = await fetch(`/publicaciones/${publicacionId}/publicar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imagenesBase64: [imagenBase64] })
+                });
+                const result = await response.json();
+                if (!result.success) throw new Error(result.error || 'No se pudo publicar.');
+
+                const { facebook, instagram } = result.resultado;
+                const lineas = [];
+                if (facebook) lineas.push(facebook.ok ? '✅ Facebook: publicado' : `❌ Facebook: ${facebook.error}`);
+                if (instagram) lineas.push(instagram.ok ? '✅ Instagram: publicado' : `❌ Instagram: ${instagram.error}`);
+
+                resultado.classList.remove('d-none', 'alert-success', 'alert-warning', 'alert-danger');
+                resultado.classList.add((facebook?.ok !== false && instagram?.ok !== false) ? 'alert-success' : 'alert-warning');
+                resultado.innerHTML = lineas.join('<br>') || 'No había redes seleccionadas.';
+
+                if (facebook?.ok) document.getElementById('chkPubFacebook').disabled = true;
+                if (instagram?.ok) document.getElementById('chkPubInstagram').disabled = true;
+            } catch (error) {
+                resultado.classList.remove('d-none', 'alert-success', 'alert-warning');
+                resultado.classList.add('alert-danger');
+                resultado.textContent = error.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-send me-2"></i>Generar imagen y publicar ahora';
+            }
+        });
+    }
+
+    // Deep-link desde /curso/flyers (botón "Publicar" de la tarjeta): abre el panel solo.
+    if (new URLSearchParams(location.search).get('publicar') === '1' && window.bootstrap) {
+        new window.bootstrap.Collapse(panel, { toggle: true });
+    }
+});
+</script>
+<% } %>
