@@ -1275,8 +1275,10 @@ class CursoLocalService {
             throw err;
         }
 
-        const inicioInscripcion = cursoLocal.fechaInicioInscripcion || new Date();
-        const finInscripcion = cursoLocal.fechaFinInscripcion || cursoLocal.fechaInicioCurso || cursoLocal.fechaFinCurso;
+        // El "período de inscripción" que espera ABC es "ahora" hasta el último encuentro,
+        // no lo que hayamos guardado en Mongo (ver mismo criterio en _editarOfertaEnAbc).
+        const inicioInscripcion = new Date();
+        const finInscripcion = encuentros[encuentros.length - 1]?.fecha;
 
         // Construir etiqueta de materia: cargo principal + cargos invitados
         let primaryCargoLabel = '';
@@ -1301,8 +1303,8 @@ class CursoLocalService {
             quees: 'A',
             volver: `ofertas.php?id=${idCursoOriginal}&quees=M&qi=65`,
             anio: String(cursoLocal.anio || new Date().getFullYear()),
-            inicioa: this._toDateTimeLocalString(inicioInscripcion), // que va a ser la fecha de momento con lo mínimo posible de horas y minutos para evitar errores de validación del ABC
-            fina: this._toDateString(finInscripcion), // esta fecha coincide con la del primer encuentro del curso
+            inicioa: this._toDateTimeLocalString(inicioInscripcion), // fecha del momento en que se publica
+            fina: this._toDateString(finInscripcion), // fecha del último encuentro del curso
             fechaini: this._toDateString(encuentros[0]?.fecha), // esta fecha coincide con la del primer encuentro del curso
             fechafin: this._toDateString(encuentros[encuentros.length - 1]?.fecha), // esta fecha coincide con la del último encuentro del curso. si es un solo encuentro, va a ser la misma que fechaInicioCurso
             disponible: this._sanitizeString(cursoLocal.disponible) || 'S', // al principio siempre disponible, luego se puede actualizar desde el localRepo para que se oculte en el sitio oficial
@@ -1787,8 +1789,11 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
         await cursoExternoRepo.sincronizarFiltros();
         await cursoExternoRepo.prepararSesionParaEdicion(idOfertaOficial);
 
-        const inicioInscripcion = cursoMerged.fechaInicioInscripcion || new Date();
-        const finInscripcion = cursoMerged.fechaFinInscripcion || encuentrosOrdenados[0]?.fecha;
+        // El "período de inscripción" que espera ABC no es el que guardamos en Mongo
+        // (queda desactualizado apenas se mueven las fechas del curso): siempre es
+        // "ahora" hasta el último encuentro.
+        const inicioInscripcion = new Date();
+        const finInscripcion = encuentrosOrdenados[encuentrosOrdenados.length - 1]?.fecha;
 
         // El campo cupo es de solo lectura en el formulario de edición de ABC:
         // el cambio real se aplica con "aumentar" (delta +/-) sobre el cupo vigente.
