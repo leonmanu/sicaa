@@ -23,6 +23,33 @@ class MetaGraphService {
         return detalle ? `Error de Meta Graph API: ${detalle}` : error.message;
     }
 
+    // El token de usuario del sistema (FACEBOOK_PAGE_ACCESS_TOKEN) no alcanza
+    // para publicar fotos/posts en la Página vía /{page-id}/photos o /feed
+    // (da "(#200) Subject does not have permission..." aunque el usuario del
+    // sistema tenga el rol correcto en Business Manager). Hace falta el token
+    // de Página derivado, que se obtiene con este mismo token de usuario del
+    // sistema. Se cachea en memoria porque no cambia mientras no se revoque
+    // el acceso (mismo criterio que el token de usuario del sistema, que no vence).
+    async _obtenerTokenDePagina() {
+        if (this._tokenDePaginaCacheado) return this._tokenDePaginaCacheado;
+
+        const pageId = this._requireEnv('FACEBOOK_PAGE_ID');
+        const tokenUsuarioSistema = this._requireEnv('FACEBOOK_PAGE_ACCESS_TOKEN');
+
+        try {
+            const { data } = await axios.get(`${this._baseUrl()}/${pageId}`, {
+                params: { fields: 'access_token', access_token: tokenUsuarioSistema }
+            });
+            if (!data.access_token) {
+                throw new Error('Meta no devolvió un access_token de página.');
+            }
+            this._tokenDePaginaCacheado = data.access_token;
+            return this._tokenDePaginaCacheado;
+        } catch (error) {
+            throw new Error('No se pudo obtener el token de página: ' + this._mensajeErrorGraph(error));
+        }
+    }
+
     // Diagnóstico de solo lectura: corre desde este mismo proceso (con el token
     // que ESTE entorno tiene cargado en env) para confirmar tasks/permisos
     // reales, sin exponer nunca el token crudo en la respuesta.
@@ -62,7 +89,7 @@ class MetaGraphService {
 
     async publicarEnFacebook(imageUrls, caption) {
         const pageId = this._requireEnv('FACEBOOK_PAGE_ID');
-        const accessToken = this._requireEnv('FACEBOOK_PAGE_ACCESS_TOKEN');
+        const accessToken = await this._obtenerTokenDePagina();
 
         try {
             if (imageUrls.length === 1) {
@@ -94,7 +121,7 @@ class MetaGraphService {
     }
 
     async eliminarDeFacebook(postId) {
-        const accessToken = this._requireEnv('FACEBOOK_PAGE_ACCESS_TOKEN');
+        const accessToken = await this._obtenerTokenDePagina();
         try {
             await axios.delete(`${this._baseUrl()}/${postId}`, {
                 params: { access_token: accessToken }
