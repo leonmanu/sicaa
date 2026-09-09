@@ -120,6 +120,20 @@ class MetaGraphService {
         }
     }
 
+    // Edita el texto de un post ya publicado. Un post de una sola foto (creado
+    // vía /{page-id}/photos) se edita con el campo "caption"; un post de varias
+    // fotos (creado vía /{page-id}/feed) se edita con "message".
+    async editarCaptionFacebook(postId, caption, esFoto) {
+        const accessToken = await this._obtenerTokenDePagina();
+        try {
+            await axios.post(`${this._baseUrl()}/${postId}`, null, {
+                params: esFoto ? { caption, access_token: accessToken } : { message: caption, access_token: accessToken }
+            });
+        } catch (error) {
+            throw new Error(this._mensajeErrorGraph(error));
+        }
+    }
+
     async eliminarDeFacebook(postId) {
         const accessToken = await this._obtenerTokenDePagina();
         try {

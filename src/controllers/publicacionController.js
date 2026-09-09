@@ -83,8 +83,8 @@ class PublicacionController {
 
     putActualizar = async (req, res) => {
         try {
-            const publicacion = await publicacionService.actualizar(req.params.id, req.body);
-            res.json({ success: true, publicacion });
+            const { publicacion, avisos } = await publicacionService.actualizar(req.params.id, req.body);
+            res.json({ success: true, publicacion, avisos });
         } catch (error) {
             console.error('Error en putActualizar (publicaciones):', error.message);
             res.status(error.statusCode || 500).json({ success: false, error: error.message });

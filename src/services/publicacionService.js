@@ -313,22 +313,52 @@ class PublicacionService {
         return resultado;
     }
 
+    // Antes o después de publicar. Si una red ya está "publicado", solo se puede
+    // editar el texto (no la selección): en Facebook el cambio se manda de
+    // verdad al post real vía Graph API; en Instagram la API no permite editar
+    // un post ya publicado, así que solo se actualiza acá y se avisa.
     async actualizar(id, datos) {
         const publicacion = await this.getPorId(id);
         const cambios = {};
+        const avisos = {};
 
         for (const red of ['facebook', 'instagram']) {
-            if (datos[red] && publicacion[red].estado !== 'publicado') {
-                const actual = publicacion[red].toObject ? publicacion[red].toObject() : publicacion[red];
+            if (!datos[red]) continue;
+            const actual = publicacion[red].toObject ? publicacion[red].toObject() : publicacion[red];
+            const nuevoCaption = typeof datos[red].caption === 'string' ? datos[red].caption : actual.caption;
+            const cambioCaption = nuevoCaption !== actual.caption;
+
+            if (actual.estado !== 'publicado') {
                 cambios[red] = {
                     ...actual,
                     seleccionado: typeof datos[red].seleccionado === 'boolean' ? datos[red].seleccionado : actual.seleccionado,
-                    caption: typeof datos[red].caption === 'string' ? datos[red].caption : actual.caption
+                    caption: nuevoCaption
                 };
+                continue;
+            }
+
+            if (!cambioCaption) continue;
+
+            if (red === 'facebook') {
+                try {
+                    const esFoto = (publicacion.imagenes || []).length === 1;
+                    await metaGraphService.editarCaptionFacebook(actual.postId, nuevoCaption, esFoto);
+                    cambios.facebook = { ...actual, caption: nuevoCaption };
+                    avisos.facebookEditado = true;
+                } catch (error) {
+                    avisos.facebookError = error.message;
+                }
+            } else {
+                cambios.instagram = { ...actual, caption: nuevoCaption };
+                avisos.instagramSoloLocal = true;
             }
         }
 
-        return await publicacionRepo.actualizar(id, cambios);
+        const publicacionActualizada = Object.keys(cambios).length > 0
+            ? await publicacionRepo.actualizar(id, cambios)
+            : publicacion;
+
+        return { publicacion: publicacionActualizada, avisos };
     }
 
     async eliminar(id) {

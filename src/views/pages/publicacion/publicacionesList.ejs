@@ -180,7 +180,19 @@
                 });
                 const result = await response.json();
                 if (!result.success) throw new Error(result.error || 'No se pudo guardar el texto.');
-                Swal.fire({ icon: 'success', title: 'Guardado', timer: 1200, showConfirmButton: false });
+
+                const avisos = result.avisos || {};
+                if (avisos.facebookError) {
+                    Swal.fire('No se pudo editar en Facebook', avisos.facebookError, 'error');
+                    return;
+                }
+                if (avisos.facebookEditado) {
+                    Swal.fire({ icon: 'success', title: 'Editado en Facebook', text: 'El post ya publicado se actualizó de verdad en Facebook.', timer: 2000, showConfirmButton: false });
+                } else if (avisos.instagramSoloLocal) {
+                    Swal.fire({ icon: 'warning', title: 'Guardado solo acá', text: 'Instagram no permite editar un post ya publicado: el texto se actualizó en tu sitio, pero el post real en Instagram sigue con el texto original.' });
+                } else {
+                    Swal.fire({ icon: 'success', title: 'Guardado', timer: 1200, showConfirmButton: false });
+                }
                 $(this).data('caption', caption);
             } catch (error) {
                 Swal.fire('Error', error.message, 'error');
