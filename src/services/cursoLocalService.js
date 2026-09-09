@@ -630,16 +630,17 @@ class CursoLocalService {
                 const personaKey = this._buildPersonaKey(i);
                 const cantidadExtension = extensionAprobadosPorPersona.get(personaKey) || 0;
                 const cursoNombre = this._sanitizeString(curso.nombrePropuesta) || 'Sin propuesta';
+                const siglaDispositivo = this._siglaDispositivo(curso.dispositivo);
 
                 return {
-                    nombreCompleto: cantidadExtension > 0 ? `${nombreCompleto} (${cantidadExtension})` : nombreCompleto,
+                    nombreCompleto,
+                    extensionAprobados: cantidadExtension,
                     dni: this._sanitizeString(i.dni) || '',
-                    curso: cursoNombre,
+                    curso: siglaDispositivo ? `${siglaDispositivo} - ${cursoNombre}` : cursoNombre,
                     area,
                     formador,
                     fechaInicioCursada: fechasCursada.fechaInicioCursada || null,
-                    fechaFinCursada: fechasCursada.fechaFinCursada || null,
-                    extensionAprobados: cantidadExtension
+                    fechaFinCursada: fechasCursada.fechaFinCursada || null
                 };
             })
             .sort((a, b) => {
@@ -2387,6 +2388,16 @@ _buildNombreCompleto(inscripto = {}) {
             'Seminario Distancia': '9'
         };
         return mapa[value] || '0';
+    }
+
+    // Sigla para anteponer al nombre del curso en la planilla de aprobados por itinerario.
+    _siglaDispositivo(dispositivo) {
+        const value = this._sanitizeString(dispositivo) || '';
+        const mapa = {
+            'Taller Fuera de Servicio': 'TFS',
+            'Seminario': 'SEM'
+        };
+        return mapa[value] || '';
     }
 
     async _calcularProximoItinerario(ciieId, anio, dispositivo) {

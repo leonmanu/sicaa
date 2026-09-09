@@ -48,7 +48,12 @@ class CertificadoExternoService {
     _parseAprobadosCombinados(html) {
         const $ = cheerio.load(String(html || ''));
         const valor = $('#aprobados').attr('value') || '';
-        return valor.trim();
+        const limpio = valor.trim();
+        // ABC arma esta lista como '<id1>','<id2>' para un IN(...) de SQL: cuando
+        // nadie está en condiciones de certificar queda literalmente "''" (comillas
+        // vacías), no un string vacío. Pedirle el PDF a ABC con eso rompe el parser.
+        if (!limpio || limpio.replace(/'/g, '').trim() === '') return '';
+        return limpio;
     }
 
     // Lee de combinaciones.php el estado completo de la combinación (aprobados,

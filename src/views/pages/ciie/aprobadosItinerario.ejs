@@ -163,7 +163,9 @@
             <% planilla.aprobados.forEach(item => { %>
                 <tr style="page-break-inside: avoid;">
                     <td style="border: 1px solid black; text-align: center; padding: 4px;"><%= item.orden %></td>
-                    <td style="border: 1px solid black; padding: 4px; font-weight: bold;"><%= item.nombreCompleto || '-' %></td>
+                    <td style="border: 1px solid black; padding: 4px; font-weight: bold;">
+                        <%= item.nombreCompleto || '-' %><% if (item.extensionAprobados > 0) { %> <span style="font-size: 8px; font-weight: normal;">(<%= item.extensionAprobados %>)</span><% } %>
+                    </td>
                     <td style="border: 1px solid black; text-align: center; padding: 4px;"><%= item.dni || '-' %></td>
                     <td style="border: 1px solid black; padding: 4px; line-height: 1.1;">
                         <div style="max-height: 35px; overflow: hidden;"><%= item.curso || '-' %></div>
