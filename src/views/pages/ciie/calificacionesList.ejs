@@ -51,15 +51,51 @@
                                 <th class="text-center" style="width: 52px;">
                                     <input id="checkAllCursos" type="checkbox" class="form-check-input" aria-label="Seleccionar todos">
                                 </th>
-                                <th>ID</th>
+                                <th>Iti</th>
                                 <th>Curso</th>
                                 <th>Cargo</th>
                                 <th>Dispositivo</th>
-                                <th>Año/Coh.</th>
                                 <th>Inicio</th>
                                 <th>Sin Calificar</th>
                                 <th>Estado</th>
                                 <th class="text-end pe-4">Acciones</th>
+                            </tr>
+                            <tr class="bg-dark text-white">
+                                <th></th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="1">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <th>
+                                    <input type="text" class="form-control form-control-sm filtro-texto" data-column="2" placeholder="Buscar...">
+                                </th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="3">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="4">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="5">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="6">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="7">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -75,15 +111,15 @@
                                                 aria-label="Seleccionar curso">
                                         </td>
 
-                                        <!-- ID oficial -->
-                                        <td>
-                                            <span class="text-muted small"><%= curso.idOfertaOficial || '-' %></span>
-                                        </td>
+                                        <!-- Año / Itinerario combinados -->
+                                        <td class="fw-bold text-info"><%= curso.anio || '-' %> • I<%= curso.itinerario ?? 0 %></td>
 
-                                        <!-- Nombre + formador -->
+                                        <!-- ID + Nombre + formador -->
                                         <td>
-                                            <div class="fw-semibold"><%= curso.nombrePropuesta || 'Sin nombre' %></div>
-                                            <small class="text-muted">* <%= curso.formadorAbc || 'Sin formador' %></small>
+                                            <div class="fw-semibold">
+                                                <span class="text-muted"><%= curso.idOfertaOficial || '-' %></span> - <%= curso.nombrePropuesta || 'Sin nombre' %>
+                                            </div>
+                                            <small class="text-muted"><i class="bi bi-person-fill me-1"></i><%= curso.formadorAbc || 'Sin formador' %></small>
                                         </td>
 
                                         <!-- Área del cargo -->
@@ -94,19 +130,18 @@
                                         <!-- Dispositivo -->
                                         <td>
                                             <small class="text-muted"><%= curso.dispositivo || '-' %></small>
-                                        </td>
-
-                                        <!-- Año / Cohorte -->
-                                        <td>
-                                            <span class="text-info fw-bold"><%= curso.anio || '-' %></span>
-                                            <small class="text-muted">I<%= curso.itinerario ?? 0 %></small>
+                                            <% if (curso.cierreAdministrativo?.cerrado) { %>
+                                                <i class="bi bi-lock-fill text-success ms-1" title="Cierre administrativo: cerrado<%= curso.cierreAdministrativo?.fecha ? ' el ' + new Date(curso.cierreAdministrativo.fecha).toLocaleDateString('es-AR') : '' %>"></i>
+                                            <% } else { %>
+                                                <i class="bi bi-unlock-fill text-muted ms-1" title="Cierre administrativo: abierto"></i>
+                                            <% } %>
                                         </td>
 
                                         <!-- Fecha de inicio dd/mm -->
                                         <td>
                                             <small><%=
-                                                curso.fechaInicioCurso
-                                                    ? new Date(curso.fechaInicioCurso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+                                                (curso.encuentros && curso.encuentros.length > 0)
+                                                    ? new Date(curso.encuentros[0].fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
                                                     : '-'
                                             %></small>
                                         </td>
@@ -153,7 +188,7 @@
                                 <% }) %>
                             <% } else { %>
                                 <tr>
-                                    <td colspan="10" class="text-center py-5 text-muted">
+                                    <td colspan="9" class="text-center py-5 text-muted">
                                         No hay cursos vinculados para mostrar.
                                     </td>
                                 </tr>
@@ -267,13 +302,54 @@
         }
 
         $(document).ready(function () {
-            $('#tablaCalificacionesPendientes').DataTable({
+            const tablaCalificaciones = $('#tablaCalificacionesPendientes');
+            tablaCalificaciones.DataTable({
                 language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
-                pageLength: 10,
-                order: [[5, 'desc']],
+                pageLength: 50,
+                order: [[1, 'desc']],
                 columnDefs: [
-                    { orderable: false, targets: [0, 9] }
-                ]
+                    { orderable: false, targets: [0, 8] }
+                ],
+                initComplete: function () {
+                    const api = this.api();
+                    const escapeHtml = (text) => $('<div>').text(text).html();
+
+                    api.columns().every(function () {
+                        const column = this;
+                        const idx = column.index();
+                        const $select = tablaCalificaciones.find(`.filtro-columna[data-column="${idx}"]`);
+                        const $input = tablaCalificaciones.find(`.filtro-texto[data-column="${idx}"]`);
+
+                        if ($select.length) {
+                            const values = [];
+                            column.data().unique().sort().each(function (d) {
+                                const text = $('<div>').html(d).text().trim();
+                                if (text && !values.includes(text)) {
+                                    values.push(text);
+                                }
+                            });
+
+                            values.forEach(function (val) {
+                                $select.append(`<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`);
+                            });
+
+                            $select.on('change', function () {
+                                const val = $(this).val();
+                                column
+                                    .search(val ? '^' + $.fn.dataTable.util.escapeRegex(val) + '$' : '', true, false)
+                                    .draw();
+                            });
+                        }
+
+                        if ($input.length) {
+                            $input.on('keyup change', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        }
+                    });
+                }
             });
 
             // ─── Check all ───────────────────────────────────────────────────

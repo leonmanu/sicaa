@@ -299,21 +299,33 @@
         <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
             <% if (usuario.tipo === 'institucion' && c.estado === 'pendiente') { %>
             <li>
-                <button class="dropdown-item text-primary btn-vincular-oficial" 
+                <button class="dropdown-item text-primary btn-vincular-oficial"
                         data-curso-clave="<%= c.clave %>">
-                    <i class="bi bi-link-45deg me-2"></i>Vincular al sitio oficial 
+                    <i class="bi bi-link-45deg me-2"></i>Vincular al sitio oficial
+                </button>
+            </li>
+            <li><hr class="dropdown-divider border-secondary"></li>
+            <% } %>
+            <% if (usuario.tipo === 'institucion' && c.estado === 'modificacion_pendiente' && c.propuestaEdicion) { %>
+            <li>
+                <button class="dropdown-item text-info btn-aprobar-cambios"
+                        data-id="<%= c._id %>"
+                        data-propuesta='<%= JSON.stringify(c.propuestaEdicion.update || {}) %>'
+                        data-propuesto-por="<%= c.propuestaEdicion.propuestoPor || '' %>"
+                        data-tiene-fechas="<%= (c.propuestaEdicion.fechasEncuentros && c.propuestaEdicion.fechasEncuentros.length > 0) ? '1' : '0' %>">
+                    <i class="bi bi-check2-circle me-2"></i>Revisar cambios propuestos
                 </button>
             </li>
             <li><hr class="dropdown-divider border-secondary"></li>
             <% } %>
             <li>
-                <button class="dropdown-item text-success btn-editar-pendiente" 
+                <button class="dropdown-item text-success btn-editar-pendiente"
                         data-id="<%= c._id %>">
                     <i class="bi bi-pencil me-2"></i>Editar
                 </button>
             </li>
             <li>
-                <button class="dropdown-item text-danger btn-eliminar-pendiente" 
+                <button class="dropdown-item text-danger btn-eliminar-pendiente"
                         data-id="<%= c._id %>">
                     <i class="bi bi-trash me-2"></i>Eliminar
                 </button>
@@ -1565,6 +1577,90 @@ $('#horaEncuentro').val(horaEncuentro);
                         },
                         error: function (xhr) {
                             const mensaje = xhr.responseJSON?.error || 'No se pudo eliminar el curso.';
+                            Swal.fire('Error', mensaje, 'error');
+                        }
+                    });
+                }
+            });
+        });
+
+        // ─── Revisar (aprobar/rechazar) cambios propuestos por un/a docente ─────────────
+        const ETIQUETAS_CAMPOS_PROPUESTA = {
+            dispositivo: 'Dispositivo',
+            formadorAbc: 'Formador/a',
+            tituloFormulario: 'Título para formulario',
+            ubicacion: 'Ubicación',
+            detalleFlyer: 'Detalle flyer',
+            anio: 'Año',
+            itinerario: 'Itinerario',
+            idformato: 'Formato',
+            cupo: 'Cupo',
+            alcance: 'Alcance',
+            cantidadHoras: 'Cantidad de horas'
+        };
+
+        function escaparHtml(valor) {
+            return String(valor)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        $(document).on('click', '.btn-aprobar-cambios', function () {
+            const cursoId = $(this).data('id');
+            const propuestoPor = escaparHtml($(this).data('propuesto-por') || '');
+            const tieneFechas = $(this).data('tiene-fechas') == '1';
+            let propuesta = {};
+            try { propuesta = JSON.parse($(this).attr('data-propuesta') || '{}'); } catch (e) { propuesta = {}; }
+
+            const filas = Object.keys(propuesta)
+                .filter(k => ETIQUETAS_CAMPOS_PROPUESTA[k] !== undefined && propuesta[k] !== null && propuesta[k] !== '')
+                .map(k => `<tr><td class="text-muted pe-3">${escaparHtml(ETIQUETAS_CAMPOS_PROPUESTA[k])}</td><td>${escaparHtml(propuesta[k])}</td></tr>`)
+                .join('');
+
+            Swal.fire({
+                title: 'Cambios propuestos',
+                html: `
+                    <div class="text-start">
+                        ${propuestoPor ? `<p class="small text-muted mb-2">Propuesto por: ${propuestoPor}</p>` : ''}
+                        <table class="table table-sm table-dark">${filas || '<tr><td class="text-muted">Sin cambios en los datos generales.</td></tr>'}</table>
+                        ${tieneFechas ? '<p class="small text-info mb-0"><i class="bi bi-calendar-event me-1"></i>También propone nuevas fechas de encuentros.</p>' : ''}
+                    </div>
+                `,
+                icon: 'info',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Aprobar y publicar en ABC',
+                denyButtonText: 'Rechazar',
+                cancelButtonText: 'Cerrar',
+                confirmButtonColor: '#198754',
+                denyButtonColor: '#dc3545'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/curso/${cursoId}/aprobar-cambios`,
+                        method: 'POST',
+                        success: function (respuesta) {
+                            Swal.fire({ icon: 'success', title: 'Cambios aprobados', text: respuesta.message, showConfirmButton: false, timer: 1800 })
+                                .then(() => location.reload());
+                        },
+                        error: function (xhr) {
+                            const mensaje = xhr.responseJSON?.error || 'No se pudieron aprobar los cambios.';
+                            Swal.fire('Error', mensaje, 'error');
+                        }
+                    });
+                } else if (result.isDenied) {
+                    $.ajax({
+                        url: `/curso/${cursoId}/rechazar-cambios`,
+                        method: 'POST',
+                        success: function (respuesta) {
+                            Swal.fire({ icon: 'success', title: 'Cambios rechazados', text: respuesta.message, showConfirmButton: false, timer: 1800 })
+                                .then(() => location.reload());
+                        },
+                        error: function (xhr) {
+                            const mensaje = xhr.responseJSON?.error || 'No se pudieron rechazar los cambios.';
                             Swal.fire('Error', mensaje, 'error');
                         }
                     });

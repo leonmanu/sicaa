@@ -3,6 +3,7 @@ const ciieService = require('../services/ciieService');
 const cursoLocalService = require('../services/cursoLocalService');
 const inscriptoExternoService = require('../services/inscriptoExternoService');
 const inscriptoLocalService = require('../services/inscriptoLocalService');
+const acreditacionSeminariosService = require('../services/acreditacionSeminariosService');
 
 const vincularCurso = async (req, res) => {
     try {
@@ -75,10 +76,13 @@ const putCurso = async (req, res) => {
     try {
         const cursoId = req.params.id;
         const cursoActualizado = await cursoLocalService.editarCursoPorId(cursoId, req.body, req.user);
-        req.flash('success', 'Curso actualizado correctamente.');
+        const mensaje = cursoActualizado?.pendienteDeAprobacion
+            ? 'Los cambios se enviaron a tu CIIE para su aprobación.'
+            : 'Curso actualizado correctamente.';
+        req.flash('success', mensaje);
         return res.status(200).json({
             success: true,
-            message: 'Curso actualizado correctamente',
+            message: mensaje,
             curso: cursoActualizado
         });
     } catch (error) {
@@ -90,6 +94,40 @@ const putCurso = async (req, res) => {
             success: false,
             error: message
         });
+    }
+}
+
+const postAprobarCambiosPendientes = async (req, res) => {
+    try {
+        const cursoId = req.params.id;
+        const curso = await cursoLocalService.aprobarCambiosPendientes(cursoId, req.user);
+        return res.status(200).json({
+            success: true,
+            message: 'Cambios aprobados y publicados en el sitio oficial.',
+            curso
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudieron aprobar los cambios.';
+        console.error('Error en postAprobarCambiosPendientes:', message);
+        return res.status(status).json({ success: false, error: message });
+    }
+}
+
+const postRechazarCambiosPendientes = async (req, res) => {
+    try {
+        const cursoId = req.params.id;
+        const curso = await cursoLocalService.rechazarCambiosPendientes(cursoId, req.user);
+        return res.status(200).json({
+            success: true,
+            message: 'Cambios propuestos rechazados.',
+            curso
+        });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudieron rechazar los cambios.';
+        console.error('Error en postRechazarCambiosPendientes:', message);
+        return res.status(status).json({ success: false, error: message });
     }
 }
 
@@ -432,6 +470,80 @@ const getSincronizarItinerarioStream = async (req, res) => {
 
     enviar({ tipo: 'fin', ok, errores, nuevosTotal });
     res.end();
+}
+
+// ─── Acreditación de seminarios combinados (formacionpermanente.abc.gob.ar) ───
+const getAcreditacionSeminarios = async (req, res) => {
+    try {
+        return res.render('pages/ciie/acreditacionSeminarios', {
+            user: req.user,
+            title: 'Acreditación de seminarios'
+        });
+    } catch (error) {
+        const message = error.message || 'No se pudo cargar la vista de acreditación de seminarios.';
+        console.error('Error en getAcreditacionSeminarios:', error);
+        req.flash('error', message);
+        return res.redirect('/ciie/dashboard');
+    }
+}
+
+// Server-Sent Events: recorre los seminarios vinculados del CIIE, uno por vez
+// (solo lectura contra el sitio oficial), y va emitiendo el progreso.
+const getAcreditacionSeminariosStream = async (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+    const enviar = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    const ciieId = req.user.referenciaId;
+    const seminarios = await acreditacionSeminariosService.getSeminarios(ciieId);
+    enviar({ tipo: 'inicio', total: seminarios.length });
+
+    const pendientes = await acreditacionSeminariosService.generarReporte(ciieId, (progreso) => {
+        enviar({
+            tipo: 'progreso',
+            actual: progreso.actual,
+            total: progreso.total,
+            idOfertaOficial: progreso.curso.idOfertaOficial,
+            nombrePropuesta: progreso.curso.nombrePropuesta,
+            ok: progreso.ok,
+            pendientes: progreso.pendientes,
+            error: progreso.error
+        });
+    });
+
+    enviar({
+        tipo: 'fin',
+        pendientes: pendientes.map(p => ({
+            idOfertaOficial: p.curso.idOfertaOficial,
+            idCursoOriginal: p.curso.idCursoOriginal,
+            nombrePropuesta: p.curso.nombrePropuesta,
+            anio: p.curso.anio,
+            itinerario: p.curso.itinerario,
+            aprobados: p.aprobados,
+            cantcerti: p.cantcerti,
+            pendientesCantidad: p.pendientes,
+            certificados: p.certificados,
+            aprobadosTotales: p.aprobadosTotales
+        }))
+    });
+    res.end();
+}
+
+const postCertificarSeminario = async (req, res) => {
+    try {
+        const { idCursoOriginal, aprobados, cantcerti } = req.body;
+        if (!idCursoOriginal || !aprobados) {
+            return res.status(400).json({ success: false, error: 'Faltan datos para certificar.' });
+        }
+        const resultado = await acreditacionSeminariosService.certificarUno(idCursoOriginal, aprobados, cantcerti);
+        return res.json({ success: true, resultado });
+    } catch (error) {
+        console.error('Error en postCertificarSeminario:', error);
+        return res.status(500).json({ success: false, error: error.message || 'No se pudo certificar.' });
+    }
 }
 
 const getTrayectoriaCursantes = async (req, res) => {
@@ -1047,6 +1159,8 @@ module.exports = {
     deleteCurso,
     getCursoById,
     putCurso,
+    postAprobarCambiosPendientes,
+    postRechazarCambiosPendientes,
     getMisCursos,
     getPorCiieDrupal,
     getCursoByIdEdit,
@@ -1055,5 +1169,8 @@ module.exports = {
     getRegistroCursantesMasivo,
     getListaAsistenciaMasiva,
     getSincronizarItinerario,
-    getSincronizarItinerarioStream
+    getSincronizarItinerarioStream,
+    getAcreditacionSeminarios,
+    getAcreditacionSeminariosStream,
+    postCertificarSeminario
 }

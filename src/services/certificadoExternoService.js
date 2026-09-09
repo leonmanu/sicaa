@@ -51,6 +51,23 @@ class CertificadoExternoService {
         return valor.trim();
     }
 
+    // Lee de combinaciones.php el estado completo de la combinación (aprobados,
+    // pendientes de certificar, ya certificados), para el reporte de acreditación
+    // de seminarios. No certifica nada, solo lee.
+    parseEstadoCombinaciones(html) {
+        const $ = cheerio.load(String(html || ''));
+        const numero = (selector) => parseInt($(selector).attr('value') || '0', 10) || 0;
+
+        return {
+            aprobados: ($('#aprobados').attr('value') || '').trim(),
+            cantcerti: ($('#cantcerti').attr('value') || '').trim(),
+            idcurso: ($('#idcurso').attr('value') || '').trim(),
+            aprobadosTotales: numero('#insc'),
+            pendientes: numero('#pendientes'),
+            certificados: numero('#cantcertificaron')
+        };
+    }
+
     _parseDatosAdministrativos(texto = '') {
         const text = this._normalizeText(texto);
         return {

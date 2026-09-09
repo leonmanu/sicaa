@@ -48,7 +48,13 @@ const cursoSchema = new mongoose.Schema({
         enum: ['pendiente', 'vinculado', 'modificacion_pendiente', 'eliminacion_pendiente', 'dormido'],
         default: 'pendiente' 
     },
-    datosPrevios: { 
+    datosPrevios: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
+    },
+    // Cambios propuestos por un/a docente sobre un curso ya vinculado a ABC,
+    // pendientes de que el CIIE los apruebe o rechace (no se aplican solos).
+    propuestaEdicion: {
         type: mongoose.Schema.Types.Mixed,
         default: null
     },

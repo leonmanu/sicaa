@@ -25,6 +25,15 @@ class CertificadoExternoRepo {
         return response.data;
     }
 
+    // Dispara la misma acción que el botón "Certificar" de combinaciones.php.
+    async certificar(aprobados, cantcerti, idcurso) {
+        const response = await client.post(
+            'https://formacionpermanente.abc.gob.ar/inscripcion/propuestas/certificar.php',
+            new URLSearchParams({ aprobados, cantcerti, idcurso })
+        );
+        return response.data;
+    }
+
     async getDatosAdministrativosPdfSeminario(idaprobados, idOfertaOficial) {
         const response = await client.post(
             `https://formacionpermanente.abc.gob.ar/inscripcion/propuestas/pdf1.php?idaprobados=${encodeURIComponent(idaprobados)}`,

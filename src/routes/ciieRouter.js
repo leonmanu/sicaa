@@ -31,7 +31,10 @@ const {
     getRegistroCursantesMasivo,
     getListaAsistenciaMasiva,
     getSincronizarItinerario,
-    getSincronizarItinerarioStream
+    getSincronizarItinerarioStream,
+    getAcreditacionSeminarios,
+    getAcreditacionSeminariosStream,
+    postCertificarSeminario
 } = require('../controllers/cursoLocalController')
 const { viewInscripto, getExternosPorIdOfertaOficial, vincularCursantes } = require('../controllers/inscriptoController')
 
@@ -62,6 +65,9 @@ router
     .get('/lista-asistencia-masiva', soloCiie, getListaAsistenciaMasiva)
     .get('/itinerario/sincronizar', soloCiie, getSincronizarItinerario)
     .get('/itinerario/sincronizar-stream', soloCiie, getSincronizarItinerarioStream)
+    .get('/acreditacion-seminarios', soloCiie, getAcreditacionSeminarios)
+    .get('/acreditacion-seminarios/stream', soloCiie, getAcreditacionSeminariosStream)
+    .post('/acreditacion-seminarios/certificar', soloCiie, postCertificarSeminario)
 
     // URL calificaciones
     .get('/calificaciones', getCalificaciones)

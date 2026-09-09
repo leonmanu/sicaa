@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const cursoExternoController = require('../controllers/cursoExternoController');
-const { asegurarRegistro } = require('../middleware/auth');
+const { asegurarRegistro, soloCiie } = require('../middleware/auth');
 
 const {
     post,
@@ -17,6 +17,8 @@ const {
     getCursoById,
     getCursoByIdEdit,
     putCurso,
+    postAprobarCambiosPendientes,
+    postRechazarCambiosPendientes,
     getMisCursos,
     getPorCiiePublico,
     getEstadisticasCursos
@@ -41,6 +43,8 @@ router
     .get('/:id', asegurarRegistro, getCursoByIdEdit)
     .put('/:id', asegurarRegistro, putCurso)
     .delete('/:id', asegurarRegistro, deleteCurso)
+    .post('/:id/aprobar-cambios', soloCiie, postAprobarCambiosPendientes)
+    .post('/:id/rechazar-cambios', soloCiie, postRechazarCambiosPendientes)
 
 
 

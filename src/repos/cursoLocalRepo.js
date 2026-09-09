@@ -80,6 +80,23 @@ class CursoLocalRepo {
         }
     }
 
+    // Seminarios vinculados de un CIIE: necesitan combinarse con 2 extensiones
+    // para acreditar puntaje; se usan para el chequeo de acreditación combinada.
+    async getSeminariosVinculadosPorCiie(ciieId) {
+        try {
+            return await CursoLocal.find({
+                ciieId: new mongoose.Types.ObjectId(ciieId),
+                estado: 'vinculado',
+                dispositivo: /^Seminario/i
+            })
+                .select('idOfertaOficial idCursoOriginal nombrePropuesta anio itinerario')
+                .lean();
+        } catch (error) {
+            console.error('Error en CursoLocalRepo.getSeminariosVinculadosPorCiie:', error.message);
+            throw error;
+        }
+    }
+
     async getPendientesVinculacionPorCiie(ciieId) {
         try {
             return await CursoLocal.find({

@@ -26,6 +26,15 @@ class CursoExternoRepo {
         });
     }
 
+    // Prepara la sesión PHP para editar una oferta ya publicada.
+    // Misma navegación que hace el sitio: desde misofertas.php se entra directo a am.php con el id real.
+    async prepararSesionParaEdicion(idOfertaOficial) {
+        await client.get(`${URLS.BASE_URL}/propuestas/am.php`, {
+            params: { id: idOfertaOficial, volver: 'misofertas.php', quees: 'M', qi: '65' },
+            headers: { 'Referer': `${URLS.BASE_URL}/propuestas/misofertas.php?qi=65` }
+        });
+    }
+
     // ─── Consultas ────────────────────────────────────────────────────────────
 
     async getRawCursos() {
@@ -60,6 +69,18 @@ class CursoExternoRepo {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Requested-With': 'XMLHttpRequest',
                 'Referer': `${URLS.BASE_URL}/propuestas/am.php?quees=A&qi=65`
+            }
+        });
+    }
+
+    // ─── Edición de oferta oficial ya publicada ──────────────────────────────
+
+    async editarOfertaOficial(payload, idOfertaOficial) {
+        return await client.post(URLS.PROPUESTAS.ACTUALIZA, payload, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': `${URLS.BASE_URL}/propuestas/am.php?id=${idOfertaOficial}&volver=misofertas.php&quees=M&qi=65`
             }
         });
     }
