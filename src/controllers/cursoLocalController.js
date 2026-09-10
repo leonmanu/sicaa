@@ -79,11 +79,14 @@ const putCurso = async (req, res) => {
         const cursoActualizado = await cursoLocalService.editarCursoPorId(cursoId, req.body, req.user);
         const mensaje = cursoActualizado?.pendienteDeAprobacion
             ? 'Los cambios se enviaron a tu CIIE para su aprobación.'
-            : 'Curso actualizado correctamente.';
-        req.flash('success', mensaje);
+            : cursoActualizado?.errorAbc
+                ? `Los cambios se guardaron, pero no se pudieron reflejar en el sitio oficial: ${cursoActualizado.errorAbc}`
+                : 'Curso actualizado correctamente.';
+        req.flash(cursoActualizado?.errorAbc ? 'error' : 'success', mensaje);
         return res.status(200).json({
             success: true,
             message: mensaje,
+            avisoAbc: Boolean(cursoActualizado?.errorAbc),
             curso: cursoActualizado
         });
     } catch (error) {

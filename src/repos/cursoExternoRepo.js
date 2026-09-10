@@ -28,11 +28,14 @@ class CursoExternoRepo {
 
     // Prepara la sesión PHP para editar una oferta ya publicada.
     // Misma navegación que hace el sitio: desde misofertas.php se entra directo a am.php con el id real.
+    // Devuelve el HTML del formulario: trae los valores actuales (inicioa/fina, etc.)
+    // tal como los tiene ABC, que no siempre coinciden con lo que guardamos en Mongo.
     async prepararSesionParaEdicion(idOfertaOficial) {
-        await client.get(`${URLS.BASE_URL}/propuestas/am.php`, {
+        const response = await client.get(`${URLS.BASE_URL}/propuestas/am.php`, {
             params: { id: idOfertaOficial, volver: 'misofertas.php', quees: 'M', qi: '65' },
             headers: { 'Referer': `${URLS.BASE_URL}/propuestas/misofertas.php?qi=65` }
         });
+        return response?.data;
     }
 
     // ─── Consultas ────────────────────────────────────────────────────────────

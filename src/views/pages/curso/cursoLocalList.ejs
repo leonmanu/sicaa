@@ -1463,7 +1463,16 @@ $('#btnAltaCurso').on('click', function() {
                 method: isEditMode ? 'PUT' : 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(payload),
-                success: function () {
+                success: function (respuesta) {
+                    if (respuesta.avisoAbc) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Guardado con pendiente',
+                            text: respuesta.message,
+                            confirmButtonText: 'Entendido'
+                        }).then(() => location.reload());
+                        return;
+                    }
                     const msg = isEditMode ? 'Curso actualizado' : 'Curso creado';
                     Swal.fire({ icon: 'success', title: `¡${msg}!`, showConfirmButton: false, timer: 1500 })
                         .then(() => location.reload());

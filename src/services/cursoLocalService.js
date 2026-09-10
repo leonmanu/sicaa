@@ -1555,7 +1555,27 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
             : await encuentroRepo.getPorCursoId(cursoLocalId);
         const encuentrosOrdenados = [...encuentrosBase].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-        await this._editarOfertaEnAbc(cursoLocal, cursoMerged, encuentrosOrdenados);
+        try {
+            await this._editarOfertaEnAbc(cursoLocal, cursoMerged, encuentrosOrdenados);
+        } catch (errorAbc) {
+            // No perdemos el cambio local aunque ABC lo rechace: lo guardamos igual
+            // y lo dejamos marcado para reintentar la sincronización con ABC después,
+            // en vez de descartar la edición entera por un error del lado de ABC.
+            const cursoConError = await cursoLocalRepo.actualizarPendiente(cursoLocalId, {
+                ...update,
+                estado: 'modificacion_pendiente',
+                propuestaEdicion: {
+                    update,
+                    fechasEncuentros: fechasNormalizadas,
+                    propuestoPor: this._sanitizeString(usuario?.email) || cursoLocal.creadoPor,
+                    propuestoEn: new Date()
+                }
+            });
+            return {
+                ...cursoConError,
+                errorAbc: errorAbc.message || 'No se pudo actualizar la oferta en el sitio oficial.'
+            };
+        }
 
         return await cursoLocalRepo.actualizarPendiente(cursoLocalId, {
             ...update,
@@ -1788,13 +1808,15 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
 
         await sesionService.asegurarSesion();
         await cursoExternoRepo.sincronizarFiltros();
-        await cursoExternoRepo.prepararSesionParaEdicion(idOfertaOficial);
+        const htmlFormularioActual = await cursoExternoRepo.prepararSesionParaEdicion(idOfertaOficial);
 
-        // El "período de inscripción" que espera ABC no es el que guardamos en Mongo
-        // (queda desactualizado apenas se mueven las fechas del curso): siempre es
-        // "ahora" hasta el último encuentro.
-        const inicioInscripcion = new Date();
-        const finInscripcion = encuentrosOrdenados[encuentrosOrdenados.length - 1]?.fecha;
+        // El período de inscripción (inicioa/fina) puede diferir de lo que guardamos
+        // en Mongo (se puede haber tocado a mano en ABC, o quedó desactualizado) y no
+        // hay forma confiable de recalcularlo acá: lo reenviamos tal cual lo tiene ABC
+        // hoy, para no pisarlo con un valor inconsistente con el resto de sus datos
+        // (ej: "inicioa" no puede quedar después de "fechaini" si el curso ya empezó).
+        const inicioaActual = this._parseValorInputAbc(htmlFormularioActual, 'inicioa').replace(' ', 'T').slice(0, 16);
+        const finaActual = this._parseValorInputAbc(htmlFormularioActual, 'fina');
 
         // El campo cupo es de solo lectura en el formulario de edición de ABC:
         // el cambio real se aplica con "aumentar" (delta +/-) sobre el cupo vigente.
@@ -1808,8 +1830,8 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
             quees: 'M',
             volver: 'misofertas.php?qi=65',
             anio: String(cursoMerged.anio || new Date().getFullYear()),
-            inicioa: this._toDateTimeLocalString(inicioInscripcion),
-            fina: this._toDateString(finInscripcion),
+            inicioa: inicioaActual || this._toDateTimeLocalString(new Date()),
+            fina: finaActual || this._toDateString(encuentrosOrdenados[encuentrosOrdenados.length - 1]?.fecha),
             fechaini: this._toDateString(encuentrosOrdenados[0]?.fecha),
             fechafin: this._toDateString(encuentrosOrdenados[encuentrosOrdenados.length - 1]?.fecha),
             disponible: this._sanitizeString(cursoMerged.disponible) || 'S',
@@ -1939,6 +1961,13 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
         const [fecha] = fechaStr.split(' ');
         const [dia, mes, anio] = fecha.split('-');
         return new Date(anio, mes - 1, dia);
+    }
+
+    // Lee el value="..." de un <input id="campo" ...> en el HTML de un formulario de ABC.
+    _parseValorInputAbc(html, campo) {
+        if (!html) return '';
+        const match = String(html).match(new RegExp(`id=["']${campo}["'][^>]*value=["']([^"']*)["']`));
+        return match ? match[1].trim() : '';
     }
 
     async _getCursoVinculadoDelCiie(cursoLocalId, usuario = {}) {
@@ -2276,6 +2305,17 @@ _buildNombreCompleto(inscripto = {}) {
             .map(v => this._toDateOrNull(v))
             .filter(Boolean)
             .sort((a, b) => a - b);
+
+        // Guarda contra fechas corruptas por un tipeo cortado a medias en el input
+        // (ej: año "0026" en vez de "2026"), que si se guardan explotan recién al
+        // publicar/editar en ABC con un error mucho más difícil de diagnosticar.
+        const anioActual = new Date().getFullYear();
+        const fechaInvalida = fechas.find(f => f.getFullYear() < anioActual - 1 || f.getFullYear() > anioActual + 5);
+        if (fechaInvalida) {
+            const err = new Error(`Fecha de encuentro inválida (año ${fechaInvalida.getFullYear()}): revisá que se haya tipeado bien.`);
+            err.statusCode = 400;
+            throw err;
+        }
 
         const fechasUnicas = new Set(fechas.map(f => f.toISOString().split('T')[0]));
         if (fechasUnicas.size !== fechas.length) {
