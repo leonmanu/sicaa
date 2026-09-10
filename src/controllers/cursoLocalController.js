@@ -958,6 +958,8 @@ const getFlyersList = async (req, res) => {
         const nivelesDisponibles = [...new Set(cursosDelItinerario.map(c => c.cargoId?.areaId?.nivel).filter(Boolean))]
             .sort((a, b) => a.localeCompare(b, 'es'));
         const estadosDisponibles = ['pendiente', 'vinculado', 'modificacion_pendiente', 'eliminacion_pendiente', 'dormido'];
+        const dispositivosDisponibles = [...new Set(cursosDelItinerario.map(c => c.dispositivo).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, 'es'));
 
         const filtros = {
             areaNombre: req.query.area || '',
@@ -966,19 +968,11 @@ const getFlyersList = async (req, res) => {
             dispositivo: req.query.dispositivo || ''
         };
 
-        const dispositivoCoincide = (dispositivoCurso, filtro) => {
-            if (!filtro) return true;
-            if (filtro === 'taller') return /^Taller/i.test(dispositivoCurso || '');
-            if (filtro === 'seminario') return /^Seminario/i.test(dispositivoCurso || '');
-            if (filtro === 'extension') return dispositivoCurso === 'Extensión CIIE';
-            return dispositivoCurso === filtro;
-        };
-
         const cursos = cursosDelItinerario.filter(curso =>
             (!filtros.areaNombre || curso.cargoId?.areaId?.nombre === filtros.areaNombre) &&
             (!filtros.estado || curso.estado === filtros.estado) &&
             (!filtros.nivel || curso.cargoId?.areaId?.nivel === filtros.nivel) &&
-            dispositivoCoincide(curso.dispositivo, filtros.dispositivo)
+            (!filtros.dispositivo || curso.dispositivo === filtros.dispositivo)
         );
 
         // Fecha de inscripción más vieja entre TODOS los cursos del itinerario
@@ -1004,6 +998,7 @@ const getFlyersList = async (req, res) => {
             areasDisponibles,
             nivelesDisponibles,
             estadosDisponibles,
+            dispositivosDisponibles,
             fechaInscripcionMasVieja,
             user: req.user,
             title: 'Flyers de Cursos'

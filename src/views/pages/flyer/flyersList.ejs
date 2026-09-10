@@ -148,7 +148,7 @@
                             <input type="hidden" name="anio" id="anio" value="<%= seleccion?.anio ?? '' %>">
                             <input type="hidden" name="itinerario" id="itinerario" value="<%= seleccion?.itinerario ?? '' %>">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="area" class="form-label">Área</label>
                             <select class="form-select" id="area" name="area">
                                 <option value="">Todas</option>
@@ -181,13 +181,15 @@
                                 <% }) %>
                             </select>
                         </div>
-                        <div class="col-md-1">
-                            <label for="dispositivo" class="form-label">Tipo</label>
+                        <div class="col-md-2">
+                            <label for="dispositivo" class="form-label">Dispositivo</label>
                             <select class="form-select" id="dispositivo" name="dispositivo">
                                 <option value="">Todos</option>
-                                <option value="taller" <%= filtros.dispositivo == 'taller' ? 'selected' : '' %>>Talleres</option>
-                                <option value="seminario" <%= filtros.dispositivo == 'seminario' ? 'selected' : '' %>>Seminarios</option>
-                                <option value="extension" <%= filtros.dispositivo == 'extension' ? 'selected' : '' %>>Extensión CIIE</option>
+                                <% dispositivosDisponibles.forEach(dispositivo => { %>
+                                    <option value="<%= dispositivo %>" <%= filtros.dispositivo === dispositivo ? 'selected' : '' %>>
+                                        <%= dispositivo %>
+                                    </option>
+                                <% }) %>
                             </select>
                         </div>
                         <div class="col-md-1 d-flex align-items-end">
@@ -226,6 +228,19 @@
                                                 <strong>Dispositivo:</strong> <%= curso.dispositivo %><br>
                                                 <strong>Área:</strong> <%= curso.cargoId?.areaId?.nombre || 'Sin área' %><br>
                                                 <strong>Año:</strong> <%= curso.anio %> | <strong>Itinerario:</strong> <%= curso.itinerario || 0 %><br>
+                                                <strong>Inicio:</strong>
+                                                <%
+                                                    let fechaInicioTexto = '-';
+                                                    if (curso.encuentros && curso.encuentros.length > 0) {
+                                                        const fecha = curso.encuentros[0].fecha;
+                                                        const dateStr = typeof fecha === 'string' ? fecha.split('T')[0] : new Date(fecha).toISOString().split('T')[0];
+                                                        const [yyyy, mm, dd] = dateStr.split('-').map(Number);
+                                                        const d = new Date(yyyy, mm - 1, dd);
+                                                        const hora = new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(fecha));
+                                                        fechaInicioTexto = `${String(dd).padStart(2,'0')}/${String(mm).padStart(2,'0')}/${yyyy} ${hora}hs`;
+                                                    }
+                                                %>
+                                                <%= fechaInicioTexto %><br>
                                                 <% const coloresEstado = { pendiente: 'bg-warning text-dark', vinculado: 'bg-success', modificacion_pendiente: 'bg-info text-dark', eliminacion_pendiente: 'bg-danger', dormido: 'bg-secondary' }; %>
                                                 <% const etiquetasEstado = { pendiente: 'Pendiente', vinculado: 'Vinculado', modificacion_pendiente: 'Modif. pendiente', eliminacion_pendiente: 'Baja pendiente', dormido: 'Dormido' }; %>
                                                 <strong>Estado:</strong>
