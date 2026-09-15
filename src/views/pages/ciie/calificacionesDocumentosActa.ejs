@@ -201,7 +201,8 @@
                                 <img src="/img/logo-pba2.png" alt="Logo institucional">
                                 <div class="acta-ref">
                                     <%= (data.administrativos?.cursoClave || '').toUpperCase() %> |
-                                    <%= data.curso?.anio %> • <%= data.curso?.itinerario %>
+                                    <%= data.curso?.anio %> • <%= data.curso?.itinerario %> |
+                                    idabc: <%= data.curso?.idOfertaOficial || '-' %>
                                 </div>
                                 <div class="acta-ref">Pág. <%= hoja %> / <%= totalHojas %></div>
                             </div>

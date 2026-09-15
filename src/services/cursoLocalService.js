@@ -2106,7 +2106,7 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
         // con combinaciones.php y puede no coincidir con la calificación local.
         const certificados = (externos?.parsed?.certificados || [])
             .map(c => ({
-                nombreCompleto: this._sanitizeString(c.nombreCompleto),
+                nombreCompleto: this._capitalizarNombrePropio(this._sanitizeString(c.nombreCompleto) || ''),
                 dni: this._sanitizeString(c.dni),
                 calificacion: 'Aprobado'
             }));

@@ -76,12 +76,19 @@
             text-align: justify;
         }
         
+        .cert-nombre-linea {
+            text-align: center;
+            overflow: hidden;
+            margin: 2px 0 6px;
+        }
+
         .cert-nombre {
             font-size: 20px;
             font-weight: 700;
             color: #0b6b77;
             display: inline-block;
-            margin: 5px 0;
+            white-space: nowrap;
+            max-width: 100%;
         }
 
         .cert-nombre-curso {
@@ -196,6 +203,9 @@
             </div>
             <div class="d-flex gap-2">
                 <button class="btn btn-outline-light btn-sm" id="btnSelTodos">Seleccionar todos</button>
+                <button class="btn btn-outline-info btn-sm" id="btnOrdenAlpha">
+                    <i class="bi bi-sort-alpha-down me-1"></i>Ordenar por apellido
+                </button>
                 <button class="btn btn-success fw-bold" id="btnImprimir">
                     <i class="bi bi-printer me-1"></i>Imprimir <span class="badge bg-white text-success ms-1" id="contadorSeleccionados">0</span>
                 </button>
@@ -205,22 +215,23 @@
 
         <% if (cursosDocumentos && cursosDocumentos.length > 0) { %>
             <% cursosDocumentos.forEach(data => { %>
-                <div class="card bg-dark border-secondary mb-4 no-print">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-0 text-white"><%= data.curso?.nombrePropuesta %></h5>
-                            <small class="text-muted">Oferta: <%= data.curso?.idOfertaOficial %></small>
+                <div class="curso-grupo">
+                    <div class="card bg-dark border-secondary mb-4 no-print">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0 text-white"><%= data.curso?.nombrePropuesta %></h5>
+                                <small class="text-muted">Oferta: <%= data.curso?.idOfertaOficial %></small>
+                            </div>
+                            <button class="btn btn-outline-success btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="certificados">
+                                Marcar impresos
+                            </button>
                         </div>
-                        <button class="btn btn-outline-success btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="certificados">
-                            Marcar impresos
-                        </button>
                     </div>
-                </div>
 
-                <div class="certs-container">
+                    <div class="certs-container">
                     <% data.certificados.forEach((item, index) => { %>
-                        <div class="cert-wrapper" data-cert-id="cert-<%= data.curso?.idOfertaOficial %>-<%= index %>">
-                            
+                        <div class="cert-wrapper" data-cert-id="cert-<%= data.curso?.idOfertaOficial %>-<%= index %>" data-nombre="<%= item.nombreCompleto %>">
+
                             <div class="cert-selector-bar no-print">
                                 <input type="checkbox" class="form-check-input check-cert" 
                                        id="chk-<%= data.curso?.idOfertaOficial %>-<%= index %>" 
@@ -240,8 +251,13 @@
                                     </div>
 
                                     <div class="cert-cuerpo">
-                                        <p style="text-align:center;">
-                                            Se deja constancia que <span class="cert-nombre"><%= item.nombreCompleto %></span>,<br>
+                                        <p style="text-align:center; margin-bottom:2px;">
+                                            Se deja constancia que
+                                        </p>
+                                        <div class="cert-nombre-linea">
+                                            <span class="cert-nombre"><%= item.nombreCompleto %></span>
+                                        </div>
+                                        <p style="text-align:center; margin-top:2px;">
                                             DNI: <strong><%= item.dni %></strong>, cursó y aprobó la propuesta formativa:
                                         </p>
 
@@ -283,6 +299,7 @@
                             </div>
                         </div>
                     <% }) %>
+                    </div>
                 </div>
             <% }) %>
         <% } %>
@@ -291,9 +308,56 @@
     <%- include('../../partials/footer') %>
     <%- include('../../partials/scripts') %>
     <script>
+        function ajustarNombresCertificado() {
+            document.querySelectorAll('.cert-nombre').forEach(el => {
+                el.style.fontSize = '';
+                const contenedor = el.parentElement;
+                let fontSize = parseFloat(getComputedStyle(el).fontSize);
+                let intentos = 0;
+                while (el.scrollWidth > contenedor.clientWidth && fontSize > 10 && intentos < 30) {
+                    fontSize -= 0.5;
+                    el.style.fontSize = fontSize + 'px';
+                    intentos++;
+                }
+            });
+        }
+
+        let ordenAlfabetico = false;
+        let ordenOriginal = [];
+        let contenedorAlfabetico = null;
+
+        function capturarOrdenOriginal() {
+            ordenOriginal = Array.from(document.querySelectorAll('.cert-wrapper')).map(el => ({
+                el,
+                parent: el.parentElement
+            }));
+        }
+
+        function ordenarPorApellido() {
+            const wrappers = Array.from(document.querySelectorAll('.cert-wrapper'));
+            wrappers.sort((a, b) => (a.dataset.nombre || '').localeCompare(b.dataset.nombre || '', 'es'));
+
+            if (!contenedorAlfabetico) {
+                contenedorAlfabetico = document.createElement('div');
+                contenedorAlfabetico.className = 'certs-container';
+                document.querySelector('.container').appendChild(contenedorAlfabetico);
+            }
+            wrappers.forEach(w => contenedorAlfabetico.appendChild(w));
+            document.querySelectorAll('.curso-grupo').forEach(g => g.style.display = 'none');
+            contenedorAlfabetico.style.display = '';
+        }
+
+        function ordenarPorCurso() {
+            ordenOriginal.forEach(({ el, parent }) => parent.appendChild(el));
+            if (contenedorAlfabetico) contenedorAlfabetico.style.display = 'none';
+            document.querySelectorAll('.curso-grupo').forEach(g => g.style.display = '');
+        }
+
         $(document).ready(function () {
             const actualizarContador = () => $('#contadorSeleccionados').text($('.check-cert:checked').length);
             actualizarContador();
+            ajustarNombresCertificado();
+            capturarOrdenOriginal();
 
             $(document).on('change', '.check-cert', function () {
                 const $wrapper = $(`[data-cert-id="${$(this).data('cert-id')}"]`);
@@ -306,8 +370,23 @@
                 $('.check-cert').prop('checked', !todos).trigger('change');
             });
 
+            $('#btnOrdenAlpha').on('click', function () {
+                ordenAlfabetico = !ordenAlfabetico;
+                if (ordenAlfabetico) {
+                    ordenarPorApellido();
+                    $(this).html('<i class="bi bi-sort-alpha-down me-1"></i>Ordenar por curso');
+                } else {
+                    ordenarPorCurso();
+                    $(this).html('<i class="bi bi-sort-alpha-down me-1"></i>Ordenar por apellido');
+                }
+                ajustarNombresCertificado();
+            });
+
             $('#btnImprimir').on('click', () => window.print());
         });
+
+        window.addEventListener('resize', ajustarNombresCertificado);
+        window.addEventListener('beforeprint', ajustarNombresCertificado);
     </script>
 </body>
 </html>
