@@ -3,42 +3,130 @@
 <head>
     <%- include('../../partials/head') %>
     <title>SICAA - Actas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,600;0,700;1,400&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* ─── Pantalla ───────────────────────────────────── */
         body { background: #eef1f5 !important; }
-        .acta-sheet {
+
+        .acta-doc {
             background: #fff;
             border: 1px solid #d7deea;
-            border-radius: 16px;
+            border-radius: 12px;
             box-shadow: 0 10px 28px rgba(18, 36, 64, 0.08);
-            overflow: hidden;
+            padding: 28px 34px 22px;
+            max-width: 900px;
+            margin: 0 auto 32px;
+            color: #1a1a1a;
+            font-family: Arial, sans-serif;
         }
-        .acta-head {
-            background: linear-gradient(120deg, #ef7c1f, #f0a53a);
-            color: #fff;
-            padding: 20px 24px;
+
+        .acta-doc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2px;
         }
+        .acta-doc-header img { height: 40px; width: auto; object-fit: contain; }
+        .acta-header-der { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+
+        .acta-titulo {
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: #0b6b77;
+            margin: 4px 0 10px;
+            font-family: 'Crimson Pro', serif;
+        }
+
+        .acta-ref {
+            font-size: 9px;
+            color: #888;
+            text-align: right;
+        }
+
+        .acta-datos {
+            font-size: 0.85rem;
+            line-height: 1.35;
+            margin-bottom: 10px;
+            border-top: 1px solid #e5e9f0;
+            border-bottom: 1px solid #e5e9f0;
+            padding: 6px 0;
+        }
+        .acta-datos .fila { display: flex; flex-wrap: wrap; column-gap: 28px; row-gap: 0; }
+        .acta-datos .dato { white-space: nowrap; }
+        .acta-datos .dato span { color: #666; }
+        .acta-datos .dato b { color: #1a1a1a; }
+
         .acta-table {
+            table-layout: auto;
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
+            line-height: 1.05;
         }
         .acta-table th, .acta-table td {
             border: 1px solid #d9e1ed;
-            padding: 8px 10px;
+            padding: 4px 8px;
             color: #243a57;
         }
         .acta-table th {
             background: #f4f7fb;
             font-weight: 700;
             text-transform: uppercase;
-            font-size: 0.78rem;
+            font-size: 0.7rem;
         }
+        .acta-table td.col-orden { width: 30px; text-align: center; }
+        .acta-table th.col-dni { width: 10%; }
+        .acta-table th.col-nombre { width: 30%; }
+        .acta-table td.col-nombre {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .acta-table th.col-observaciones { width: 12%; }
+        .acta-table tr.acta-row-vacia td { height: 10px; color: #bbb; }
+
+        .acta-resumen {
+            margin: 8px 0 0;
+            font-size: 0.82rem;
+            color: #333;
+        }
+
+        .acta-cierre {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+        .acta-firma-bloque { text-align: center; width: 280px; }
+        .acta-cierre-linea { font-size: 0.82rem; color: #1a1a1a; }
+        .acta-firma-linea { border-top: 1px solid #333; margin-top: 12px; margin-bottom: 5px; }
+        .acta-firma-label { font-size: 0.72rem; color: #555; }
+
+        /* ─── Impresión ──────────────────────────────────── */
         @media print {
+            @page { size: A4; margin: 12mm; }
             body { background: #fff !important; }
             .navbar, .btn, .badge, .no-print { display: none !important; }
             .container { max-width: none !important; width: 100% !important; padding: 0 !important; }
-            .acta-sheet { box-shadow: none !important; border: 0 !important; margin-bottom: 10mm; }
-            .acta-row { break-inside: avoid; page-break-inside: avoid; }
+            .acta-doc {
+                box-shadow: none !important;
+                border: 0 !important;
+                border-radius: 0 !important;
+                padding: 0 !important;
+                max-width: none !important;
+                margin: 0 !important;
+                page-break-after: always;
+            }
+            .acta-doc:last-of-type { page-break-after: auto; }
+            thead { display: table-header-group; }
+            .acta-table tr { break-inside: avoid; page-break-inside: avoid; }
+            .acta-table tbody tr { height: 10px; }
+            .acta-table tbody tr td, .acta-table tbody tr th { padding-top: 3px; padding-bottom: 2px; }
         }
     </style>
 </head>
@@ -47,7 +135,7 @@
     <%- include('../../partials/msj') %>
 
     <div class="container py-5">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 no-print">
             <div>
                 <h2 class="fw-bold mb-1">
                     <i class="bi bi-journal-text me-2 text-warning"></i>Actas
@@ -59,63 +147,148 @@
             </a>
         </div>
 
+        <%
+            const fmtFecha = (valor) => {
+                if (!valor) return '-';
+                const d = new Date(valor);
+                if (isNaN(d.getTime())) return '-';
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yy = String(d.getFullYear()).slice(-2);
+                return `${dd}/${mm}/${yy}`;
+            };
+        %>
+
         <% if (cursosDocumentos && cursosDocumentos.length > 0) { %>
             <% cursosDocumentos.forEach(data => { %>
-                <div class="card bg-dark border-secondary shadow-sm mb-4 acta-sheet">
-                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-                        <div>
-                            <h5 class="mb-1"><%= data.curso?.nombrePropuesta || 'Curso' %></h5>
-                            <small class="text-muted">
-                                Oferta: <%= data.curso?.idOfertaOficial || '-' %>
-                                | Formador: <%= data.curso?.formadorAbc || 'Sin formador' %>
-                            </small>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <% if (data.curso?.impresionDocumentos?.actaImpresa) { %>
-                                <span class="badge bg-success">Acta impresa</span>
-                            <% } else { %>
-                                <span class="badge bg-secondary">Pendiente impresión</span>
-                            <% } %>
-                            <button class="btn btn-outline-warning btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="acta">
-                                <i class="bi bi-printer me-1"></i>Marcar impresa
-                            </button>
-                        </div>
+                <%
+                    const acta = data.acta || [];
+                    const aprobados = acta.filter(i => i.calificacion === 'Aprobado').length;
+                    const desaprobados = acta.filter(i => i.calificacion === 'Desaprobado').length;
+                    const ausentes = acta.filter(i => i.calificacion === 'Ausente').length;
+                %>
+                <div class="no-print mb-2 d-flex flex-wrap justify-content-between align-items-center gap-2 bg-dark border border-secondary rounded p-3">
+                    <div>
+                        <h5 class="mb-1 text-white"><%= data.curso?.nombrePropuesta || 'Curso' %></h5>
+                        <small class="text-muted">
+                            Oferta: <%= data.curso?.idOfertaOficial || '-' %>
+                            | Formador: <%= data.curso?.formadorAbc || 'Sin formador' %>
+                        </small>
                     </div>
-                    <div class="card-body bg-white text-dark">
-                        <div class="row g-2 small mb-3 text-secondary no-print">
-                            <div class="col-md-2">Resolución: <strong class="text-dark"><%= data.administrativos?.resolucion || '-' %></strong></div>
-                            <div class="col-md-2">Proyecto: <strong class="text-dark"><%= data.administrativos?.proyecto || '-' %></strong></div>
-                            <div class="col-md-2">Dictamen: <strong class="text-dark"><%= data.administrativos?.dictamen || '-' %></strong></div>
-                            <div class="col-md-2">Puntaje: <strong class="text-dark"><%= data.administrativos?.puntaje || '-' %></strong></div>
-                            <div class="col-md-2">Horas: <strong class="text-dark"><%= data.administrativos?.horas || '-' %></strong></div>
+                    <div class="d-flex gap-2">
+                        <% if (data.curso?.impresionDocumentos?.actaImpresa) { %>
+                            <span class="badge bg-success">Acta impresa</span>
+                        <% } else { %>
+                            <span class="badge bg-secondary">Pendiente impresión</span>
+                        <% } %>
+                        <button class="btn btn-outline-warning btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="acta">
+                            <i class="bi bi-printer me-1"></i>Marcar impresa
+                        </button>
+                    </div>
+                </div>
+
+                <%
+                    const FILAS_TOTALES = 30;
+                    const totalHojas = Math.max(1, Math.ceil(acta.length / FILAS_TOTALES));
+                    const tieneItinerario = data.curso?.itinerario !== undefined && data.curso?.itinerario !== null && data.curso?.itinerario !== '';
+                %>
+                <% for (let hoja = 1; hoja <= totalHojas; hoja++) { %>
+                    <% const actaHoja = acta.slice((hoja - 1) * FILAS_TOTALES, hoja * FILAS_TOTALES); %>
+                    <div class="acta-doc">
+                        <div class="acta-doc-header">
+                            <img src="/img/logo ciie luz blanca26.png" alt="CIIE 201">
+                            <div class="acta-header-der">
+                                <img src="/img/logo-pba2.png" alt="Logo institucional">
+                                <div class="acta-ref">
+                                    <%= (data.administrativos?.cursoClave || '').toUpperCase() %> |
+                                    <%= data.curso?.anio %> • <%= data.curso?.itinerario %>
+                                </div>
+                                <div class="acta-ref">Pág. <%= hoja %> / <%= totalHojas %></div>
+                            </div>
                         </div>
 
-                        <% if (data.acta && data.acta.length > 0) { %>
+                        <div class="acta-titulo">Acta volante</div>
+
+                        <div class="acta-datos">
+                            <div class="fila">
+                                <div class="dato"><span>Área:</span> <b><%= data.curso?.areaNombre || '-' %></b></div>
+                                <div class="dato"><span>Dispositivo:</span> <b><%= data.curso?.dispositivo || '-' %></b></div>
+                            </div>
+                            <div class="fila">
+                                <div class="dato" style="flex: 1 1 100%; overflow: hidden; text-overflow: ellipsis;"><span>Propuesta:</span> <b><%= data.curso?.nombrePropuesta || '-' %></b></div>
+                            </div>
+                            <div class="fila">
+                                <div class="dato"><span>Proyecto:</span> <b><%= data.administrativos?.proyecto || '-' %></b></div>
+                                <div class="dato"><span>Resolución:</span> <b><%= data.administrativos?.resolucion || '-' %></b></div>
+                                <div class="dato"><span>Dictamen:</span> <b><%= data.administrativos?.dictamen || '-' %></b></div>
+                                <div class="dato"><span>Carga horaria:</span> <b><%= data.administrativos?.horas || '-' %> hs.</b></div>
+                            </div>
+                            <div class="fila">
+                                <% if (tieneItinerario) { %>
+                                    <div class="dato"><span>Itinerario:</span> <b><%= data.curso.itinerario %></b></div>
+                                <% } else { %>
+                                    <div class="dato"><span>Cohorte:</span> <b><%= data.curso?.cohorte || '-' %></b></div>
+                                <% } %>
+                                <div class="dato"><span>Inicio:</span> <b><%= fmtFecha(data.curso?.fechaInicioCurso) %></b></div>
+                                <div class="dato"><span>Finalización:</span> <b><%= fmtFecha(data.curso?.fechaFinCurso) %></b></div>
+                                <div class="dato"><span>Formador:</span> <b><%= data.curso?.formadorAbc || '-' %></b></div>
+                            </div>
+                        </div>
+
+                        <% if (acta.length > 0) { %>
                             <table class="acta-table">
                                 <thead>
                                     <tr>
-                                        <th>Orden</th>
-                                        <th>Apellido y nombre</th>
-                                        <th>DNI</th>
-                                        <th>Resultado</th>
+                                        <th class="col-orden">Orden</th>
+                                        <th class="col-dni">DNI</th>
+                                        <th class="col-nombre">Apellido y nombre</th>
+                                        <th class="col-calificacion">Calificación</th>
+                                        <th class="col-observaciones">Observaciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <% data.acta.forEach(item => { %>
-                                        <tr class="acta-row">
-                                            <td><%= item.orden %></td>
-                                            <td><%= item.nombreCompleto || '-' %></td>
-                                            <td><%= item.dni || '-' %></td>
-                                            <td><%= item.calificacion || 'Sin Calificar' %></td>
+                                    <% actaHoja.forEach(item => { %>
+                                        <tr>
+                                            <td class="col-orden"><%= item.orden %></td>
+                                            <td class="col-dni"><%= item.dni || '-' %></td>
+                                            <td class="col-nombre"><%= item.nombreCompleto || '-' %></td>
+                                            <td class="col-calificacion" style="<%= item.calificacion === 'Aprobado' ? 'font-weight:700;' : '' %>"><%= item.calificacion || 'Sin Calificar' %></td>
+                                            <td class="col-observaciones">&nbsp;</td>
                                         </tr>
                                     <% }) %>
+                                    <% for (let n = actaHoja.length + 1; n <= FILAS_TOTALES; n++) { %>
+                                        <tr class="acta-row-vacia">
+                                            <td class="col-orden"><%= (hoja - 1) * FILAS_TOTALES + n %></td>
+                                            <td class="col-dni">&nbsp;</td>
+                                            <td class="col-nombre">&nbsp;</td>
+                                            <td class="col-calificacion">&nbsp;</td>
+                                            <td class="col-observaciones">&nbsp;</td>
+                                        </tr>
+                                    <% } %>
                                 </tbody>
                             </table>
+                            <div class="acta-resumen">
+                                Inscriptos: <b><%= acta.length %></b>,
+                                Aprobados: <b><%= aprobados %></b>,
+                                Desaprobados: <b><%= desaprobados %></b>,
+                                Ausentes: <b><%= ausentes %></b>
+                            </div>
                         <% } else { %>
                             <div class="alert alert-secondary">No hay filas para mostrar en el acta.</div>
                         <% } %>
+
+                        <div class="acta-cierre">
+                            <div class="acta-firma-bloque">
+                                <div class="acta-cierre-linea"><%= data.institucion?.distrito || 'Gregorio de Laferrere' %>, _____________________</div>
+                                <div class="acta-firma-label">(Fecha)</div>
+                            </div>
+                            <div class="acta-firma-bloque">
+                                <div class="acta-firma-linea"></div>
+                                <div class="acta-firma-label">Firma form.: <%= data.curso?.formadorAbc || '-' %></div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                <% } %>
             <% }) %>
         <% } else { %>
             <div class="alert alert-secondary">No hay cursos para mostrar.</div>
