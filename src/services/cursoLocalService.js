@@ -1497,7 +1497,7 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
         formadorAbc:        this._sanitizeString(data.formadorAbc) || cursoLocal.formadorAbc,
         tituloFormulario:   this._sanitizeString(data.tituloFormulario),
         ubicacion:          this._sanitizeString(data.ubicacion),
-        detalleFlyer:       this._sanitizeString(data.detalleFlyer),
+        detalleFlyer:       data.detalleFlyer === undefined ? undefined : (this._sanitizeString(data.detalleFlyer) || ''),
         anio:               anioNuevo,
         itinerario:         itinerarioFinal,
         idformato:          this._toNumberOrNull(data.idformato) ?? cursoLocal.idformato,
