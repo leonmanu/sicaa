@@ -1,45 +1,47 @@
 //inscriptoExternoRepo
 
-const client = require('../services/httpClient');
 const URLS = require('../config/urls');
 const sesionService = require('../services/sesionService');
 
 class inscriptoExternoRepo {
     // Sincroniza la sesión interna visitando la página de la propuesta
     async sincronizarFiltros(idInscripcion, idCurso) {
-        const urlNavegacion = `${URLS.INSCRIPTOS.LISTA}?id=${idInscripcion}&volver=misofertas.php&idcurso=${idCurso}&qi=65`;
+        const { client, qi } = await sesionService.contexto();
+        const urlNavegacion = `${URLS.INSCRIPTOS.LISTA}?id=${idInscripcion}&volver=misofertas.php&idcurso=${idCurso}&qi=${qi}`;
         return await client.get(urlNavegacion);
     }
 
     // Pide el aaData de los alumnos
     async getRawCursantes(idInscripcion, idCurso) {
-        const urlReferer = `${URLS.INSCRIPTOS.LISTA}?id=${idInscripcion}&volver=misofertas.php&idcurso=${idCurso}&qi=65`;
+        const { client, qi } = await sesionService.contexto();
+        const urlReferer = `${URLS.INSCRIPTOS.LISTA}?id=${idInscripcion}&volver=misofertas.php&idcurso=${idCurso}&qi=${qi}`;
         console.log("urlReferer: ", urlReferer)
         return await client.get(URLS.INSCRIPTOS.DATOS, {
-            params: { 
+            params: {
                 id: idInscripcion,
-                qi: '65',
+                qi,
                 sEcho: 1,
                 iDisplayStart: 0,
                 iDisplayLength: 100
             },
-            headers: { 
+            headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'Referer': urlReferer 
+                'Referer': urlReferer
             }
         });
     }
 
     // Actualiza la calificación de un alumno
     async actualizarCalificacion(idInscripcion, nuevaCalificacion, idCursoBase) {
-        const urlReferer = `https://formacionpermanente.abc.gob.ar/inscripcion/propuestas/inscriptos.php?id=${idInscripcion}&volver=misofertas.php&idcurso=${idCursoBase}&qi=65`;
+        const { client, qi } = await sesionService.contexto();
+        const urlReferer = `${URLS.INSCRIPTOS.LISTA}?id=${idInscripcion}&volver=misofertas.php&idcurso=${idCursoBase}&qi=${qi}`;
 
         const params = new URLSearchParams();
         params.append('idalumno', idInscripcion);
         params.append('calificacion', nuevaCalificacion);
 
         return await client.post(
-            `${URLS.BASE_URL}/propuestas/cambiacali.php`, 
+            `${URLS.BASE_URL}/propuestas/cambiacali.php`,
             params.toString(),
             {
                 headers: {
@@ -56,6 +58,12 @@ class inscriptoExternoRepo {
     // CC >= 90 -> éxito, resto = "idInscripcionOficial~nombreCurso~region~nombreCiie"
     // CC < 90  -> error, resto = mensaje de error (ej: "Debe seleccionar CIIE")
     async postRegistrarInscripcion(datos) {
+        const { client, qi, regionAbc } = await sesionService.contexto();
+        const region = datos.region ?? regionAbc;
+        if (region == null) {
+            throw new Error('Falta configurar la región (regionAbc) de la institución para inscribir en el sistema oficial.');
+        }
+
         const params = new URLSearchParams();
         params.append('apelnom', datos.apelnom || '');
         params.append('idcurso', datos.idcurso || '');
@@ -63,8 +71,8 @@ class inscriptoExternoRepo {
         params.append('cohorte', datos.cohorte ?? '0');
         params.append('email', datos.email || '');
         params.append('conmail', datos.conmail || datos.email || '');
-        params.append('region', datos.region ?? '3');
-        params.append('idciie', datos.idciie ?? '65');
+        params.append('region', region);
+        params.append('idciie', datos.idciie ?? qi);
         params.append('cuil', datos.cuil || '');
         params.append('nombres', datos.nombres || '');
         params.append('codarea', datos.codarea || '');
@@ -81,7 +89,7 @@ class inscriptoExternoRepo {
         params.append('idfechaciie', datos.idfechaciie || '');
         params.append('telefono', datos.telefono || '');
 
-        const urlReferer = `${URLS.CURSANTE.INSCRIPCION}i_f=${datos.idfechaciie}&qi=65`;
+        const urlReferer = `${URLS.CURSANTE.INSCRIPCION}i_f=${datos.idfechaciie}&qi=${qi}`;
 
         return await client.post(URLS.CURSANTE.REGISTRAR, params.toString(), {
             headers: {
@@ -94,8 +102,9 @@ class inscriptoExternoRepo {
 
     // Obtiene detalles de un cursante
     async getDetalleCursante(idInscripcionOficial) {
-        const url = `${URLS.CURSANTE.DATOS}id=${idInscripcionOficial}&quees=M&qi=65`;
-        
+        const { client, qi } = await sesionService.contexto();
+        const url = `${URLS.CURSANTE.DATOS}id=${idInscripcionOficial}&quees=M&qi=${qi}`;
+
         const html = await client.get(url, {
             headers: { 'Referer': URLS.INSCRIPTOS.LISTA }
         });
@@ -111,21 +120,22 @@ class inscriptoExternoRepo {
             } else {
                 await sesionService.asegurarSesion();
             }
-            
+
             if (idCurso) {
                 await this.sincronizarFiltros(idInscripcion, idCurso);
             }
-            
+
+            const { client, qi } = await sesionService.contexto();
             return await client.get(URLS.CURSANTE.DATOS, {
-                params: { 
+                params: {
                     id: idInscripcion,
                     quees: 'M',
-                    qi: '65'
+                    qi
                 },
-                headers: { 
-                    'Referer': idCurso 
-                        ? `${URLS.INSCRIPTOS.LISTA}?id=${idInscripcion}&volver=misofertas.php&idcurso=${idCurso}&qi=65`
-                        : `${URLS.INSCRIPTOS.LISTA}?qi=65`,
+                headers: {
+                    'Referer': idCurso
+                        ? `${URLS.INSCRIPTOS.LISTA}?id=${idInscripcion}&volver=misofertas.php&idcurso=${idCurso}&qi=${qi}`
+                        : `${URLS.INSCRIPTOS.LISTA}?qi=${qi}`,
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                     'Accept-Language': 'es-ES,es;q=0.9',
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -135,13 +145,13 @@ class inscriptoExternoRepo {
 
         try {
             const response = await intentarPeticion();
-            
+
             if (response.data.includes('Inicio de Sesión')) {
                 console.log('⚠️ Sesión expirada, reintentando...');
                 sesionService.invalidarSesion();
                 return await intentarPeticion(true);
             }
-            
+
             return response;
         } catch (error) {
             console.error('Error al obtener HTML del docente:', error.message);

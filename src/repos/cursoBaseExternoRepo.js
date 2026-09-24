@@ -1,32 +1,35 @@
 // src/repositories/cursoRepository.js
-const client = require('../services/httpClient');
+const sesionService = require('../services/sesionService');
 const URLS = require('../config/urls');
 
 class cursoBaseExternoRepo {
     async sincronizarFiltros() {
-        const params = 'idciie=65&lim=S&qi=65';
+        const { client, qi } = await sesionService.contexto();
+        const params = `idciie=${qi}&lim=S&qi=${qi}`;
         return await client.get(`${URLS.PROPUESTASBASE.LISTA}?${params}`, {
             headers: { 'Referer': URLS.PROPUESTASBASE.REFERER_ORIGEN }
         });
     }
 
     async getRawCursosTodos() {
-        const url =  URLS.PROPUESTASBASE.LISTA + '?idciie=65&lim=S&qi=65';
+        const { client, qi } = await sesionService.contexto();
+        const url =  URLS.PROPUESTASBASE.LISTA + `?idciie=${qi}&lim=S&qi=${qi}`;
         return await client.get(url, {
             headers: { 'Referer': URLS.PROPUESTASBASE.REFERER_ORIGEN }
         });
     }
 
      async getRaw() {
-            const urlFiltro = `${URLS.PROPUESTASBASE.LISTA}?idciie=65&lim=S&qi=65`;
+            const { client, qi } = await sesionService.contexto();
+            const urlFiltro = `${URLS.PROPUESTASBASE.LISTA}?idciie=${qi}&lim=S&qi=${qi}`;
             return await client.get(URLS.PROPUESTASBASE.DATOS, {
-                params: { 
-                    qi: '65', 
-                    sEcho: 1, 
-                    iDisplayStart: 0, 
-                    iDisplayLength: -1 
+                params: {
+                    qi,
+                    sEcho: 1,
+                    iDisplayStart: 0,
+                    iDisplayLength: -1
                 },
-                headers: { 
+                headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'Referer': urlFiltro,
                     'Accept': 'application/json, text/javascript, */*; q=0.01'
@@ -36,7 +39,3 @@ class cursoBaseExternoRepo {
 }
 
 module.exports = new cursoBaseExternoRepo();
-
-
-
-

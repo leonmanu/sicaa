@@ -1297,12 +1297,13 @@ class CursoLocalService {
         const materiaField = [primaryCargoLabel].concat(invitadosLabels).filter(Boolean).join(', ');
 
         const hoy = this._toDateString(new Date());
+        const { qi } = await sesionService.contexto();
 
         const payload = new URLSearchParams({
             id: '0',
             idcurso: idCursoOriginal,
             quees: 'A',
-            volver: `ofertas.php?id=${idCursoOriginal}&quees=M&qi=65`,
+            volver: `ofertas.php?id=${idCursoOriginal}&quees=M&qi=${qi}`,
             anio: String(cursoLocal.anio || new Date().getFullYear()),
             inicioa: this._toDateTimeLocalString(inicioInscripcion), // fecha del momento en que se publica
             fina: this._toDateString(finInscripcion), // fecha del último encuentro del curso
@@ -1824,11 +1825,12 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
         const cupoNuevo = this._toNumberOrNull(cursoMerged.cupo) ?? cupoAnterior;
         const aumentar = cupoNuevo - cupoAnterior;
 
+        const { qi } = await sesionService.contexto();
         const payload = new URLSearchParams({
             id: idOfertaOficial,
             idcurso: idCursoOriginal,
             quees: 'M',
-            volver: 'misofertas.php?qi=65',
+            volver: `misofertas.php?qi=${qi}`,
             anio: String(cursoMerged.anio || new Date().getFullYear()),
             inicioa: inicioaActual || this._toDateTimeLocalString(new Date()),
             fina: finaActual || this._toDateString(encuentrosOrdenados[encuentrosOrdenados.length - 1]?.fecha),

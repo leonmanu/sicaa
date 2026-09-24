@@ -1,9 +1,10 @@
 const { PdfReader } = require('pdfreader');
-const client = require('../services/httpClient');
+const sesionService = require('../services/sesionService');
 
 class CertificadoExternoRepo {
 
     async getDatosAdministrativosPdf(idOfertaOficial) {
+        const { client } = await sesionService.contexto();
         const response = await client.post(
             'https://formacionpermanente.abc.gob.ar/inscripcion/propuestas/pdf.php',
             new URLSearchParams({
@@ -20,13 +21,15 @@ class CertificadoExternoRepo {
     // en condiciones de certificar el seminario (cruza con experiencias CIIE de
     // otros CIIE que nosotros no vemos). De ahí sacamos el "aprobados" para pdf1.php.
     async getCombinaciones(idOfertaOficial, idCursoOriginal) {
-        const url = `https://formacionpermanente.abc.gob.ar/inscripcion/propuestas/combinaciones.php?id=${idOfertaOficial}&volver=misofertas.php&idcurso=${idCursoOriginal}&qi=65`;
+        const { client, qi } = await sesionService.contexto();
+        const url = `https://formacionpermanente.abc.gob.ar/inscripcion/propuestas/combinaciones.php?id=${idOfertaOficial}&volver=misofertas.php&idcurso=${idCursoOriginal}&qi=${qi}`;
         const response = await client.get(url);
         return response.data;
     }
 
     // Dispara la misma acción que el botón "Certificar" de combinaciones.php.
     async certificar(aprobados, cantcerti, idcurso) {
+        const { client } = await sesionService.contexto();
         const response = await client.post(
             'https://formacionpermanente.abc.gob.ar/inscripcion/propuestas/certificar.php',
             new URLSearchParams({ aprobados, cantcerti, idcurso })
@@ -35,6 +38,7 @@ class CertificadoExternoRepo {
     }
 
     async getDatosAdministrativosPdfSeminario(idaprobados, idOfertaOficial) {
+        const { client } = await sesionService.contexto();
         const response = await client.post(
             `https://formacionpermanente.abc.gob.ar/inscripcion/propuestas/pdf1.php?idaprobados=${encodeURIComponent(idaprobados)}`,
             new URLSearchParams({

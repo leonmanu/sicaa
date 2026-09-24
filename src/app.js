@@ -37,6 +37,8 @@ app.use((req, res, next) => {
     res.locals.usuario = req.user || null; // Aprovechamos para pasar el usuario
     next();
 });
+// Institución (CIIE) del request: define con qué credenciales y `qi` se habla con el sitio oficial
+app.use(require('./services/contextoCiie').middleware);
 
 
 // 3. Vistas

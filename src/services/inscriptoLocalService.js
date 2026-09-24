@@ -275,10 +275,6 @@ class InscriptoLocalService {
         }
     }
 
-    // CIIE 201 (Laferrere) en el nomenclador de ABC: región 3, id de CIIE 65.
-    static REGION_ABC_DEFAULT = '3';
-    static IDCIIE_ABC_DEFAULT = '65';
-
     async altaManual(datosForm, idOfertaOficial, usuarioEmail) {
         try {
             const cursoLocal = await cursoLocalService.getPorIdOfertaOficial(idOfertaOficial);
@@ -320,8 +316,6 @@ class InscriptoLocalService {
                 idfechaciie: cursoLocal.idOfertaOficial,
                 cohorte: cursoLocal.cohorte ?? '0',
                 tipo: 'A',
-                region: InscriptoLocalService.REGION_ABC_DEFAULT,
-                idciie: InscriptoLocalService.IDCIIE_ABC_DEFAULT,
                 couli: '1'
             });
 

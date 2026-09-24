@@ -18,27 +18,33 @@ const httpsAgent = new https.Agent({
     ].join(':')
 });
 
-const instance = axios.create({
-    httpsAgent,
-    withCredentials: true,
-    maxRedirects: 5
-});
+// Cada institución usa su propio usuario de Drupal, así que cada una necesita
+// su propio cliente con sus cookies.
+const crearClienteDrupal = () => {
+    const instance = axios.create({
+        httpsAgent,
+        withCredentials: true,
+        maxRedirects: 5
+    });
 
-let cookies = '';
+    let cookies = '';
 
-instance.interceptors.response.use(response => {
-    const setCookie = response.headers['set-cookie'];
-    if (setCookie) {
-        cookies = setCookie.map(c => c.split(';')[0]).join('; ');
-    }
-    return response;
-});
+    instance.interceptors.response.use(response => {
+        const setCookie = response.headers['set-cookie'];
+        if (setCookie) {
+            cookies = setCookie.map(c => c.split(';')[0]).join('; ');
+        }
+        return response;
+    });
 
-instance.interceptors.request.use(config => {
-    if (cookies) {
-        config.headers['Cookie'] = cookies;
-    }
-    return config;
-});
+    instance.interceptors.request.use(config => {
+        if (cookies) {
+            config.headers['Cookie'] = cookies;
+        }
+        return config;
+    });
 
-module.exports = instance;
+    return instance;
+};
+
+module.exports = { crearClienteDrupal };

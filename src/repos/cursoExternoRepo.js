@@ -1,5 +1,5 @@
 // src/repositories/cursoExternoRepo.js
-const client = require('../services/httpClient');
+const sesionService = require('../services/sesionService');
 const URLS = require('../config/urls');
 
 class CursoExternoRepo {
@@ -7,7 +7,8 @@ class CursoExternoRepo {
     // ─── Sesión ───────────────────────────────────────────────────────────────
 
     async sincronizarFiltros() {
-        return await client.get(`${URLS.PROPUESTAS.LISTA}?idciie=65&lim=S&qi=65`, {
+        const { client, qi } = await sesionService.contexto();
+        return await client.get(`${URLS.PROPUESTAS.LISTA}?idciie=${qi}&lim=S&qi=${qi}`, {
             headers: { 'Referer': URLS.PROPUESTAS.REFERER_ORIGEN }
         });
     }
@@ -16,13 +17,14 @@ class CursoExternoRepo {
     // El PHP de ABC guarda idcurso en $_SESSION al visitar ofertas.php,
     // y am.php inicializa el formulario usando ese valor de sesión.
     async prepararSesionParaAlta(idCursoOriginal) {
+        const { client, qi } = await sesionService.contexto();
         await client.get(`${URLS.BASE_URL}/propuestas/ofertas.php`, {
-            params: { id: idCursoOriginal, quees: 'M', qi: '65' },
-            headers: { 'Referer': `${URLS.BASE_URL}/propuestas/tabla.php?idciie=65&lim=S&qi=65` }
+            params: { id: idCursoOriginal, quees: 'M', qi },
+            headers: { 'Referer': `${URLS.BASE_URL}/propuestas/tabla.php?idciie=${qi}&lim=S&qi=${qi}` }
         });
         await client.get(`${URLS.BASE_URL}/propuestas/am.php`, {
-            params: { quees: 'A', qi: '65' },
-            headers: { 'Referer': `${URLS.BASE_URL}/propuestas/ofertas.php?id=${idCursoOriginal}&quees=M&qi=65` }
+            params: { quees: 'A', qi },
+            headers: { 'Referer': `${URLS.BASE_URL}/propuestas/ofertas.php?id=${idCursoOriginal}&quees=M&qi=${qi}` }
         });
     }
 
@@ -31,9 +33,10 @@ class CursoExternoRepo {
     // Devuelve el HTML del formulario: trae los valores actuales (inicioa/fina, etc.)
     // tal como los tiene ABC, que no siempre coinciden con lo que guardamos en Mongo.
     async prepararSesionParaEdicion(idOfertaOficial) {
+        const { client, qi } = await sesionService.contexto();
         const response = await client.get(`${URLS.BASE_URL}/propuestas/am.php`, {
-            params: { id: idOfertaOficial, volver: 'misofertas.php', quees: 'M', qi: '65' },
-            headers: { 'Referer': `${URLS.BASE_URL}/propuestas/misofertas.php?qi=65` }
+            params: { id: idOfertaOficial, volver: 'misofertas.php', quees: 'M', qi },
+            headers: { 'Referer': `${URLS.BASE_URL}/propuestas/misofertas.php?qi=${qi}` }
         });
         return response?.data;
     }
@@ -41,10 +44,11 @@ class CursoExternoRepo {
     // ─── Consultas ────────────────────────────────────────────────────────────
 
     async getRawCursos() {
-        const urlFiltro = `${URLS.PROPUESTAS.LISTA}?idciie=65&lim=S&qi=65`;
+        const { client, qi } = await sesionService.contexto();
+        const urlFiltro = `${URLS.PROPUESTAS.LISTA}?idciie=${qi}&lim=S&qi=${qi}`;
         return await client.get(URLS.PROPUESTAS.DATOS, {
             params: {
-                qi: '65',
+                qi,
                 sEcho: 1,
                 iDisplayStart: 0,
                 iDisplayLength: -1
@@ -58,7 +62,8 @@ class CursoExternoRepo {
     }
 
     async getRawCursosTodos() {
-        const url = URLS.PROPUESTAS_TODAS.LISTA + '?idciie=65&lim=S&qi=65';
+        const { client, qi } = await sesionService.contexto();
+        const url = URLS.PROPUESTAS_TODAS.LISTA + `?idciie=${qi}&lim=S&qi=${qi}`;
         return await client.get(url, {
             headers: { 'Referer': URLS.PROPUESTAS_TODAS.REFERER_ORIGEN }
         });
@@ -67,11 +72,12 @@ class CursoExternoRepo {
     // ─── Alta oferta oficial ──────────────────────────────────────────────────
 
     async crearOfertaOficial(payload) {
+        const { client, qi } = await sesionService.contexto();
         return await client.post(URLS.PROPUESTAS.ACTUALIZA, payload, {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Requested-With': 'XMLHttpRequest',
-                'Referer': `${URLS.BASE_URL}/propuestas/am.php?quees=A&qi=65`
+                'Referer': `${URLS.BASE_URL}/propuestas/am.php?quees=A&qi=${qi}`
             }
         });
     }
@@ -79,18 +85,20 @@ class CursoExternoRepo {
     // ─── Edición de oferta oficial ya publicada ──────────────────────────────
 
     async editarOfertaOficial(payload, idOfertaOficial) {
+        const { client, qi } = await sesionService.contexto();
         return await client.post(URLS.PROPUESTAS.ACTUALIZA, payload, {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Requested-With': 'XMLHttpRequest',
-                'Referer': `${URLS.BASE_URL}/propuestas/am.php?id=${idOfertaOficial}&volver=misofertas.php&quees=M&qi=65`
+                'Referer': `${URLS.BASE_URL}/propuestas/am.php?id=${idOfertaOficial}&volver=misofertas.php&quees=M&qi=${qi}`
             }
         });
     }
 
     async getOfertasDelCursoActivo() {
+        const { client, qi } = await sesionService.contexto();
         return await client.get(`${URLS.BASE_URL}/propuestas/datosofertas.php`, {
-            params: { qi: '65', sEcho: 1, iDisplayStart: 0, iDisplayLength: 5 }
+            params: { qi, sEcho: 1, iDisplayStart: 0, iDisplayLength: 5 }
         });
     }
 }

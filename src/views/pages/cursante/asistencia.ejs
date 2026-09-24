@@ -492,6 +492,16 @@
     <script>
         $(document).ready(function () {
             let encuentroActual = null;
+            let hayCambiosSinGuardar = false;
+
+            function actualizarEstadoBotonCerrar() {
+                const btn = $('#btnCerrarCurso');
+                if (!btn.length) return;
+                btn.prop('disabled', hayCambiosSinGuardar);
+                btn.attr('title', hayCambiosSinGuardar
+                    ? 'Guardá los cambios pendientes de asistencia o calificaciones antes de cerrar el curso'
+                    : '');
+            }
             const inscriptosData = JSON.parse('<%- JSON.stringify(inscriptosLocales) %>');
             let asistenciasTemp = {};
             let calificacionesTemp = {};
@@ -581,6 +591,8 @@
                     const reg = (ins.asistencia || []).find(e => e.encuentroId.toString() === encuentroActual.id.toString());
                     asistenciasTemp[ins.idInscripcionOficial] = reg ? reg.estado : 'Ausente';
                 });
+                hayCambiosSinGuardar = false;
+                actualizarEstadoBotonCerrar();
                 $('#modalEncuentroNumero').text(encuentroActual.numero);
                 $('#modalEncuentroInfo').text(`📅 ${encuentroActual.fecha}`);
                 renderizarInscriptos();
@@ -622,6 +634,8 @@
                 const nuevoEstado = $(this).attr('data-estado') === 'Presente' ? 'Ausente' : 'Presente';
                 asistenciasTemp[idInscripcion] = nuevoEstado;
                 $(this).attr('data-estado', nuevoEstado);
+                hayCambiosSinGuardar = true;
+                actualizarEstadoBotonCerrar();
                 actualizarResumen();
             });
 
@@ -634,14 +648,18 @@
 
             $('#buscarInscripto').on('input', function() { renderizarInscriptos($(this).val()); });
 
-            $('#btnMarcarTodosPresentes').click(() => { 
-                Object.keys(asistenciasTemp).forEach(id => asistenciasTemp[id] = 'Presente'); 
-                renderizarInscriptos($('#buscarInscripto').val()); 
+            $('#btnMarcarTodosPresentes').click(() => {
+                Object.keys(asistenciasTemp).forEach(id => asistenciasTemp[id] = 'Presente');
+                hayCambiosSinGuardar = true;
+                actualizarEstadoBotonCerrar();
+                renderizarInscriptos($('#buscarInscripto').val());
             });
 
-            $('#btnMarcarTodosAusentes').click(() => { 
-                Object.keys(asistenciasTemp).forEach(id => asistenciasTemp[id] = 'Ausente'); 
-                renderizarInscriptos($('#buscarInscripto').val()); 
+            $('#btnMarcarTodosAusentes').click(() => {
+                Object.keys(asistenciasTemp).forEach(id => asistenciasTemp[id] = 'Ausente');
+                hayCambiosSinGuardar = true;
+                actualizarEstadoBotonCerrar();
+                renderizarInscriptos($('#buscarInscripto').val());
             });
 
             $('#btnGuardarAsistencia').click(function() {
@@ -674,6 +692,8 @@
                         ? ins.calificacion 
                         : 'Sin Calificar';
                 });
+                hayCambiosSinGuardar = false;
+                actualizarEstadoBotonCerrar();
                 renderizarCalificaciones();
                 $('#modalCalificaciones').modal('show');
             });
@@ -714,6 +734,8 @@
             $(document).on('change', '.select-calificacion', function() {
                 const idInscripcion = $(this).data('idinscripcion');
                 calificacionesTemp[idInscripcion] = $(this).val();
+                hayCambiosSinGuardar = true;
+                actualizarEstadoBotonCerrar();
                 actualizarResumenCal();
             });
 
@@ -721,6 +743,8 @@
                 const valor = $(this).val();
                 if (!valor) return;
                 Object.keys(calificacionesTemp).forEach(id => calificacionesTemp[id] = valor);
+                hayCambiosSinGuardar = true;
+                actualizarEstadoBotonCerrar();
                 renderizarCalificaciones($('#buscarInscriptoCal').val());
                 $(this).val('');
             });
@@ -758,6 +782,11 @@
                         Swal.fire('Error', 'No se pudo guardar', 'error');
                     }
                 });
+            });
+
+            $('#modalTomarAsistencia, #modalCalificaciones').on('hidden.bs.modal', function() {
+                hayCambiosSinGuardar = false;
+                actualizarEstadoBotonCerrar();
             });
 
             // --- 4. CIERRE ADMINISTRATIVO ---
