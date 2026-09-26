@@ -22,6 +22,7 @@
             --cream:      #F0EBE3;
             --white:      #FFFFFF;
             --text-dark:  #1A4A5A;
+            --gray-dark:  #3a3a3a;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -194,7 +195,7 @@
             font-weight: 900;
             color: white;
             line-height: 1.15;
-            margin-bottom: 16px;
+            margin-bottom: 10px;
             height: 200px;
             display: flex;
             align-items: flex-start; 
@@ -209,12 +210,12 @@
             left: -20px;
             background: var(--orange);
             color: white;
-            padding: 7px 18px;
+            padding: 5px 18px;
             font-weight: 800;
             letter-spacing: 1.2px;
             font-family: 'Roboto Mono', monospace;
             text-transform: uppercase;
-            margin-bottom: 50px;
+            margin-bottom: 17px;
             width: 230px;
         }
 
@@ -230,23 +231,62 @@
         }
         .info-box strong { font-weight: 900; }
 
+        /* ─── Invitados/as: franja por encima, ancho teal + fecha ─ */
+        .panel-invitados {
+            position: absolute;
+            left: 35px;
+            right: 35px;
+            top: 500px;          /* top y height se recalculan por JS: debajo del info-box, arriba del logo */
+            height: 50px;
+            background: var(--teal);
+            border-radius: 0 0 24px 24px;
+            padding: 5px 16px 4px 16px;
+            z-index: 5;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+        .invitados-label {
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.82);
+            margin-bottom: 2px;
+        }
+        .invitados {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            column-gap: 14px;
+            row-gap: 6px;
+            align-content: start;
+            align-items: start;
+            font-size: 11px;
+        }
+        .invitados.una-columna { grid-template-columns: 1fr; }
+        .invitado { line-height: 1.2; }
+        .invitado-nombre { font-weight: 900; }
+        .invitado-titulo { font-size: 0.85em; font-weight: 500; color: rgba(255,255,255,0.88); }
+
         /* ─── Detalle/Observación (arriba del panel de fecha) ─ */
         .panel-detalle {
             position: absolute;
-            top: 65px;
+            top: 80px;
             right: 35px;
-            width: 206px;
-            background: var(--sky);
-            color: var(--text-dark);
+            width: 160px;
+            background: var(--gray-dark);
+            color: var(--white);
             border-radius: 12px;
             padding: 8px 12px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             z-index: 3;
             display: flex;
             align-items: flex-start;
-            gap: 6px;
+            gap: 4px;
         }
+
+        .panel-detalle .detalle-texto { white-space: pre-line; }
 
         /* ─── Panel naranja fecha ────────────────────────── */
         .panel-orange {
@@ -371,7 +411,14 @@
 
             <!-- ══════════════ FLYER ══════════════ -->
             <div>
-                <div class="flyer" id="flyer">
+                <%
+                        const invitados = (curso.invitadosFlyer || '')
+                            .replace(/\r/g, '')
+                            .split(/\n\s*\n/)
+                            .map(bloque => bloque.split('\n').map(l => l.trim()).filter(Boolean))
+                            .filter(bloque => bloque.length);
+                %>
+                <div class="flyer<%= invitados.length ? ' con-invitados' : '' %>" id="flyer">
                     <div class="flyer-bg"></div>
 
                     <!-- Panel teal -->
@@ -411,12 +458,7 @@
                                     let nombres = (curso.formadorAbc || '').split(';').map(n => n.trim()).filter(n => n);
                                     if (nombres.length > 0) { 
                                 %>
-                                    <span><%= nombres[0] %></span>
-                                    <% if (nombres.length > 1) { %>
-                                        <div style="display: block; margin-top: 2px;">
-                                            <%= nombres.slice(1).join(' ; ') %>
-                                        </div>
-                                    <% } %>
+                                    <% nombres.forEach((nombre, i) => { %><span style="white-space: nowrap;"><%= nombre %><%= i < nombres.length - 1 ? ';' : '' %></span> <% }) %>
                                 <% } else { %>
                                     <span> A DESIGNAR</span>
                                 <% } %>
@@ -425,16 +467,34 @@
                             <div style="margin-top: 8px;">
                                 <strong>Destinatarios:</strong>
                                 <span id="ed-destinatarios" contenteditable="true">
-                                    <%= curso.publicacionDrupal?.nivel || 'Todos' %>
+                                    Todos
                                 </span>
                             </div>
+
+                            
 
                         </div>
                     </div>
 
+                    <% if (invitados.length) { %>
+                        <div class="panel-invitados" id="panel-invitados">
+                            <div class="invitados-label"><%= invitados.length > 1 ? 'Invitados/as' : 'Invitado/a' %></div>
+                            <div class="invitados<%= invitados.length === 1 ? ' una-columna' : '' %>" id="ed-invitados" contenteditable="true">
+                                <% invitados.forEach(([nombre, ...titulos]) => { %>
+                                    <div class="invitado">
+                                        <div class="invitado-nombre"><%= nombre %></div>
+                                        <% titulos.forEach(titulo => { %>
+                                            <div class="invitado-titulo"><%= titulo %></div>
+                                        <% }) %>
+                                    </div>
+                                <% }) %>
+                            </div>
+                        </div>
+                    <% } %>
+
                     <% if (curso.detalleFlyer) { %>
                         <div class="panel-detalle" id="ed-detalle" contenteditable="true">
-                            <i class="bi bi-asterisk"></i><span><%= curso.detalleFlyer %></span>
+                            <i class="bi bi-asterisk"></i><span class="detalle-texto"><%= curso.detalleFlyer %></span>
                         </div>
                     <% } %>
 
@@ -565,6 +625,54 @@
             el.style.fontSize = size + 'px';
         }
     })();
+
+    // Auto-shrink del detalle para que no pise el panel de fecha
+    function fitDetalle() {
+        const el = document.getElementById('ed-detalle');
+        const tope = document.querySelector('.panel-orange');
+        if (!el || !tope) return;
+        el.style.fontSize = '';
+        let size = parseFloat(getComputedStyle(el).fontSize);
+        while (el.getBoundingClientRect().bottom > tope.getBoundingClientRect().top - 8 && size > 6) {
+            size -= 0.5;
+            el.style.fontSize = size + 'px';
+        }
+    }
+    window.addEventListener('load', fitDetalle);
+    document.getElementById('ed-detalle')?.addEventListener('input', fitDetalle);
+
+    // Invitados/as: la franja arranca debajo del info-box y la letra se achica
+    // hasta que entra en la franja
+    function fitInvitados() {
+        const franja = document.getElementById('panel-invitados');
+        const el = document.getElementById('ed-invitados');
+        const infoBox = document.querySelector('.info-box');
+        const logo = document.querySelector('.panel-back img');
+        const flyer = document.getElementById('flyer');
+        if (!franja || !el || !infoBox || !logo || !flyer) return;
+
+        // La franja va de debajo del info-box hasta arriba del logo (el logo no se tapa).
+        // El SVG del logo tiene ~10px de aire arriba, por eso se puede llegar a su top + 4.
+        const flyerTop = flyer.getBoundingClientRect().top;
+        const top = infoBox.getBoundingClientRect().bottom - flyerTop + 4;
+        const bottom = logo.getBoundingClientRect().top - flyerTop + 4;
+        franja.style.top = top + 'px';
+        franja.style.height = Math.max(bottom - top, 30) + 'px';
+
+        // Todo tiene que terminar dentro de la franja
+        const noEntra = () => {
+            const f = franja.getBoundingClientRect();
+            return [...el.children].some(c => c.getBoundingClientRect().bottom > f.bottom - 4);
+        };
+        el.style.fontSize = '';
+        let size = parseFloat(getComputedStyle(el).fontSize);
+        while (noEntra() && size > 6) {
+            size -= 0.25;
+            el.style.fontSize = size + 'px';
+        }
+    }
+    window.addEventListener('load', fitInvitados);
+    document.getElementById('ed-invitados')?.addEventListener('input', fitInvitados);
 
     // Descargar como PNG 2x
     const nombreArchivoFlyer = <%- JSON.stringify(

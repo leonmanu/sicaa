@@ -252,6 +252,8 @@
             gap: 6px;
         }
 
+        #ed-detalle .detalle-texto { white-space: pre-line; }
+
         .panel-fechas-footer {
             background: var(--orange);
             border-radius: 0 0 16px 16px;
@@ -496,7 +498,7 @@
 
                                 <% if (curso.detalleFlyer) { %>
                                     <div class="distrito-strip-sem" id="ed-detalle" contenteditable="true" style="margin-top: 0; padding-bottom: 6px; font-size: 12px;">
-                                        <i class="bi bi-asterisk"></i> <%= curso.detalleFlyer %>
+                                        <i class="bi bi-asterisk"></i> <span class="detalle-texto"><%= curso.detalleFlyer %></span>
                                     </div>
                                 <% } %>
 
@@ -605,6 +607,22 @@ document.getElementById('cargo-titulo').addEventListener('input', function () {
     }
     shrink(this, 48, 18);
 });
+
+    // Auto-shrink del detalle para que el panel de fechas no se salga del flyer
+    function fitDetalle() {
+        const el = document.getElementById('ed-detalle');
+        const panel = document.querySelector('.panel-fechas-sem');
+        const flyer = document.getElementById('flyer');
+        if (!el || !panel || !flyer) return;
+        el.style.fontSize = '12px';
+        let size = 12;
+        while (panel.getBoundingClientRect().bottom > flyer.getBoundingClientRect().bottom - 10 && size > 6) {
+            size -= 0.5;
+            el.style.fontSize = size + 'px';
+        }
+    }
+    window.addEventListener('load', fitDetalle);
+    document.getElementById('ed-detalle')?.addEventListener('input', fitDetalle);
 
     // Descargar PNG
     const nombreArchivoFlyer = <%- JSON.stringify(

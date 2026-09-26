@@ -314,6 +314,8 @@
             gap: 6px;
         }
 
+        .panel-detalle .detalle-texto { white-space: pre-line; }
+
         /* ─── Panel naranja fecha ────────────────────────── */
         .panel-orange {
             position: absolute;
@@ -529,7 +531,7 @@
 
                     <% if (curso.detalleFlyer) { %>
                         <div class="panel-detalle" id="ed-detalle" contenteditable="true">
-                            <i class="bi bi-asterisk"></i><span><%= curso.detalleFlyer %></span>
+                            <i class="bi bi-asterisk"></i><span class="detalle-texto"><%= curso.detalleFlyer %></span>
                         </div>
                     <% } %>
 
@@ -685,6 +687,21 @@ document.getElementById('cargo-titulo').addEventListener('input', function () {
         this.style.fontSize = size + 'px';
     }
 });
+
+    // Auto-shrink del detalle para que no pise el panel de fecha
+    function fitDetalle() {
+        const el = document.getElementById('ed-detalle');
+        const tope = document.querySelector('.panel-orange');
+        if (!el || !tope) return;
+        el.style.fontSize = '';
+        let size = parseFloat(getComputedStyle(el).fontSize);
+        while (el.getBoundingClientRect().bottom > tope.getBoundingClientRect().top - 8 && size > 6) {
+            size -= 0.5;
+            el.style.fontSize = size + 'px';
+        }
+    }
+    window.addEventListener('load', fitDetalle);
+    document.getElementById('ed-detalle')?.addEventListener('input', fitDetalle);
 
     // Descargar como PNG 2x
     const nombreArchivoFlyer = <%- JSON.stringify(

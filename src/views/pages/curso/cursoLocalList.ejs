@@ -612,9 +612,15 @@
                                                 </div>
                                                 <div class="col-6">
                                                     <label class="form-label small fw-bold">DETALLE / OBSERVACIÓN <small class="text-muted">(para el flyer, opcional)</small></label>
-                                                    <input type="text" id="detalleFlyer" name="detalleFlyer"
-                                                           class="form-control bg-dark border-secondary text-white"
-                                                           maxlength="200" placeholder="Ej: Traer material propio...">
+                                                    <textarea id="detalleFlyer" name="detalleFlyer" rows="3"
+                                                              class="form-control bg-dark border-secondary text-white"
+                                                              placeholder="Ej: Traer material propio..."></textarea>
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label small fw-bold">INVITADOS/AS <small class="text-muted">(para el flyer, opcional — primera línea: nombre; siguientes: títulos; una línea en blanco entre invitados/as)</small></label>
+                                                    <textarea id="invitadosFlyer" name="invitadosFlyer" rows="6"
+                                                              class="form-control bg-dark border-secondary text-white"
+                                                              placeholder="Prof. Nombre Apellido&#10;Lic. en ... - UNIVERSIDAD&#10;Cargo actual&#10;&#10;Nombre Apellido&#10;Título"></textarea>
                                                 </div>
                                             </div>
                                         </div>
@@ -1325,6 +1331,7 @@ $('#btnAltaCurso').on('click', function() {
             $('#alcance').val('1');
             $('#ubicacion').val('');
             $('#detalleFlyer').val('');
+            $('#invitadosFlyer').val('');
             
             // Limpiar formadores
             
@@ -1443,6 +1450,7 @@ $('#btnAltaCurso').on('click', function() {
                 tituloFormulario:   $('#tituloFormulario').val(),
                 ubicacion:          $('#ubicacion').val(),
                 detalleFlyer:       $('#detalleFlyer').val(),
+                invitadosFlyer:     $('#invitadosFlyer').val(),
                 anio:               Number($('#anio').val()),
                 itinerario:         Number($('#itinerario').val()),
                 idformato:          Number($('#idformato').val()),  // ← esta línea
@@ -1520,6 +1528,7 @@ $('#horaEncuentro').val(horaEncuentro);
                     $('#tituloFormulario').val(curso.tituloFormulario || '');
                     $('#ubicacion').val(curso.ubicacion || '');
                     $('#detalleFlyer').val(curso.detalleFlyer || '');
+                    $('#invitadosFlyer').val(curso.invitadosFlyer || '');
                     $('#drupalNivel').val(curso.publicacionDrupal?.nivel || '');
                     $('#drupalSede').val(curso.publicacionDrupal?.sede || '');
                     $('#drupalOrganiza').val(curso.publicacionDrupal?.organiza || '');
@@ -1615,6 +1624,7 @@ $('#horaEncuentro').val(horaEncuentro);
             tituloFormulario: 'Título para formulario',
             ubicacion: 'Ubicación',
             detalleFlyer: 'Detalle flyer',
+            invitadosFlyer: 'Invitados/as flyer',
             anio: 'Año',
             itinerario: 'Itinerario',
             idformato: 'Formato',

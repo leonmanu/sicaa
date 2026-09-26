@@ -60,6 +60,7 @@ class CursoLocalService {
             tituloFormulario: this._sanitizeString(data.tituloFormulario) || '',
             ubicacion:        this._sanitizeString(data.ubicacion)        || '',
             detalleFlyer:     this._sanitizeString(data.detalleFlyer)     || '',
+            invitadosFlyer:   this._sanitizeString(data.invitadosFlyer)   || '',
 
             // Tiempos
             anio:    anio,
@@ -1499,6 +1500,7 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
         tituloFormulario:   this._sanitizeString(data.tituloFormulario),
         ubicacion:          this._sanitizeString(data.ubicacion),
         detalleFlyer:       data.detalleFlyer === undefined ? undefined : (this._sanitizeString(data.detalleFlyer) || ''),
+        invitadosFlyer:     data.invitadosFlyer === undefined ? undefined : (this._sanitizeString(data.invitadosFlyer) || ''),
         anio:               anioNuevo,
         itinerario:         itinerarioFinal,
         idformato:          this._toNumberOrNull(data.idformato) ?? cursoLocal.idformato,

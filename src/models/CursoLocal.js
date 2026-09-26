@@ -15,6 +15,7 @@ const cursoSchema = new mongoose.Schema({
     // Datos opcionales para el flyer (solo se muestran si tienen contenido)
     ubicacion: { type: String, default: '' },
     detalleFlyer: { type: String, default: '' },
+    invitadosFlyer: { type: String, default: '' },
 
     // Tiempos
     anio: Number,
