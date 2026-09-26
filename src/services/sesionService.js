@@ -1,6 +1,7 @@
 const ciieRepo = require('../repos/ciieRepo');
 const contextoCiie = require('./contextoCiie');
 const { crearCliente } = require('./httpClient');
+const { desencriptar } = require('../utils/credencialCrypto');
 const URLS = require('../config/urls');
 
 // Sesión con el portal de inscripción de formación permanente (sitio "ABC"),
@@ -28,7 +29,7 @@ class SesionService {
             qi: String(ciie.qi),
             regionAbc: ciie.regionAbc ? String(ciie.regionAbc) : null,
             usuario: credencial.usuario,
-            password: credencial.password
+            password: desencriptar(credencial.password)
         };
     }
 

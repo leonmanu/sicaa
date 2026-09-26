@@ -1,4 +1,5 @@
 const Publicacion = require('../models/Publicacion');
+const CursoLocal = require('../models/CursoLocal');
 
 const populateCursos = {
     path: 'cursoLocalIds',
@@ -23,9 +24,14 @@ class PublicacionRepo {
         }
     }
 
-    async getTodas() {
+    // Solo las publicaciones de cursos de esta institución (nunca las de otro CIIE).
+    async getTodas(ciieId) {
         try {
-            return await Publicacion.find().sort({ createdAt: -1 }).populate(populateCursos).lean();
+            const cursoIds = await CursoLocal.find({ ciieId }).distinct('_id');
+            return await Publicacion.find({ cursoLocalIds: { $in: cursoIds } })
+                .sort({ createdAt: -1 })
+                .populate(populateCursos)
+                .lean();
         } catch (error) {
             console.error('Error en PublicacionRepo.getTodas:', error.message);
             throw error;

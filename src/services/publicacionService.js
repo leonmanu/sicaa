@@ -132,7 +132,7 @@ class PublicacionService {
         if (existente) return existente;
 
         const curso = await cursoLocalService.getPorId(cursoLocalId);
-        if (!curso) {
+        if (!curso || String(curso.ciieId) !== String(usuario?.referenciaId)) {
             const err = new Error('Curso no encontrado.');
             err.statusCode = 404;
             throw err;
@@ -193,8 +193,8 @@ class PublicacionService {
         return publicaciones;
     }
 
-    async getTodas() {
-        return await publicacionRepo.getTodas();
+    async getTodas(ciieId) {
+        return await publicacionRepo.getTodas(ciieId);
     }
 
     // Mapa cursoLocalId (string) -> { facebook: estado, instagram: estado }, para
@@ -213,12 +213,26 @@ class PublicacionService {
         return mapa;
     }
 
-    async getPorId(id) {
+    async getPorId(id, ciieId) {
         const publicacion = await publicacionRepo.getPorId(id);
         if (!publicacion) {
             const err = new Error('Publicación no encontrada.');
             err.statusCode = 404;
             throw err;
+        }
+
+        // Ownership: ninguna institución puede ver, editar, publicar ni borrar
+        // publicaciones de cursos que no son suyos. Se responde igual que "no
+        // encontrada" para no confirmarle a otra institución que el id existe.
+        if (ciieId) {
+            const esPropia = (publicacion.cursoLocalIds || []).every(
+                curso => String(curso.cargoId?.ciieId?._id || curso.cargoId?.ciieId) === String(ciieId)
+            );
+            if (!esPropia) {
+                const err = new Error('Publicación no encontrada.');
+                err.statusCode = 404;
+                throw err;
+            }
         }
 
         // El populate de cursoLocalIds no trae los encuentros (viven en otra
@@ -236,13 +250,13 @@ class PublicacionService {
         return publicacion;
     }
 
-    async guardarImagenes(id, imagenesBase64) {
+    async guardarImagenes(id, imagenesBase64, ciieId) {
         if (!imagenesBase64 || imagenesBase64.length === 0) {
             const err = new Error('Faltan las imágenes a guardar.');
             err.statusCode = 400;
             throw err;
         }
-        const publicacion = await this.getPorId(id);
+        const publicacion = await this.getPorId(id, ciieId);
 
         fs.mkdirSync(UPLOADS_DIR, { recursive: true });
         const baseUrl = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
@@ -265,8 +279,8 @@ class PublicacionService {
         return await publicacionRepo.actualizar(id, { imagenes });
     }
 
-    async publicar(id) {
-        const publicacion = await this.getPorId(id);
+    async publicar(id, ciieId) {
+        const publicacion = await this.getPorId(id, ciieId);
         if (!publicacion.imagenes || publicacion.imagenes.length === 0) {
             const err = new Error('Todavía no se generaron las imágenes de esta publicación.');
             err.statusCode = 409;
@@ -317,8 +331,8 @@ class PublicacionService {
     // editar el texto (no la selección): en Facebook el cambio se manda de
     // verdad al post real vía Graph API; en Instagram la API no permite editar
     // un post ya publicado, así que solo se actualiza acá y se avisa.
-    async actualizar(id, datos) {
-        const publicacion = await this.getPorId(id);
+    async actualizar(id, datos, ciieId) {
+        const publicacion = await this.getPorId(id, ciieId);
         const cambios = {};
         const avisos = {};
 
@@ -361,8 +375,8 @@ class PublicacionService {
         return { publicacion: publicacionActualizada, avisos };
     }
 
-    async eliminar(id) {
-        const publicacion = await this.getPorId(id);
+    async eliminar(id, ciieId) {
+        const publicacion = await this.getPorId(id, ciieId);
         let avisoInstagram = false;
 
         if (publicacion.facebook.postId) {

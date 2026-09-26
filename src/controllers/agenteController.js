@@ -64,11 +64,20 @@ const inscriptoLocalService = require('../services/inscriptoLocalService');
 //     }
 // }
 
+const esGestion = (user) => user?.rol === 'admin' || user?.rol === 'observador';
+
 const getAgentesPorCiie = async (req, res) => {
     try {
         console.log('Obteniendo agentes para el CIIE con clave:', req.params.ciieClave);
         const ciieClave = await req.params.ciieClave;
         const ciie = await ciieService.getPorClave(ciieClave);
+        if (!ciie) {
+            return res.status(404).json({ error: 'CIIE no encontrado.' });
+        }
+        // Una institución solo puede ver su propio plantel; admin/observador ven cualquiera.
+        if (!esGestion(req.user) && String(ciie._id) !== String(req.user?.referenciaId)) {
+            return res.status(403).json({ error: 'No tenés permiso para ver el plantel de otra institución.' });
+        }
         const agentes = await agenteService.getAgentesPorCiie(ciie._id);
         res.status(200).json(agentes);
     } catch (error) {
@@ -103,8 +112,17 @@ const postAsistenciaCursante = async (req, res) => {
 // En agenteController.js
 const getAgentesPorAlcance = async (req, res) => {
     try {
-        const { ciieId } = req.params;
-        const { alcance = 'local' } = req.query;
+        let { ciieId } = req.params;
+        let { alcance = 'local' } = req.query;
+
+        // Una institución solo puede consultar su propio CIIE y, como mucho, su
+        // región (nunca 'todos' ni el id de otra institución). admin/observador
+        // sí pueden pedir cualquier ciieId y cualquier alcance.
+        if (!esGestion(req.user)) {
+            ciieId = req.user?.referenciaId;
+            if (alcance === 'todos') alcance = 'regional';
+        }
+
         const agentes = await agenteService.getAgentesPorAlcance(ciieId, alcance);
         res.status(200).json(agentes);
     } catch (error) {

@@ -41,7 +41,7 @@ class PublicacionController {
 
     getLista = async (req, res) => {
         try {
-            const publicaciones = await publicacionService.getTodas();
+            const publicaciones = await publicacionService.getTodas(req.user.referenciaId);
             res.render('pages/publicacion/publicacionesList', { publicaciones, user: req.user });
         } catch (error) {
             console.error('Error en getLista (publicaciones):', error.message);
@@ -52,7 +52,7 @@ class PublicacionController {
 
     getPreview = async (req, res) => {
         try {
-            const publicacion = await publicacionService.getPorId(req.params.id);
+            const publicacion = await publicacionService.getPorId(req.params.id, req.user.referenciaId);
             const plantilla = publicacion.dispositivoTipo
                 ? await plantillaDispositivoService.getPorDispositivo(publicacion.dispositivoTipo)
                 : null;
@@ -72,8 +72,8 @@ class PublicacionController {
     postImagenYPublicar = async (req, res) => {
         try {
             const { imagenesBase64 } = req.body;
-            await publicacionService.guardarImagenes(req.params.id, imagenesBase64);
-            const resultado = await publicacionService.publicar(req.params.id);
+            await publicacionService.guardarImagenes(req.params.id, imagenesBase64, req.user.referenciaId);
+            const resultado = await publicacionService.publicar(req.params.id, req.user.referenciaId);
             res.json({ success: true, resultado });
         } catch (error) {
             console.error('Error en postImagenYPublicar (publicaciones):', error.message);
@@ -83,7 +83,7 @@ class PublicacionController {
 
     putActualizar = async (req, res) => {
         try {
-            const { publicacion, avisos } = await publicacionService.actualizar(req.params.id, req.body);
+            const { publicacion, avisos } = await publicacionService.actualizar(req.params.id, req.body, req.user.referenciaId);
             res.json({ success: true, publicacion, avisos });
         } catch (error) {
             console.error('Error en putActualizar (publicaciones):', error.message);
@@ -93,7 +93,7 @@ class PublicacionController {
 
     deleteEliminar = async (req, res) => {
         try {
-            const resultado = await publicacionService.eliminar(req.params.id);
+            const resultado = await publicacionService.eliminar(req.params.id, req.user.referenciaId);
             res.json({ success: true, ...resultado });
         } catch (error) {
             console.error('Error en deleteEliminar (publicaciones):', error.message);

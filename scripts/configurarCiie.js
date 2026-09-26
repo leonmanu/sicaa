@@ -16,6 +16,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const Ciie = require('../src/models/Ciie');
+const { encriptar } = require('../src/utils/credencialCrypto');
 
 const args = Object.fromEntries(
     process.argv.slice(2)
@@ -46,12 +47,15 @@ const upsertCredencial = (ciie, sitioNombre, campos) => {
         if (args.qi) ciie.qi = args.qi;
         if (args.region) ciie.regionAbc = args.region;
 
+        // Solo se cifra la contraseña nueva que llega por argumento/env: la que ya
+        // estaba guardada (actual?.password) se conserva tal cual, ya sea que
+        // venga cifrada o, de datos viejos sin migrar, en texto plano.
         const abcPassword = args['abc-password'] || process.env.ABC_PASSWORD;
         if (args['abc-usuario'] || abcPassword) {
             const actual = ciie.wrappingConfigs.find(c => c.sitioNombre === 'ABC');
             upsertCredencial(ciie, 'ABC', {
                 usuario: args['abc-usuario'] || actual?.usuario,
-                password: abcPassword || actual?.password
+                password: abcPassword ? encriptar(abcPassword) : actual?.password
             });
         }
 
@@ -60,7 +64,7 @@ const upsertCredencial = (ciie, sitioNombre, campos) => {
             const actual = ciie.wrappingConfigs.find(c => c.sitioNombre === 'DRUPAL');
             upsertCredencial(ciie, 'DRUPAL', {
                 usuario: args['drupal-usuario'] || actual?.usuario,
-                password: drupalPassword || actual?.password,
+                password: drupalPassword ? encriptar(drupalPassword) : actual?.password,
                 baseUrl: args['drupal-url'] || actual?.baseUrl
             });
         }

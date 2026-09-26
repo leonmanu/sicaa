@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const cursanteExternoController = require('../controllers/cursanteExternoController');
+const { asegurarRegistro } = require('../middleware/auth');
 
 const {
     viewInscripto,
@@ -25,25 +26,24 @@ router
 
 
     //Cursantes
-    .get('/cursante/inscriptos/:idInscripcion', cursanteExternoController.getCursantes)
-    
+    .get('/cursante/inscriptos/:idInscripcion', asegurarRegistro, cursanteExternoController.getCursantes)
 
-    .post('/cursante/calificar', cursanteExternoController.calificar)
-    .get('/inscriptos/:idInscripcion', cursanteExternoController.getCursantes)
-    
 
-    //ajax 
-    .get('/inscriptosExternos/curso/:idOfertaOficial/consultar', getExternosPorIdOfertaOficial)
-    .post('/inscriptos/guardar', vincularCursantes)
-    .get('/porCiie/:ciieClave', getAgentesPorCiie)
-    .get('/porAlcance/:ciieId', getAgentesPorAlcance)
-    
+    .post('/cursante/calificar', asegurarRegistro, cursanteExternoController.calificar)
+    .get('/inscriptos/:idInscripcion', asegurarRegistro, cursanteExternoController.getCursantes)
+
+
+    //ajax
+    .get('/inscriptosExternos/curso/:idOfertaOficial/consultar', asegurarRegistro, getExternosPorIdOfertaOficial)
+    .post('/inscriptos/guardar', asegurarRegistro, vincularCursantes)
+    .get('/porCiie/:ciieClave', asegurarRegistro, getAgentesPorCiie)
+    .get('/porAlcance/:ciieId', asegurarRegistro, getAgentesPorAlcance)
+
 
     //encuentros
-    .post('/encuentro', post)
-    .put('/encuentro/:idOfertaOficial/:numero', putPorNumeroIdOfertaOficial)
-    .delete('/encuentro/:idOfertaOficial/:numero', delPorNumeroIdOfertaOficial)
+    .post('/encuentro', asegurarRegistro, post)
+    .put('/encuentro/:idOfertaOficial/:numero', asegurarRegistro, putPorNumeroIdOfertaOficial)
+    .delete('/encuentro/:idOfertaOficial/:numero', asegurarRegistro, delPorNumeroIdOfertaOficial)
 
 
 module.exports = router;
-

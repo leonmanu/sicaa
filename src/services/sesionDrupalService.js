@@ -1,6 +1,7 @@
 const ciieRepo = require('../repos/ciieRepo');
 const contextoCiie = require('./contextoCiie');
 const { crearClienteDrupal } = require('./httpClientDrupal');
+const { desencriptar } = require('../utils/credencialCrypto');
 
 const BASE_URL_DEFAULT = 'https://abc.gob.ar/ciie';
 
@@ -23,7 +24,7 @@ class SesionDrupalService {
             nombre: ciie.nombre,
             baseUrl: (credencial.baseUrl || BASE_URL_DEFAULT).replace(/\/$/, ''),
             usuario: credencial.usuario,
-            password: credencial.password
+            password: desencriptar(credencial.password)
         };
     }
 

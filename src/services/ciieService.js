@@ -1,7 +1,8 @@
 const ciieRepo = require('../repos/ciieRepo');
+const { encriptar } = require('../utils/credencialCrypto');
 
 class CiieService {
-    
+
     async postCiie(datosForm, usuarioGoogle) {
         try {
             // 1. Mapeamos los datos del array 'externo' del formulario
@@ -10,13 +11,13 @@ class CiieService {
                 {
                     sitioNombre: 'DFDP',
                     usuario: datosForm.externo[0].u,
-                    password: datosForm.externo[0].p, // Aquí podrías aplicar cifrado luego
+                    password: encriptar(datosForm.externo[0].p),
                     ultimaSincronizacion: new Date()
                 },
                 {
                     sitioNombre: 'ABC',
                     usuario: datosForm.externo[1].u,
-                    password: datosForm.externo[1].p,
+                    password: encriptar(datosForm.externo[1].p),
                     ultimaSincronizacion: new Date()
                 }
             ];
