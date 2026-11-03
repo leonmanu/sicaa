@@ -37,7 +37,8 @@ router
     .get('/inscriptosExternos/curso/:idOfertaOficial/consultar', asegurarRegistro, getExternosPorIdOfertaOficial)
     .post('/inscriptos/guardar', asegurarRegistro, vincularCursantes)
     .get('/porCiie/:ciieClave', asegurarRegistro, getAgentesPorCiie)
-    .get('/porAlcance/:ciieId', asegurarRegistro, getAgentesPorAlcance)
+    // ciieId opcional: la vista institucional no lo tiene y el controlador usa el CIIE de la institución
+    .get('/porAlcance{/:ciieId}', asegurarRegistro, getAgentesPorAlcance)
 
 
     //encuentros

@@ -264,6 +264,8 @@
             font-size: 11px;
         }
         .invitados.una-columna { grid-template-columns: 1fr; }
+        /* un solo invitado/a: la franja no pasa del ancho del teal */
+        .panel-invitados.un-invitado { right: auto; width: 316px; }
         .invitado { line-height: 1.2; }
         .invitado-nombre { font-weight: 900; }
         .invitado-titulo { font-size: 0.85em; font-weight: 500; color: rgba(255,255,255,0.88); }
@@ -477,7 +479,7 @@
                     </div>
 
                     <% if (invitados.length) { %>
-                        <div class="panel-invitados" id="panel-invitados">
+                        <div class="panel-invitados<%= invitados.length === 1 ? ' un-invitado' : '' %>" id="panel-invitados">
                             <div class="invitados-label"><%= invitados.length > 1 ? 'Invitados/as' : 'Invitado/a' %></div>
                             <div class="invitados<%= invitados.length === 1 ? ' una-columna' : '' %>" id="ed-invitados" contenteditable="true">
                                 <% invitados.forEach(([nombre, ...titulos]) => { %>

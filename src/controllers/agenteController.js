@@ -2,6 +2,7 @@
 const agenteService = require('../services/agenteService');
 const cargoService = require('../services/cargoService');
 const ciieService = require('../services/ciieService');
+const asignacionRepo = require('../repos/asignacionRepo');
 const cursoLocalService = require('../services/cursoLocalService');
 const encuentroService = require('../services/encuentroService');
 const inscriptoLocalService = require('../services/inscriptoLocalService');
@@ -115,11 +116,22 @@ const getAgentesPorAlcance = async (req, res) => {
         let { ciieId } = req.params;
         let { alcance = 'local' } = req.query;
 
-        // Una institución solo puede consultar su propio CIIE y, como mucho, su
-        // región (nunca 'todos' ni el id de otra institución). admin/observador
-        // sí pueden pedir cualquier ciieId y cualquier alcance.
+        // Una institución solo puede consultar su propio CIIE y un formador, solo los
+        // CIIE donde tiene un cargo activo (su referenciaId es la persona, no un CIIE).
+        // Ninguno de los dos pasa de su región. admin/observador pueden pedir cualquier
+        // ciieId y cualquier alcance.
         if (!esGestion(req.user)) {
-            ciieId = req.user?.referenciaId;
+            if (req.user?.tipo === 'institucion') {
+                ciieId = req.user.referenciaId;
+            } else {
+                const asignaciones = await asignacionRepo.getByAgente(req.user?._id);
+                const misCiies = asignaciones
+                    .filter(a => a.estado === 'Activo' && a.cargoId?.ciieId)
+                    .map(a => String(a.cargoId.ciieId._id));
+                if (!misCiies.includes(String(ciieId))) {
+                    return res.status(403).json({ error: 'No tenés un cargo activo en esa institución.' });
+                }
+            }
             if (alcance === 'todos') alcance = 'regional';
         }
 
