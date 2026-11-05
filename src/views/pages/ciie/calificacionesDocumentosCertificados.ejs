@@ -28,6 +28,8 @@
             position: relative;
         }
         .cert-wrapper.deseleccionado { opacity: 0.35; }
+        .estado-impresion { font-size: 0.75rem; margin-left: auto; white-space: nowrap; }
+        .btn-toggle-impreso { font-size: 0.75rem; }
         
         .cert-selector-bar {
             background: #1a2a3a;
@@ -137,6 +139,8 @@
             }
             body { background: white !important; margin: 0; padding: 0; }
             .no-print, .navbar, .cert-selector-bar, .card { display: none !important; }
+            /* Solo se imprime lo seleccionado (antes los destildados salían igual) */
+            .cert-wrapper.deseleccionado { display: none !important; }
 
             .cert-wrapper {
                 /* Mitad exacta de una A4 (297mm / 2) */
@@ -199,10 +203,11 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 no-print">
             <div>
                 <h2 class="fw-bold mb-1"><i class="bi bi-patch-check me-2 text-success"></i>Certificados</h2>
-                <p class="text-muted mb-0">Seleccioná los certificados a imprimir.</p>
+                <p class="text-muted mb-0">Seleccioná los certificados a imprimir. Vienen marcados los que todavía no se imprimieron.</p>
             </div>
             <div class="d-flex gap-2">
                 <button class="btn btn-outline-light btn-sm" id="btnSelTodos">Seleccionar todos</button>
+                <button class="btn btn-outline-warning btn-sm" id="btnSelPendientes">Solo pendientes</button>
                 <button class="btn btn-outline-info btn-sm" id="btnOrdenAlpha">
                     <i class="bi bi-sort-alpha-down me-1"></i>Ordenar por apellido
                 </button>
@@ -222,23 +227,28 @@
                                 <h5 class="mb-0 text-white"><%= data.curso?.nombrePropuesta %></h5>
                                 <small class="text-muted">Oferta: <%= data.curso?.idOfertaOficial %></small>
                             </div>
-                            <button class="btn btn-outline-success btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="certificados">
-                                Marcar impresos
-                            </button>
+                            <span class="badge bg-secondary resumen-impresion" data-oferta="<%= data.curso?.idOfertaOficial %>">
+                                <%= data.curso?.certificadosImpresos || 0 %> de <%= data.curso?.certificadosTotal || 0 %> impresos
+                            </span>
                         </div>
                     </div>
 
                     <div class="certs-container">
                     <% data.certificados.forEach((item, index) => { %>
-                        <div class="cert-wrapper" data-cert-id="cert-<%= data.curso?.idOfertaOficial %>-<%= index %>" data-nombre="<%= item.nombreCompleto %>">
+                        <div class="cert-wrapper<%= item.impreso ? ' deseleccionado' : '' %>" data-cert-id="cert-<%= data.curso?.idOfertaOficial %>-<%= index %>" data-nombre="<%= item.nombreCompleto %>"
+                             data-oferta="<%= data.curso?.idOfertaOficial %>" data-dni="<%= item.dni %>"
+                             data-impreso="<%= item.impreso ? '1' : '0' %>" data-inscripcion="<%= item.tieneInscripcion ? '1' : '0' %>">
 
                             <div class="cert-selector-bar no-print">
-                                <input type="checkbox" class="form-check-input check-cert" 
-                                       id="chk-<%= data.curso?.idOfertaOficial %>-<%= index %>" 
-                                       data-cert-id="cert-<%= data.curso?.idOfertaOficial %>-<%= index %>" checked>
+                                <input type="checkbox" class="form-check-input check-cert"
+                                       id="chk-<%= data.curso?.idOfertaOficial %>-<%= index %>"
+                                       data-cert-id="cert-<%= data.curso?.idOfertaOficial %>-<%= index %>" <%= item.impreso ? '' : 'checked' %>>
                                 <label for="chk-<%= data.curso?.idOfertaOficial %>-<%= index %>">
                                     <strong><%= item.nombreCompleto %></strong> (DNI <%= item.dni %>)
                                 </label>
+                                <span class="estado-impresion"
+                                      data-fecha="<%= item.fechaImpresion ? new Date(item.fechaImpresion).toISOString() : '' %>"
+                                      data-veces="<%= item.vecesImpreso || 0 %>"></span>
                             </div>
 
                             <div class="cert-page">
@@ -307,7 +317,62 @@
 
     <%- include('../../partials/footer') %>
     <%- include('../../partials/scripts') %>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // ─── Impresión por inscripción ───────────────────────────────────────
+        function pintarEstadoImpresion(wrapper) {
+            const $w = $(wrapper);
+            const $estado = $w.find('.estado-impresion').empty();
+            if ($w.attr('data-inscripcion') !== '1') {
+                $estado.append($('<span class="text-warning"></span>')
+                    .attr('title', 'El DNI no coincide con ninguna inscripción del sistema: no se puede registrar la impresión.')
+                    .html('<i class="bi bi-exclamation-triangle me-1"></i>Sin inscripción en el sistema'));
+                return;
+            }
+            const impreso = $w.attr('data-impreso') === '1';
+            if (impreso) {
+                const fecha = $estado.attr('data-fecha');
+                const veces = Number($estado.attr('data-veces') || 0);
+                const texto = `Impreso${fecha ? ' el ' + new Date(fecha).toLocaleDateString('es-AR') : ''}${veces > 1 ? ` (${veces} veces)` : ''}`;
+                $estado.append($('<span class="text-success me-2"></span>').html('<i class="bi bi-check-circle-fill me-1"></i>').append(document.createTextNode(texto)));
+            } else {
+                $estado.append('<span class="text-muted me-2"><i class="bi bi-circle me-1"></i>Sin imprimir</span>');
+            }
+            $estado.append($('<button type="button" class="btn btn-link btn-sm p-0 btn-toggle-impreso"></button>')
+                .text(impreso ? 'Desmarcar' : 'Marcar como impreso'));
+        }
+
+        function actualizarResumenes() {
+            $('.resumen-impresion').each(function () {
+                const oferta = $(this).data('oferta');
+                const $certs = $(`.cert-wrapper[data-oferta="${oferta}"]`);
+                const impresos = $certs.filter('[data-impreso="1"]').length;
+                $(this).text(`${impresos} de ${$certs.length} impresos`)
+                    .toggleClass('bg-success', impresos > 0 && impresos === $certs.length)
+                    .toggleClass('bg-secondary', !(impresos > 0 && impresos === $certs.length));
+            });
+        }
+
+        async function registrarImpresion($wrappers, impreso) {
+            const items = $wrappers.toArray().map(w => ({ idOfertaOficial: $(w).data('oferta'), dni: String($(w).data('dni')) }));
+            const resp = await fetch('/ciie/calificaciones/certificados/impresion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items, impreso })
+            });
+            const data = await resp.json().catch(() => ({ error: 'Respuesta inesperada del servidor (¿se cerró la sesión?).' }));
+            if (!resp.ok || !data.success) throw new Error(data.error || 'No se pudo registrar la impresión.');
+            const fecha = impreso ? new Date().toISOString() : '';
+            $wrappers.each(function () {
+                const $estado = $(this).find('.estado-impresion');
+                $(this).attr('data-impreso', impreso ? '1' : '0');
+                $estado.attr('data-fecha', fecha);
+                if (impreso) $estado.attr('data-veces', Number($estado.attr('data-veces') || 0) + 1);
+                pintarEstadoImpresion(this);
+            });
+            actualizarResumenes();
+        }
+
         function ajustarNombresCertificado() {
             document.querySelectorAll('.cert-nombre').forEach(el => {
                 el.style.fontSize = '';
@@ -382,7 +447,58 @@
                 ajustarNombresCertificado();
             });
 
-            $('#btnImprimir').on('click', () => window.print());
+            document.querySelectorAll('.cert-wrapper').forEach(pintarEstadoImpresion);
+            actualizarResumenes();
+
+            $('#btnSelPendientes').on('click', () => {
+                $('.cert-wrapper').each(function () {
+                    const pendiente = $(this).attr('data-impreso') !== '1';
+                    $(this).find('.check-cert').prop('checked', pendiente).trigger('change');
+                });
+            });
+
+            $(document).on('click', '.btn-toggle-impreso', async function () {
+                const $w = $(this).closest('.cert-wrapper');
+                try {
+                    await registrarImpresion($w, $w.attr('data-impreso') !== '1');
+                } catch (e) {
+                    Swal.fire('Error', e.message, 'error');
+                }
+            });
+
+            // Después de imprimir se pregunta si salió bien, y recién ahí se registra:
+            // el navegador no avisa si la impresión se canceló o falló.
+            $('#btnImprimir').on('click', async () => {
+                const $seleccionados = $('.check-cert:checked').closest('.cert-wrapper');
+                if ($seleccionados.length === 0) {
+                    Swal.fire('Nada para imprimir', 'Seleccioná al menos un certificado.', 'info');
+                    return;
+                }
+                window.print();
+
+                const $registrables = $seleccionados.filter('[data-inscripcion="1"]');
+                const sinInscripcion = $seleccionados.length - $registrables.length;
+                if ($registrables.length === 0) return;
+
+                const r = await Swal.fire({
+                    icon: 'question',
+                    title: '¿Se imprimieron bien?',
+                    html: `Se van a registrar como impresos <b>${$registrables.length}</b> certificado(s).`
+                        + (sinInscripcion ? `<br><small class="text-warning">${sinInscripcion} no se pueden registrar porque no tienen inscripción en el sistema.</small>` : ''),
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, registrar',
+                    cancelButtonText: 'No, no registrar'
+                });
+                if (!r.isConfirmed) return;
+                try {
+                    await registrarImpresion($registrables, true);
+                    // Ya impresos: se destildan para que no vuelvan a salir en la próxima impresión.
+                    $registrables.find('.check-cert').prop('checked', false).trigger('change');
+                    Swal.fire({ icon: 'success', title: 'Registrado', timer: 1400, showConfirmButton: false });
+                } catch (e) {
+                    Swal.fire('Error', e.message, 'error');
+                }
+            });
         });
 
         window.addEventListener('resize', ajustarNombresCertificado);

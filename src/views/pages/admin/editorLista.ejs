@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <title>SICAA - Editor de <%= titulo %></title>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container-fluid py-4 px-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="mb-1"><i class="bi bi-database-gear me-2 text-warning"></i>Editor de datos: <%= titulo %></h2>
+                <p class="text-muted mb-0 small">Edita los documentos tal como están en Mongo. Los cambios no se envían al sitio oficial.</p>
+            </div>
+            <a href="<%= volver %>" class="btn btn-outline-secondary btn-sm">Volver</a>
+        </div>
+
+        <div class="card bg-dark border-0 shadow">
+            <div class="card-body">
+                <table id="tablaEditor" class="table table-dark table-hover table-sm align-middle w-100">
+                    <thead>
+                        <tr>
+                            <% columnas.forEach(col => { %><th><%= col.titulo %></th><% }) %>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% filas.forEach(f => { %>
+                            <tr>
+                                <% f.celdas.forEach((valor, i) => { %>
+                                    <% if (columnas[i].tipo === 'fecha' && valor) { %>
+                                        <td data-order="<%= new Date(valor).toISOString() %>"><small><%= new Date(valor).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) %></small></td>
+                                    <% } else { %>
+                                        <td><%= valor ?? '' %></td>
+                                    <% } %>
+                                <% }) %>
+                                <td class="text-end">
+                                    <a href="<%= base %>/<%= clave %>/<%= f.id %>" class="btn btn-sm btn-outline-warning py-0">
+                                        <i class="bi bi-pencil-square"></i> Editar
+                                    </a>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/footer') %>
+    <%- include('../../partials/scripts') %>
+    <script>
+        $('#tablaEditor').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            order: [[<%= columnas.length - 1 %>, 'desc']],
+            pageLength: 25,
+            columnDefs: [{ targets: -1, orderable: false, searchable: false }]
+        });
+    </script>
+</body>
+</html>

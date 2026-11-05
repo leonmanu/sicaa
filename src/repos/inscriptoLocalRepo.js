@@ -53,6 +53,29 @@ class InscriptoLocalRepo {
         }
     }
 
+    // Marca (o desmarca) como impreso el certificado de las inscripciones de un curso,
+    // identificadas por DNI (los certificados salen del PDF oficial, que trae DNI).
+    // updateMany: no pasa por las validaciones del esquema (hay calificaciones
+    // guardadas como 'Aprobó', que el enum del modelo no incluye).
+    async marcarCertificadoImpreso(cursoId, dnis, impreso, usuarioEmail) {
+        const filtro = { cursoId, dni: { $in: dnis } };
+        const update = impreso
+            ? {
+                $set: {
+                    'certificadoImpreso.impreso': true,
+                    'certificadoImpreso.fecha': new Date(),
+                    'certificadoImpreso.impresoPor': usuarioEmail || ''
+                },
+                $inc: { 'certificadoImpreso.veces': 1 }
+            }
+            : {
+                $set: { 'certificadoImpreso.impreso': false },
+                $unset: { 'certificadoImpreso.fecha': '', 'certificadoImpreso.impresoPor': '' }
+            };
+        const resultado = await InscriptoLocal.updateMany(filtro, update);
+        return resultado.modifiedCount;
+    }
+
     async getPorCursoId(cursoId) {
         try {
             const inscripciones = await InscriptoLocal.find({ cursoId }).lean();

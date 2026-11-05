@@ -52,6 +52,7 @@ app.use('/cursoBase', require('./routes/cursoBaseRouter'));
 app.use('/cursante', require('./routes/cursanteRoutes'));
 app.use('/usuario', require('./routes/usuarioRoutes'));
 app.use('/admin', require('./routes/adminRoutes'));
+app.use('/editor', require('./routes/editorDatosRoutes'));
 app.use('/ciie', require('./routes/ciieRouter'));
 app.use('/agente', require('./routes/agenteRoutes')); 
 app.use('/cargo', require('./routes/cargoRoutes'));

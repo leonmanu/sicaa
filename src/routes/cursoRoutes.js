@@ -16,6 +16,7 @@ const {
     deleteCurso,
     getCursoById,
     getCursoByIdEdit,
+    getOfertaAbc,
     putCurso,
     postAprobarCambiosPendientes,
     postRechazarCambiosPendientes,
@@ -40,6 +41,7 @@ router
     .get('/:cargoClave/:ciieClave/alta', asegurarRegistro, viewFormAltaPorCargoClaveCiieClave)
     .get('/:cargoClave/:ciieClave', asegurarRegistro, getCursosPorCargoClaveCiieClave)
     // ─── rutas con ID único (un parámetro) ───
+    .get('/:id/abc', asegurarRegistro, getOfertaAbc)
     .get('/:id', asegurarRegistro, getCursoByIdEdit)
     .put('/:id', asegurarRegistro, putCurso)
     .delete('/:id', asegurarRegistro, deleteCurso)

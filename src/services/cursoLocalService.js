@@ -10,6 +10,8 @@ const certificadoExternoService = require('./certificadoExternoService');
 const ciieRepo = require('../repos/ciieRepo');
 const ciieService = require('./ciieService');
 const encuentroRepo = require('../repos/encuentroRepo');
+const ofertaAbcService = require('./ofertaAbcService');
+const { ejecutarComo } = require('./contextoCiie');
 const CursoLocal = require('../models/CursoLocal');
 const Cargo = require('../models/Cargo');
 const CuilHelper = require('../utils/cuilHelper');
@@ -447,11 +449,18 @@ class CursoLocalService {
                 .filter(e => String(e.cursoId) === String(curso._id))
                 .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
+            // Aproximado a partir de la calificación local: en seminarios quién
+            // certifica lo decide ABC, y puede no coincidir.
+            const cantidadAprobados = delCurso.filter(i => ['Aprobó', 'Aprobado'].includes(i.calificacion)).length;
+            const cantidadCertificadosImpresos = delCurso.filter(i => i.certificadoImpreso?.impreso).length;
+
             return {
                 ...curso,
                 encuentros: encuentrosDelCurso,
                 cantidadInscriptos: delCurso.length,
-                cantidadSinCalificar
+                cantidadSinCalificar,
+                cantidadAprobados,
+                cantidadCertificadosImpresos
             };
         });
     }
@@ -895,9 +904,36 @@ class CursoLocalService {
     }
 
     async getDocumentosCurso(idOfertaOficial, usuario = {}) {
-        const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
-        const inscriptosLocales = await inscriptoLocalRepo.getPorCursoId(curso._id);
-        return this._buildDocumentosCurso(curso, inscriptosLocales, cursoLocal);
+        // Mismo armado que el lote (antes usaba una variable inexistente y fallaba siempre).
+        const [documentos] = await this.getDocumentosCursosLote([idOfertaOficial], usuario);
+        return documentos;
+    }
+
+    // Marca (impreso = true) o desmarca los certificados indicados.
+    // items: [{ idOfertaOficial, dni }]. Solo cursos de la institución del usuario.
+    async marcarCertificadosImpresos(items = [], impreso = true, usuario = {}) {
+        if (!Array.isArray(items) || items.length === 0) {
+            const err = new Error('No se indicaron certificados.');
+            err.statusCode = 400;
+            throw err;
+        }
+        const porOferta = new Map();
+        items.forEach(({ idOfertaOficial, dni }) => {
+            const oferta = this._sanitizeString(idOfertaOficial);
+            const doc = String(dni || '').replace(/\D/g, '');
+            if (!oferta || !doc) return;
+            if (!porOferta.has(oferta)) porOferta.set(oferta, new Set());
+            porOferta.get(oferta).add(doc);
+        });
+
+        let actualizados = 0;
+        for (const [oferta, dnis] of porOferta) {
+            const curso = await this._getCursoVinculadoDelCiiePorOferta(oferta, usuario);
+            actualizados += await inscriptoLocalRepo.marcarCertificadoImpreso(
+                curso._id, [...dnis], Boolean(impreso), this._sanitizeString(usuario?.email)
+            );
+        }
+        return { actualizados, fecha: impreso ? new Date() : null };
     }
 
     async getDocumentosCursosLote(idOfertasOficiales = [], usuario = {}) {
@@ -928,17 +964,14 @@ class CursoLocalService {
         return cursosDocumentos;
 }
 
-    async marcarImpresionDocumentos(idOfertaOficial, tipo = 'ambos', usuario = {}) {
+    // Impresión del acta (una por curso). Los certificados se marcan por inscripción
+    // con marcarCertificadosImpresos; impresionDocumentos.certificadosImpresos ya no se usa.
+    async marcarImpresionDocumentos(idOfertaOficial, tipo = 'acta', usuario = {}) {
         const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
         const tipoNormalizado = this._normalizeTipoDocumento(tipo);
         const dataImpresion = {
             'impresionDocumentos.actualizadoPor': this._sanitizeString(usuario?.email)
         };
-
-        if (tipoNormalizado === 'certificados' || tipoNormalizado === 'ambos') {
-            dataImpresion['impresionDocumentos.certificadosImpresos'] = true;
-            dataImpresion['impresionDocumentos.fechaCertificadosImpresos'] = new Date();
-        }
 
         if (tipoNormalizado === 'acta' || tipoNormalizado === 'ambos') {
             dataImpresion['impresionDocumentos.actaImpresa'] = true;
@@ -1338,17 +1371,6 @@ class CursoLocalService {
         });
 
         let response = await cursoExternoRepo.crearOfertaOficial(payload);
-        const ofertasResponse = await cursoExternoRepo.getOfertasDelCursoActivo();
-        const todasLasOfertas = ofertasResponse?.data?.aaData || [];
-
-        // La oferta recién creada tiene el id más alto (autoincremental)
-        const ofertaCreada = todasLasOfertas.reduce((max, o) => 
-            parseInt(o[0]) > parseInt(max[0]) ? o : max
-        , todasLasOfertas[0]);
-        console.log('Ofertas tras el alta:', ofertasResponse?.data);
-        // console.log('Respuesta cruda ABC:', JSON.stringify(response?.data));
-        // console.log('Respuesta headers:', response?.headers);
-        // console.log('Status:', response?.status);
         let parsedResponse = this._parseAbcActionResponse(response?.data);
 
         if (parsedResponse.tipo === 'login') {
@@ -1367,11 +1389,37 @@ class CursoLocalService {
             throw err;
         }
 
+        // ABC no devuelve el id de la oferta creada: es la de id más alto del curso base.
+        // Las lista de la más vieja a la más nueva, así que hay que pedirlas todas
+        // (con solo las primeras 5, un curso base con más ofertas se vinculaba a una vieja).
+        const ofertasResponse = await cursoExternoRepo.getOfertasDelCursoActivo();
+        const todasLasOfertas = ofertasResponse?.data?.aaData || [];
+        // Si la respuesta de ABC trae el id (segundo campo), se usa ese.
+        const ofertaCreada = todasLasOfertas.find(o => String(o[0]) === this._sanitizeString(control))
+            || todasLasOfertas.reduce((max, o) => (!max || parseInt(o[0]) > parseInt(max[0]) ? o : max), null);
+
+        const yaVinculada = ofertaCreada && await cursoLocalRepo.getPorIdOfertaOficial(String(ofertaCreada[0]));
+        if (!ofertaCreada || yaVinculada) {
+            const err = new Error(
+                'La oferta se creó en ABC, pero no se pudo identificar cuál es '
+                + (ofertaCreada ? `(la más nueva, ${ofertaCreada[0]}, ya pertenece a otro curso). ` : '. ')
+                + 'Vinculala a mano desde "Vincular con oferta existente" para no duplicarla.'
+            );
+            err.statusCode = 502;
+            throw err;
+        }
+
+        const verificacion = await ofertaAbcService.verificar(
+            String(ofertaCreada[0]),
+            ofertaAbcService.esperadoDesdePayload(payload)
+        );
+
         const cursoActualizado = await cursoLocalRepo.vincularConOfertaOficial(cursoLocalId, {
             idOfertaOficial:        ofertaCreada[0],
             enlaceInscripcion:      ofertaCreada[11],
             fechaInicioInscripcion: this._parseFechaAbc(ofertaCreada[3]),
             fechaFinInscripcion:    this._parseFechaAbc(ofertaCreada[4]),
+            ...this._fechasInscripcionGuardadas(verificacion),
             disponible:             ofertaCreada[7],
             estado:                 'vinculado',
             creadoPor:              this._sanitizeString(usuario?.email) || cursoLocal.creadoPor
@@ -1381,9 +1429,10 @@ class CursoLocalService {
             curso: cursoActualizado,
             abc: {
                 res,
-                idOfertaOficial: this._sanitizeString(control),
+                idOfertaOficial: this._sanitizeString(String(ofertaCreada[0])),
                 mensaje: this._sanitizeString(mensaje)
-            }
+            },
+            verificacionAbc: this._resumenVerificacion(verificacion)
         };
     }
 
@@ -1463,21 +1512,14 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
         throw err;
     }
 
-    // Verificar permisos según tipo de usuario (mismo criterio que deleteCurso)
-    let tienePermiso = false;
-    if (usuario?.tipoModel === 'Ciie') {
-        tienePermiso = String(cursoLocal.ciieId || '') === String(usuario?.referenciaId || '');
-    } else if (usuario?.tipoModel === 'Persona') {
-        const asignacionRepo = require('../repos/asignacionRepo');
-        const asignaciones = await asignacionRepo.getByAgente(usuario?._id);
-        const cargoIds = asignaciones.map(a => String(a.cargoId._id));
-        tienePermiso = cargoIds.includes(String(cursoLocal.cargoId?._id || cursoLocal.cargoId || ''));
-    }
-    if (!tienePermiso) {
+    if (!(await this._puedeEditarCurso(cursoLocal, usuario))) {
         const err = new Error('No tenes permisos para editar este curso.');
         err.statusCode = 403;
         throw err;
     }
+
+    // Solo viene si en el formulario se tocó el período de inscripción.
+    const periodoInscripcion = this._normalizarPeriodoInscripcion(data.periodoInscripcion);
 
     const dispositivoNuevo = this._sanitizeString(data.dispositivo) || cursoLocal.dispositivo;
     const anioNuevo = this._toNumberOrNull(data.anio) ?? cursoLocal.anio;
@@ -1532,6 +1574,7 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
             propuestaEdicion: {
                 update,
                 fechasEncuentros: fechasNormalizadas,
+                periodoInscripcion,
                 propuestoPor: this._sanitizeString(usuario?.email) || cursoLocal.creadoPor,
                 propuestoEn: new Date()
             }
@@ -1558,8 +1601,9 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
             : await encuentroRepo.getPorCursoId(cursoLocalId);
         const encuentrosOrdenados = [...encuentrosBase].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
+        let resultadoAbc;
         try {
-            await this._editarOfertaEnAbc(cursoLocal, cursoMerged, encuentrosOrdenados);
+            resultadoAbc = await this._editarOfertaEnAbc(cursoLocal, cursoMerged, encuentrosOrdenados, periodoInscripcion);
         } catch (errorAbc) {
             // No perdemos el cambio local aunque ABC lo rechace: lo guardamos igual
             // y lo dejamos marcado para reintentar la sincronización con ABC después,
@@ -1570,6 +1614,7 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
                 propuestaEdicion: {
                     update,
                     fechasEncuentros: fechasNormalizadas,
+                    periodoInscripcion,
                     propuestoPor: this._sanitizeString(usuario?.email) || cursoLocal.creadoPor,
                     propuestoEn: new Date()
                 }
@@ -1580,11 +1625,13 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
             };
         }
 
-        return await cursoLocalRepo.actualizarPendiente(cursoLocalId, {
+        const cursoGuardado = await cursoLocalRepo.actualizarPendiente(cursoLocalId, {
             ...update,
+            ...this._fechasInscripcionGuardadas(resultadoAbc.verificacion, periodoInscripcion),
             estado: 'vinculado',
             propuestaEdicion: null
         });
+        return { ...cursoGuardado, verificacionAbc: this._resumenVerificacion(resultadoAbc.verificacion) };
     }
 
     return await cursoLocalRepo.actualizarPendiente(cursoLocalId, update);
@@ -1627,7 +1674,8 @@ async aprobarCambiosPendientes(cursoLocalId, usuario = {}) {
         : await encuentroRepo.getPorCursoId(cursoId);
     const encuentrosOrdenados = [...encuentrosBase].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-    await this._editarOfertaEnAbc(cursoLocal, cursoMerged, encuentrosOrdenados);
+    const periodoInscripcion = propuesta.periodoInscripcion || null;
+    const resultadoAbc = await this._editarOfertaEnAbc(cursoLocal, cursoMerged, encuentrosOrdenados, periodoInscripcion);
 
     if (propuesta.fechasEncuentros && propuesta.fechasEncuentros.length > 0) {
         await encuentroRepo.delPorCursoId(cursoId);
@@ -1636,11 +1684,13 @@ async aprobarCambiosPendientes(cursoLocalId, usuario = {}) {
         }
     }
 
-    return await cursoLocalRepo.actualizarPendiente(cursoId, {
+    const cursoGuardado = await cursoLocalRepo.actualizarPendiente(cursoId, {
         ...propuesta.update,
+        ...this._fechasInscripcionGuardadas(resultadoAbc.verificacion, periodoInscripcion),
         estado: 'vinculado',
         propuestaEdicion: null
     });
+    return { ...cursoGuardado, verificacionAbc: this._resumenVerificacion(resultadoAbc.verificacion) };
 }
 
 // Descarta una propuesta de edición de un/a docente sin aplicar ningún cambio.
@@ -1758,7 +1808,9 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
                 : await encuentroRepo.getPorCursoId(cursoLocalId);
             const encuentrosOrdenados = [...encuentrosActuales].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-            await this._editarOfertaEnAbc(cursoLocal, cursoMerged, encuentrosOrdenados);
+            // El período de inscripción de este formulario no se manda a ABC (puede venir
+            // con lo viejo de Mongo); al final Mongo se alinea con lo que quedó en ABC.
+            const resultadoAbc = await this._editarOfertaEnAbc(cursoLocal, cursoMerged, encuentrosOrdenados);
 
             if (encuentrosNuevos) {
                 await encuentroRepo.delPorCursoId(cursoLocalId);
@@ -1767,11 +1819,13 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
                 }
             }
 
-            return await cursoLocalRepo.actualizarPendiente(cursoLocalId, {
+            const cursoGuardado = await cursoLocalRepo.actualizarPendiente(cursoLocalId, {
                 ...update,
+                ...this._fechasInscripcionGuardadas(resultadoAbc.verificacion),
                 estado: 'vinculado',
                 datosPrevios: null
             });
+            return { ...cursoGuardado, verificacionAbc: this._resumenVerificacion(resultadoAbc.verificacion) };
         }
 
         if (encuentrosNuevos) {
@@ -1784,10 +1838,13 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
         return await cursoLocalRepo.actualizarPendiente(cursoLocalId, update);
     }
 
-    // Envía a ABC los cambios de una oferta ya publicada (quees=M contra actualiza.php).
+    // Envía a ABC los cambios de una oferta ya publicada (quees=M contra actualiza.php)
+    // y después relee la oferta para verificar que quedó lo que se mandó.
     // cursoOriginal: documento tal cual está hoy en la base (para leer el cupo vigente).
     // cursoMerged: cursoOriginal + los cambios pedidos (para armar el payload a ABC).
-    async _editarOfertaEnAbc(cursoOriginal, cursoMerged, encuentrosOrdenados) {
+    // periodo: { inicio, fin } si se pidió cambiar el período de inscripción; si no,
+    //          se reenvía el que ABC tiene hoy.
+    async _editarOfertaEnAbc(cursoOriginal, cursoMerged, encuentrosOrdenados, periodo = null) {
         const idOfertaOficial = this._sanitizeString(cursoOriginal.idOfertaOficial);
         const idCursoOriginal = this._sanitizeString(cursoOriginal.idCursoOriginal);
         if (!idCursoOriginal) {
@@ -1809,23 +1866,32 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
             throw err;
         }
 
-        await sesionService.asegurarSesion();
-        await cursoExternoRepo.sincronizarFiltros();
-        const htmlFormularioActual = await cursoExternoRepo.prepararSesionParaEdicion(idOfertaOficial);
+        // leerOferta deja la sesión de ABC parada en el formulario de esta oferta
+        // (am.php), que es lo que actualiza.php necesita para aceptar la edición.
+        let ofertaActual;
+        try {
+            ofertaActual = await ofertaAbcService.leerOferta(idOfertaOficial);
+        } catch (e) {
+            // Sin la oferta actual no se puede editar sin riesgo: antes se mandaba "ahora"
+            // como inicio de inscripción y se pisaba lo publicado sin avisar.
+            const err = new Error(`No se pudo leer la oferta actual en ABC (${e.message}). No se envió ningún cambio.`);
+            err.statusCode = 502;
+            throw err;
+        }
 
-        // El período de inscripción (inicioa/fina) puede diferir de lo que guardamos
-        // en Mongo (se puede haber tocado a mano en ABC, o quedó desactualizado) y no
-        // hay forma confiable de recalcularlo acá: lo reenviamos tal cual lo tiene ABC
-        // hoy, para no pisarlo con un valor inconsistente con el resto de sus datos
-        // (ej: "inicioa" no puede quedar después de "fechaini" si el curso ya empezó).
-        const inicioaActual = this._parseValorInputAbc(htmlFormularioActual, 'inicioa').replace(' ', 'T').slice(0, 16);
-        const finaActual = this._parseValorInputAbc(htmlFormularioActual, 'fina');
+        // Si no se pidió cambiar el período de inscripción se reenvía tal cual lo tiene
+        // ABC hoy (puede diferir de Mongo: se pudo tocar a mano en ABC).
+        const inicioa = periodo?.inicio || ofertaActual.inicioa;
+        const fina = periodo?.fin || ofertaActual.fina;
 
         // El campo cupo es de solo lectura en el formulario de edición de ABC:
         // el cambio real se aplica con "aumentar" (delta +/-) sobre el cupo vigente.
+        // Se manda el cupo que tiene ABC (como hace el navegador), no el de Mongo:
+        // al publicar se le suma un 15%, así que no coinciden.
         const cupoAnterior = this._toNumberOrNull(cursoOriginal.cupo) ?? 0;
         const cupoNuevo = this._toNumberOrNull(cursoMerged.cupo) ?? cupoAnterior;
         const aumentar = cupoNuevo - cupoAnterior;
+        const cupoAbc = this._toNumberOrNull(ofertaActual.cupo) ?? cupoAnterior;
 
         const { qi } = await sesionService.contexto();
         const payload = new URLSearchParams({
@@ -1834,12 +1900,12 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
             quees: 'M',
             volver: `misofertas.php?qi=${qi}`,
             anio: String(cursoMerged.anio || new Date().getFullYear()),
-            inicioa: inicioaActual || this._toDateTimeLocalString(new Date()),
-            fina: finaActual || this._toDateString(encuentrosOrdenados[encuentrosOrdenados.length - 1]?.fecha),
+            inicioa,
+            fina,
             fechaini: this._toDateString(encuentrosOrdenados[0]?.fecha),
             fechafin: this._toDateString(encuentrosOrdenados[encuentrosOrdenados.length - 1]?.fecha),
             disponible: this._sanitizeString(cursoMerged.disponible) || 'S',
-            cupo: String(cupoAnterior),
+            cupo: String(cupoAbc),
             aumentar: String(aumentar),
             iddispositivo: idDispositivo,
             idalcance: String(this._normalizeAlcance(cursoMerged.alcance)),
@@ -1867,7 +1933,11 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
             throw err;
         }
 
-        return parsedResponse;
+        const verificacion = await ofertaAbcService.verificar(
+            idOfertaOficial,
+            ofertaAbcService.esperadoDesdePayload(payload, { cupo: String(cupoAbc + aumentar) })
+        );
+        return { ...parsedResponse, verificacion };
     }
 
     async deleteCurso(cursoLocalId, usuario = {}) {
@@ -1965,13 +2035,6 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
         const [fecha] = fechaStr.split(' ');
         const [dia, mes, anio] = fecha.split('-');
         return new Date(anio, mes - 1, dia);
-    }
-
-    // Lee el value="..." de un <input id="campo" ...> en el HTML de un formulario de ABC.
-    _parseValorInputAbc(html, campo) {
-        if (!html) return '';
-        const match = String(html).match(new RegExp(`id=["']${campo}["'][^>]*value=["']([^"']*)["']`));
-        return match ? match[1].trim() : '';
     }
 
     async _getCursoVinculadoDelCiie(cursoLocalId, usuario = {}) {
@@ -2108,12 +2171,23 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
         // oficial (PDF), no en la calificación cargada localmente. Esto es clave
         // para seminarios, donde "quién está en condiciones" lo decide el cruce
         // con combinaciones.php y puede no coincidir con la calificación local.
+        // Cada certificado se cruza por DNI con su inscripción local, que es donde
+        // se guarda si ya se imprimió. Sin inscripción local no se puede marcar.
+        const inscriptoPorDni = new Map(inscriptosLocales.map(i => [String(i.dni || '').replace(/\D/g, ''), i]));
         const certificados = (externos?.parsed?.certificados || [])
-            .map(c => ({
-                nombreCompleto: this._capitalizarNombrePropio(this._sanitizeString(c.nombreCompleto) || ''),
-                dni: this._sanitizeString(c.dni),
-                calificacion: 'Aprobado'
-            }));
+            .map(c => {
+                const dni = this._sanitizeString(c.dni);
+                const inscripto = inscriptoPorDni.get(String(dni || '').replace(/\D/g, ''));
+                return {
+                    nombreCompleto: this._capitalizarNombrePropio(this._sanitizeString(c.nombreCompleto) || ''),
+                    dni,
+                    calificacion: 'Aprobado',
+                    tieneInscripcion: Boolean(inscripto),
+                    impreso: Boolean(inscripto?.certificadoImpreso?.impreso),
+                    fechaImpresion: inscripto?.certificadoImpreso?.fecha || null,
+                    vecesImpreso: inscripto?.certificadoImpreso?.veces || 0
+                };
+            });
 
         const acta = inscriptosLocales
             .map(i => ({
@@ -2141,7 +2215,9 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
                 formadorAbc: nombreCompletoLocal || curso.formadorAbc,
                 claveCargo: claveCargo, // <--- NUEVA PROPIEDAD
                 areaNombre: nombreArea,  // <--- NUEVA PROPIEDAD
-                impresionDocumentos: curso.impresionDocumentos || {}
+                impresionDocumentos: curso.impresionDocumentos || {},
+                certificadosImpresos: certificados.filter(c => c.impreso).length,
+                certificadosTotal: certificados.length
             },
             administrativos: {
                 resolucion: metadatos.resolucion,
@@ -2397,26 +2473,93 @@ _buildNombreCompleto(inscripto = {}) {
         };
     }
 
+    // Fechas para ABC: siempre en hora argentina, sin depender de la zona horaria del
+    // servidor (antes un encuentro a las 21:30 se mandaba con el día siguiente, y el
+    // inicio de inscripción salía 3 horas corrido en un servidor en UTC).
     _toDateString(value) {
-        if (!value) return '';
-        const d = new Date(value);
-        if (Number.isNaN(d.getTime())) return '';
-        const yyyy = d.getUTCFullYear();
-        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-        const dd = String(d.getUTCDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
+        return ofertaAbcService.fechaDiaArg(value);
     }
 
     _toDateTimeLocalString(value) {
-        if (!value) return '';
-        const d = new Date(value);
-        if (Number.isNaN(d.getTime())) return '';
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mi = String(d.getMinutes()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+        return ofertaAbcService.fechaHoraArg(value);
+    }
+
+    // Período de inscripción pedido desde el formulario de edición:
+    // { inicio: 'YYYY-MM-DDTHH:mm', fin: 'YYYY-MM-DD' } (hora argentina, como en ABC).
+    // null si no se pidió cambiarlo.
+    _normalizarPeriodoInscripcion(value) {
+        if (!value || (!value.inicio && !value.fin)) return null;
+        const inicio = String(value.inicio || '').replace(' ', 'T').slice(0, 16);
+        const fin = String(value.fin || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fin)) {
+            const err = new Error('El período de inscripción necesita fecha y hora de inicio y fecha de fin.');
+            err.statusCode = 400;
+            throw err;
+        }
+        if (inicio.slice(0, 10) > fin) {
+            const err = new Error('El fin de inscripción no puede ser anterior al inicio.');
+            err.statusCode = 400;
+            throw err;
+        }
+        return { inicio, fin };
+    }
+
+    // Fechas de inscripción para Mongo a partir de lo que quedó en ABC (o, si no se
+    // pudo releer, de lo que se pidió), para que la base refleje lo publicado.
+    _fechasInscripcionGuardadas(verificacion, periodo = null) {
+        const inicio = verificacion?.actual?.inicioa || periodo?.inicio;
+        const fin = verificacion?.actual?.fina || periodo?.fin;
+        const fechas = {};
+        if (inicio) fechas.fechaInicioInscripcion = ofertaAbcService.desdeFechaHoraArg(inicio);
+        if (fin) fechas.fechaFinInscripcion = ofertaAbcService.desdeFechaDiaArg(fin);
+        return fechas;
+    }
+
+    // Lo que se devuelve a la pantalla de la verificación (sin la oferta completa).
+    _resumenVerificacion(verificacion) {
+        if (!verificacion) return null;
+        const { ok, error, diferencias, alertas } = verificacion;
+        return { ok, error, diferencias, alertas };
+    }
+
+    // Mismo criterio de permisos para editar un curso que en deleteCurso.
+    async _puedeEditarCurso(cursoLocal, usuario = {}) {
+        if (usuario?.tipoModel === 'Ciie') {
+            return String(cursoLocal.ciieId?._id || cursoLocal.ciieId || '') === String(usuario?.referenciaId || '');
+        }
+        if (usuario?.tipoModel === 'Persona') {
+            const asignacionRepo = require('../repos/asignacionRepo');
+            const asignaciones = await asignacionRepo.getByAgente(usuario?._id);
+            const cargoIds = asignaciones.map(a => String(a.cargoId?._id));
+            return cargoIds.includes(String(cursoLocal.cargoId?._id || cursoLocal.cargoId || ''));
+        }
+        return false;
+    }
+
+    // Oferta tal como está hoy en ABC, para precargar el período de inscripción
+    // en el formulario de edición.
+    async getOfertaAbcDeCurso(cursoId, usuario = {}) {
+        const cursoLocalId = this._sanitizeObjectId(cursoId);
+        const cursoLocal = cursoLocalId && await cursoLocalRepo.getPorId(cursoLocalId);
+        if (!cursoLocal) {
+            const err = new Error('Curso local no encontrado.');
+            err.statusCode = 404;
+            throw err;
+        }
+        if (!(await this._puedeEditarCurso(cursoLocal, usuario))) {
+            const err = new Error('No tenes permisos para ver este curso.');
+            err.statusCode = 403;
+            throw err;
+        }
+        const idOfertaOficial = this._sanitizeString(cursoLocal.idOfertaOficial);
+        if (!idOfertaOficial) {
+            const err = new Error('El curso no está publicado en ABC.');
+            err.statusCode = 400;
+            throw err;
+        }
+        const actual = await ejecutarComo(cursoLocal.ciieId?._id || cursoLocal.ciieId,
+            () => ofertaAbcService.leerOferta(idOfertaOficial));
+        return { idOfertaOficial, actual, alertas: ofertaAbcService.alertasCoherencia(actual) };
     }
 
     _mapDispositivoAId(dispositivo) {

@@ -45,6 +45,14 @@
 
             <div id="resumenCertificacion" class="alert alert-info d-none mb-3"></div>
 
+            <!-- Aparece después de certificar: lleva los seminarios certificados a la pantalla de impresión -->
+            <div id="bloqueImprimir" class="d-none mb-3">
+                <a id="btnImprimirCertificados" class="btn btn-outline-success fw-bold" target="_blank" rel="noopener">
+                    <i class="bi bi-printer me-1"></i><span></span>
+                </a>
+                <small class="text-muted ms-2">Se abre en otra pestaña con los certificados pendientes de imprimir ya seleccionados.</small>
+            </div>
+
             <div class="card shadow-sm border-0 bg-dark text-white">
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -76,6 +84,7 @@
         }
 
         let pendientesEncontrados = [];
+        const urlCertificados = (ids) => `/ciie/calificaciones/documentos?tipo=certificados&cursoIds=${ids.map(encodeURIComponent).join(',')}`;
 
         function renderFila(item) {
             return `
@@ -101,6 +110,7 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando...';
 
             document.getElementById('bloqueResultados').classList.add('d-none');
+            document.getElementById('bloqueImprimir').classList.add('d-none');
             document.getElementById('tbodyAcreditacion').innerHTML = '';
 
             const resumen = document.getElementById('resumenReporte');
@@ -191,6 +201,7 @@
             resumen.classList.add('alert-info');
 
             let ok = 0, errores = 0;
+            const certificadosOk = []; // idOfertaOficial de los que se certificaron bien
 
             for (let i = 0; i < seleccionados.length; i++) {
                 const chk = seleccionados[i];
@@ -213,8 +224,11 @@
                     if (!result.success) throw new Error(result.error || 'No se pudo certificar.');
 
                     ok += 1;
+                    certificadosOk.push(chk.value);
                     fila.classList.add('fila-ok');
-                    celda.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Certificado';
+                    celda.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i>Certificado
+                        <a class="btn btn-link btn-sm p-0 ms-2 align-baseline" target="_blank" rel="noopener"
+                           href="${urlCertificados([chk.value])}"><i class="bi bi-printer me-1"></i>Imprimir</a>`;
                 } catch (error) {
                     errores += 1;
                     fila.classList.add('fila-error');
@@ -231,6 +245,14 @@
             resumen.classList.remove('alert-info');
             resumen.classList.add(errores > 0 ? 'alert-danger' : 'alert-success');
             resumen.textContent = `Listo: ${ok} seminario/s certificados` + (errores > 0 ? `, ${errores} con error.` : '.');
+
+            if (certificadosOk.length > 0) {
+                const btnImprimir = document.getElementById('btnImprimirCertificados');
+                btnImprimir.href = urlCertificados(certificadosOk);
+                btnImprimir.querySelector('span').textContent =
+                    `Imprimir certificados de ${certificadosOk.length === 1 ? 'el seminario certificado' : `los ${certificadosOk.length} seminarios certificados`}`;
+                document.getElementById('bloqueImprimir').classList.remove('d-none');
+            }
         });
     </script>
 </body>

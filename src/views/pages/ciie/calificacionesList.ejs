@@ -55,8 +55,10 @@
                                 <th>Curso</th>
                                 <th>Cargo</th>
                                 <th>Dispositivo</th>
+                                <th>Cierre</th>
                                 <th>Inicio</th>
                                 <th>Sin Calificar</th>
+                                <th title="Certificados impresos sobre aprobados (según la calificación cargada en el sistema)">Certificados</th>
                                 <th>Estado</th>
                                 <th class="text-end pe-4">Acciones</th>
                             </tr>
@@ -95,6 +97,16 @@
                                         <option value="">Todos</option>
                                     </select>
                                 </th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="8" data-fijas="Pendientes|Parciales|Completos|Sin aprobados">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
+                                <th>
+                                    <select class="form-select form-select-sm filtro-columna" data-column="9">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -130,10 +142,14 @@
                                         <!-- Dispositivo -->
                                         <td>
                                             <small class="text-muted"><%= curso.dispositivo || '-' %></small>
+                                        </td>
+
+                                        <!-- Cierre administrativo (columna propia para poder filtrar) -->
+                                        <td>
                                             <% if (curso.cierreAdministrativo?.cerrado) { %>
-                                                <i class="bi bi-lock-fill text-success ms-1" title="Cierre administrativo: cerrado<%= curso.cierreAdministrativo?.fecha ? ' el ' + new Date(curso.cierreAdministrativo.fecha).toLocaleDateString('es-AR') : '' %>"></i>
+                                                <small class="text-success text-nowrap" title="Cierre administrativo: cerrado<%= curso.cierreAdministrativo?.fecha ? ' el ' + new Date(curso.cierreAdministrativo.fecha).toLocaleDateString('es-AR') : '' %>"><i class="bi bi-lock-fill me-1"></i>Cerrado</small>
                                             <% } else { %>
-                                                <i class="bi bi-unlock-fill text-muted ms-1" title="Cierre administrativo: abierto"></i>
+                                                <small class="text-muted text-nowrap" title="Cierre administrativo: abierto"><i class="bi bi-unlock-fill me-1"></i>Abierto</small>
                                             <% } %>
                                         </td>
 
@@ -152,6 +168,24 @@
                                                 <span class="badge bg-danger"><%= sinCalificar %></span>
                                             <% } else { %>
                                                 <span class="badge bg-success">0</span>
+                                            <% } %>
+                                        </td>
+
+                                        <!-- Certificados impresos / aprobados (data-search: categoría para el filtro) -->
+                                        <%
+                                            const aprobados = curso.cantidadAprobados ?? 0;
+                                            const impresos = curso.cantidadCertificadosImpresos ?? 0;
+                                            const categoriaCert = (aprobados === 0 && impresos === 0) ? 'Sin aprobados'
+                                                : impresos === 0 ? 'Pendientes'
+                                                : impresos < aprobados ? 'Parciales'
+                                                : 'Completos';
+                                            const claseCert = { 'Sin aprobados': 'bg-secondary', Pendientes: 'bg-danger', Parciales: 'bg-warning text-dark', Completos: 'bg-success' }[categoriaCert];
+                                        %>
+                                        <td data-search="<%= categoriaCert %>">
+                                            <% if (categoriaCert === 'Sin aprobados') { %>
+                                                <small class="text-muted">—</small>
+                                            <% } else { %>
+                                                <span class="badge <%= claseCert %>" title="<%= categoriaCert %>: <%= impresos %> impresos de <%= aprobados %> aprobados"><i class="bi bi-printer me-1"></i><%= impresos %>/<%= aprobados %></span>
                                             <% } %>
                                         </td>
 
@@ -188,7 +222,7 @@
                                 <% }) %>
                             <% } else { %>
                                 <tr>
-                                    <td colspan="9" class="text-center py-5 text-muted">
+                                    <td colspan="11" class="text-center py-5 text-muted">
                                         No hay cursos vinculados para mostrar.
                                     </td>
                                 </tr>
@@ -308,7 +342,7 @@
                 pageLength: 50,
                 order: [[1, 'desc']],
                 columnDefs: [
-                    { orderable: false, targets: [0, 8] }
+                    { orderable: false, targets: [0, 10] }
                 ],
                 initComplete: function () {
                     const api = this.api();
@@ -321,8 +355,11 @@
                         const $input = tablaCalificaciones.find(`.filtro-texto[data-column="${idx}"]`);
 
                         if ($select.length) {
-                            const values = [];
-                            column.data().unique().sort().each(function (d) {
+                            // data-fijas: opciones predefinidas (la celda muestra otra cosa,
+                            // ej. "3/10", y se filtra por su data-search).
+                            const fijas = $select.data('fijas');
+                            const values = fijas ? String(fijas).split('|') : [];
+                            if (!fijas) column.data().unique().sort().each(function (d) {
                                 const text = $('<div>').html(d).text().trim();
                                 if (text && !values.includes(text)) {
                                     values.push(text);

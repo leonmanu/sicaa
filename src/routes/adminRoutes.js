@@ -17,5 +17,4 @@ router.get('/ciies', asegurarRegistro, esAdmin, getPorModelo);
 router.post('/aprobar/:id', asegurarRegistro, esAdmin, getUsuarioPorModelo);
 // Usamos :clave para identificar al usuario
 router.post('/usuario/cambiar-estado/:clave', asegurarRegistro, esAdmin, cambiarEstadoUsuario);
-
 module.exports = router;

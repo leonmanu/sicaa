@@ -312,7 +312,8 @@
                         data-id="<%= c._id %>"
                         data-propuesta='<%= JSON.stringify(c.propuestaEdicion.update || {}) %>'
                         data-propuesto-por="<%= c.propuestaEdicion.propuestoPor || '' %>"
-                        data-tiene-fechas="<%= (c.propuestaEdicion.fechasEncuentros && c.propuestaEdicion.fechasEncuentros.length > 0) ? '1' : '0' %>">
+                        data-tiene-fechas="<%= (c.propuestaEdicion.fechasEncuentros && c.propuestaEdicion.fechasEncuentros.length > 0) ? '1' : '0' %>"
+                        data-periodo='<%= JSON.stringify(c.propuestaEdicion.periodoInscripcion || null) %>'>
                     <i class="bi bi-check2-circle me-2"></i>Revisar cambios propuestos
                 </button>
             </li>
@@ -473,7 +474,24 @@
                                 <i class="bi bi-calendar-plus me-1"></i>Agregar fecha
                             </button>
                         </div>
-                        
+
+                        <!-- Período de inscripción en ABC: solo al editar un curso ya publicado -->
+                        <div class="col-12 d-none" id="wrapperPeriodoInscripcion">
+                            <label class="form-label small fw-bold mb-1">PERÍODO DE INSCRIPCIÓN EN ABC</label>
+                            <div class="row g-2">
+                                <div class="col-7">
+                                    <small class="text-muted">Inicio</small>
+                                    <input type="datetime-local" class="form-control form-control-sm bg-dark border-secondary text-white" id="inscInicio">
+                                </div>
+                                <div class="col-5">
+                                    <small class="text-muted">Fin</small>
+                                    <input type="date" class="form-control form-control-sm bg-dark border-secondary text-white" id="inscFin">
+                                </div>
+                            </div>
+                            <div id="estadoPeriodoInscripcion" class="small mt-1 text-muted"></div>
+                            <div id="sugerenciaPeriodoInscripcion" class="small mt-1"></div>
+                        </div>
+
 
                         <!-- BLOQUE FORMADORES -->
                         <div class="col-12" id="bloqueFormadores">
@@ -649,6 +667,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+    <%- include('../../partials/verificacionAbc') %>
     <script>
     $(document).ready(function () {
         const formadorOriginal = "<%= formador %>";
@@ -679,8 +698,9 @@ $('#btnAltaCurso').on('click', function() {
     $('.formador-row:not([data-index="0"])').remove();
     $('#wrapperCharCount, #wrapperAlcance').addClass('d-none');
     
-    // 6. Limpiamos la lista de fechas
+    // 6. Limpiamos la lista de fechas y el período de inscripción (solo existe al editar)
     $('#listaFechasEncuentros').empty();
+    if (typeof resetPeriodoInscripcion === 'function') resetPeriodoInscripcion();
     
     // 7. Resetear edit-mode para que sea CREAR no EDITAR
     $('#btnGuardarCurso').data('edit-mode', 'false').html('<i class="bi bi-check-circle me-1"></i>Crear Curso');
@@ -883,6 +903,95 @@ $('#btnAltaCurso').on('click', function() {
             completarFechasFaltantes();
         }
 
+        // ─── Período de inscripción (solo al editar un curso publicado) ──────────
+        // periodoOriginal: { inicio, fin } como estaba al abrir; solo se manda si cambia,
+        // así ABC conserva el suyo cuando no se toca.
+        let periodoOriginal = null;
+
+        const fechaCorta = (s) => s ? s.split('-').reverse().join('/') : '';
+        const hoyIso = () => {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+        // Fechas de Mongo a los formatos del input: las "de solo día" están a las 00:00 UTC.
+        const aInputFechaHora = (v) => {
+            if (!v) return '';
+            const d = new Date(v);
+            const p = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+        };
+        const aInputFecha = (v) => {
+            if (!v) return '';
+            const d = new Date(v);
+            if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0) return d.toISOString().slice(0, 10);
+            return aInputFechaHora(v).slice(0, 10);
+        };
+
+        function resetPeriodoInscripcion() {
+            periodoOriginal = null;
+            $('#wrapperPeriodoInscripcion').addClass('d-none');
+            $('#inscInicio, #inscFin').val('').prop('disabled', false);
+            $('#estadoPeriodoInscripcion, #sugerenciaPeriodoInscripcion').empty();
+        }
+
+        function cargarPeriodoInscripcion(curso) {
+            resetPeriodoInscripcion();
+            if (!curso.idOfertaOficial) return;
+            $('#wrapperPeriodoInscripcion').removeClass('d-none');
+            $('#inscInicio, #inscFin').prop('disabled', true);
+            $('#estadoPeriodoInscripcion').removeClass('text-warning').addClass('text-muted')
+                .html('<span class="spinner-border spinner-border-sm me-1"></span>Leyendo el período actual en ABC…');
+
+            const aplicar = (inicio, fin) => {
+                $('#inscInicio').val(inicio || '');
+                $('#inscFin').val(fin || '');
+                $('#inscInicio, #inscFin').prop('disabled', false);
+                periodoOriginal = { inicio: $('#inscInicio').val(), fin: $('#inscFin').val() };
+                actualizarSugerenciaPeriodo();
+            };
+
+            $.get(`/curso/${curso._id}/abc`)
+                .done(function (r) {
+                    aplicar(r.actual?.inicioa, r.actual?.fina);
+                    $('#estadoPeriodoInscripcion').text('Así está hoy en ABC.');
+                })
+                .fail(function (xhr) {
+                    aplicar(aInputFechaHora(curso.fechaInicioInscripcion), aInputFecha(curso.fechaFinInscripcion));
+                    $('#estadoPeriodoInscripcion').removeClass('text-muted').addClass('text-warning')
+                        .text(`No se pudo leer ABC (${xhr.responseJSON?.error || 'sin respuesta'}). Se muestra lo guardado en el sistema; si no lo cambiás, ABC conserva el suyo.`);
+                });
+        }
+
+        function actualizarSugerenciaPeriodo() {
+            const $sug = $('#sugerenciaPeriodoInscripcion').empty();
+            if (!periodoOriginal) return;
+            const inicio = ($('#inscInicio').val() || '').slice(0, 10);
+            const fin = $('#inscFin').val();
+            const fechas = getFechasEncuentro().filter(Boolean).sort();
+            const ultimo = fechas[fechas.length - 1];
+            const mensajes = [];
+
+            if (inicio && fin && inicio > fin) {
+                mensajes.push('<span class="text-danger">La inscripción termina antes de empezar.</span>');
+            }
+            if (fin && ultimo && fin !== ultimo) {
+                const cuando = fin < ultimo ? 'antes' : 'después';
+                mensajes.push(`<span class="text-warning">La inscripción cierra el ${fechaCorta(fin)}, ${cuando} del último encuentro (${fechaCorta(ultimo)}).</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline" id="btnFinEnUltimoEncuentro">Cerrarla el último encuentro</button>`);
+            }
+            if (fin && fin < hoyIso() && ultimo && ultimo >= hoyIso()) {
+                mensajes.push('<span class="text-warning">La inscripción ya está cerrada aunque el curso sigue.</span>');
+            }
+            $sug.html(mensajes.join('<br>'));
+        }
+
+        $(document).on('click', '#btnFinEnUltimoEncuentro', function () {
+            const fechas = getFechasEncuentro().filter(Boolean).sort();
+            $('#inscFin').val(fechas[fechas.length - 1] || '');
+            actualizarSugerenciaPeriodo();
+        });
+        $(document).on('input change', '#inscInicio, #inscFin, #listaFechasEncuentros .input-fecha-encuentro', actualizarSugerenciaPeriodo);
+
         function renderFechasEncuentros(fechas = []) {
             const $lista = $('#listaFechasEncuentros').empty();
 
@@ -905,6 +1014,7 @@ $('#btnAltaCurso').on('click', function() {
             }
 
             actualizarCantidadEncuentrosDesdeFechas();
+            actualizarSugerenciaPeriodo();
         }
 
         function completarFechasFaltantes() {
@@ -1314,7 +1424,8 @@ $('#btnAltaCurso').on('click', function() {
             $('#dispositivo').val('');
             $('#dispositivoSeleccionado').val('');
             $('#cursoIdParaEditar').val(''); // Importante: limpiar ID de edición
-            
+            resetPeriodoInscripcion();
+
             // Limpiar campos visibles
             $('#anio').val(new Date().getFullYear());
             $('#itinerario').val('1');
@@ -1464,6 +1575,23 @@ $('#btnAltaCurso').on('click', function() {
                 fechasEncuentros:   fechasConHora
             };
 
+            // Período de inscripción: solo si se cambió (si no, ABC conserva el suyo).
+            if (isEditMode && periodoOriginal) {
+                const inicio = $('#inscInicio').val();
+                const fin = $('#inscFin').val();
+                if (inicio !== periodoOriginal.inicio || fin !== periodoOriginal.fin) {
+                    if (!inicio || !fin) {
+                        Swal.fire('Período de inscripción incompleto', 'Completá el inicio (fecha y hora) y el fin de inscripción.', 'warning');
+                        return;
+                    }
+                    if (inicio.slice(0, 10) > fin) {
+                        Swal.fire('Período de inscripción inválido', 'El fin de inscripción no puede ser anterior al inicio.', 'warning');
+                        return;
+                    }
+                    payload.periodoInscripcion = { inicio, fin };
+                }
+            }
+
             btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Guardando...');
 
             $.ajax({
@@ -1471,7 +1599,7 @@ $('#btnAltaCurso').on('click', function() {
                 method: isEditMode ? 'PUT' : 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(payload),
-                success: function (respuesta) {
+                success: async function (respuesta) {
                     if (respuesta.avisoAbc) {
                         Swal.fire({
                             icon: 'warning',
@@ -1479,6 +1607,10 @@ $('#btnAltaCurso').on('click', function() {
                             text: respuesta.message,
                             confirmButtonText: 'Entendido'
                         }).then(() => location.reload());
+                        return;
+                    }
+                    if (await mostrarVerificacionAbc(respuesta.verificacionAbc, 'Curso actualizado')) {
+                        location.reload();
                         return;
                     }
                     const msg = isEditMode ? 'Curso actualizado' : 'Curso creado';
@@ -1569,6 +1701,7 @@ $('#horaEncuentro').val(horaEncuentro);
                     
                     // Guardar ID del documento para poder editar
                     $('#cursoIdParaEditar').val(cursoId);
+                    cargarPeriodoInscripcion({ ...curso, _id: cursoId });
 
                     // Cambiar texto del botón a "Actualizar"
                     $('#btnGuardarCurso').data('edit-mode', 'true').html('<i class="bi bi-check-circle me-1"></i>Actualizar Curso');
@@ -1648,6 +1781,11 @@ $('#horaEncuentro').val(horaEncuentro);
             const tieneFechas = $(this).data('tiene-fechas') == '1';
             let propuesta = {};
             try { propuesta = JSON.parse($(this).attr('data-propuesta') || '{}'); } catch (e) { propuesta = {}; }
+            let periodo = null;
+            try { periodo = JSON.parse($(this).attr('data-periodo') || 'null'); } catch (e) { periodo = null; }
+            const textoPeriodo = periodo
+                ? `<p class="small text-info mb-0"><i class="bi bi-calendar-range me-1"></i>Propone cambiar la inscripción en ABC: del ${escaparHtml(periodo.inicio.replace('T', ' ').split(' ').map((p, i) => i === 0 ? fechaCorta(p) : p).join(' '))} al ${escaparHtml(fechaCorta(periodo.fin))}.</p>`
+                : '';
 
             const filas = Object.keys(propuesta)
                 .filter(k => ETIQUETAS_CAMPOS_PROPUESTA[k] !== undefined && propuesta[k] !== null && propuesta[k] !== '')
@@ -1661,6 +1799,7 @@ $('#horaEncuentro').val(horaEncuentro);
                         ${propuestoPor ? `<p class="small text-muted mb-2">Propuesto por: ${propuestoPor}</p>` : ''}
                         <table class="table table-sm table-dark">${filas || '<tr><td class="text-muted">Sin cambios en los datos generales.</td></tr>'}</table>
                         ${tieneFechas ? '<p class="small text-info mb-0"><i class="bi bi-calendar-event me-1"></i>También propone nuevas fechas de encuentros.</p>' : ''}
+                        ${textoPeriodo}
                     </div>
                 `,
                 icon: 'info',
@@ -1676,7 +1815,11 @@ $('#horaEncuentro').val(horaEncuentro);
                     $.ajax({
                         url: `/curso/${cursoId}/aprobar-cambios`,
                         method: 'POST',
-                        success: function (respuesta) {
+                        success: async function (respuesta) {
+                            if (await mostrarVerificacionAbc(respuesta.verificacionAbc, 'Cambios aprobados')) {
+                                location.reload();
+                                return;
+                            }
                             Swal.fire({ icon: 'success', title: 'Cambios aprobados', text: respuesta.message, showConfirmButton: false, timer: 1800 })
                                 .then(() => location.reload());
                         },

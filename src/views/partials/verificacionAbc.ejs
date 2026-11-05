@@ -1,0 +1,38 @@
+<script>
+    // Muestra lo que encontró la verificación posterior a guardar en ABC
+    // (verificacionAbc de la respuesta). Devuelve true si mostró un aviso; si todo
+    // coincide devuelve false y la pantalla sigue con su mensaje de éxito normal.
+    window.mostrarVerificacionAbc = async function (verif, contexto = 'Guardado en ABC') {
+        if (!verif || verif.ok === true) return false;
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        if (verif.ok === null) {
+            await Swal.fire({
+                icon: 'info',
+                title: `${contexto}, sin verificar`,
+                html: `ABC aceptó el cambio, pero no se pudo releer la oferta para confirmar qué guardó.<br><small class="text-muted">${esc(verif.error)}</small><br><br>Conviene revisarla a mano en el sitio oficial.`,
+                confirmButtonText: 'Entendido'
+            });
+            return true;
+        }
+
+        const filas = (verif.diferencias || []).map(d =>
+            `<tr><td>${esc(d.etiqueta)}</td><td>${esc(d.esperado)}</td><td class="text-warning">${esc(d.actual)}</td></tr>`).join('');
+        const tabla = filas
+            ? `<p class="mb-1">ABC respondió que guardó, pero quedó distinto de lo que se mandó:</p>
+               <table class="table table-sm table-dark text-start small"><thead><tr><th>Campo</th><th>Se mandó</th><th>Quedó en ABC</th></tr></thead><tbody>${filas}</tbody></table>`
+            : '';
+        const alertas = (verif.alertas || []).length
+            ? `<p class="mb-1 mt-2">Avisos sobre la oferta en ABC:</p><ul class="text-start small mb-0">${verif.alertas.map(a => `<li>${esc(a)}</li>`).join('')}</ul>`
+            : '';
+
+        await Swal.fire({
+            icon: 'warning',
+            title: `${contexto}, con observaciones`,
+            html: `<div class="text-start">${tabla}${alertas}</div>`,
+            width: 700,
+            confirmButtonText: 'Entendido'
+        });
+        return true;
+    };
+</script>

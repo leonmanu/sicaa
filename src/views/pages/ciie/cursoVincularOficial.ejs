@@ -279,6 +279,7 @@
     <%- include('../../partials/footer') %>
     <%- include('../../partials/scripts') %>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <%- include('../../partials/verificacionAbc') %>
     <script>
         const CURSOS_PENDIENTES = JSON.parse(document.getElementById('cursosPendientesJson').textContent || '[]');
         const OFERTAS = JSON.parse(document.getElementById('ofertasOficialesJson').textContent || '[]');
@@ -370,6 +371,7 @@
 
             let ok = 0;
             const errores = [];
+            const observaciones = []; // creados, pero ABC guardó algo distinto o la oferta es incoherente
 
             Swal.fire({
                 title: 'Procesando cursos...',
@@ -384,8 +386,15 @@
                 const curso = cursosById.get(String(cursoId));
 
                 try {
-                    await crearCursoEnAbc(cursoId);
+                    const resultado = await crearCursoEnAbc(cursoId);
                     ok += 1;
+                    const verif = resultado.verificacionAbc;
+                    if (verif && verif.ok !== true) {
+                        const detalle = verif.ok === null
+                            ? `no se pudo verificar (${verif.error})`
+                            : [...(verif.diferencias || []).map(d => `${d.etiqueta}: se mandó ${d.esperado}, quedó ${d.actual}`), ...(verif.alertas || [])].join('; ');
+                        observaciones.push(`${curso?.nombrePropuesta || cursoId} (oferta ${resultado.abc?.idOfertaOficial || '?'}): ${detalle}`);
+                    }
                     if (publicarEnRedes) {
                         encolarPublicacion(cursoId).catch(err => console.error('No se pudo encolar la publicación en redes:', err));
                     }
@@ -405,7 +414,7 @@
             Swal.close();
             setBotonesLoteEstado(false);
 
-            if (errores.length === 0) {
+            if (errores.length === 0 && observaciones.length === 0) {
                 await Swal.fire({
                     icon: 'success',
                     title: 'Proceso completado',
@@ -417,10 +426,15 @@
                 return;
             }
 
+            const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            const lista = (items) => `<ul class="text-start small">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
             await Swal.fire({
                 icon: ok > 0 ? 'warning' : 'error',
                 title: 'Proceso finalizado con observaciones',
-                html: `Creados: <b>${ok}</b><br>Con error: <b>${errores.length}</b><br><br><small>${errores.slice(0, 5).join('<br>')}</small>`
+                width: 750,
+                html: `Creados: <b>${ok}</b><br>Con error: <b>${errores.length}</b><br>Creados con diferencias en ABC: <b>${observaciones.length}</b>`
+                    + (errores.length ? `<br><br><b>Errores</b>${lista(errores)}` : '')
+                    + (observaciones.length ? `<br><b>Para revisar en ABC</b>${lista(observaciones)}` : '')
             });
 
             location.reload();
@@ -611,6 +625,11 @@
                         throw new Error(result.error || 'No se pudieron guardar los cambios.');
                     }
 
+                    if (await mostrarVerificacionAbc(result.verificacionAbc, 'Curso actualizado')) {
+                        location.reload();
+                        return;
+                    }
+
                     await Swal.fire({
                         icon: 'success',
                         title: 'Curso actualizado',
@@ -643,6 +662,7 @@
 
                 try {
                     const result = await crearCursoEnAbc(cursoLocalId);
+                    await mostrarVerificacionAbc(result.verificacionAbc, `Oferta ${result.abc?.idOfertaOficial || ''} creada`);
 
                     if (confirm.value) {
                         try {

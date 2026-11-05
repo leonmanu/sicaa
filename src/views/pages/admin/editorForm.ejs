@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <%- include('../../partials/head') %>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <title>SICAA - Editar <%= etiqueta %></title>
+    <style>
+        .campo-path { font-family: monospace; font-size: 0.85rem; }
+        .campo-tipo { font-size: 0.65rem; }
+        .campo-cambiado { border-color: #ffc107 !important; box-shadow: 0 0 0 0.15rem rgba(255, 193, 7, 0.25); }
+        .campo-json { font-family: monospace; font-size: 0.8rem; }
+        .hist-valor { font-family: monospace; font-size: 0.75rem; word-break: break-all; }
+        #barraGuardar { position: sticky; bottom: 0; z-index: 10; }
+    </style>
+</head>
+<body>
+    <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
+
+    <div class="container py-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="<%= base %>/<%= clave %>" class="text-decoration-none">Editor de <%= titulo %></a></li>
+                <li class="breadcrumb-item active" aria-current="page"><%= etiqueta %></li>
+            </ol>
+        </nav>
+        <h3 class="mb-1"><i class="bi bi-database-gear me-2 text-warning"></i><%= etiqueta %></h3>
+        <p class="text-muted small mb-4">
+            Edición directa del documento en Mongo. Los cambios <strong>no</strong> se envían al sitio oficial (ABC / Drupal).
+            Vaciar un campo lo borra del documento. Los campos modificados se marcan en amarillo.
+        </p>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <form id="formEditor" onsubmit="return false;"></form>
+            </div>
+            <div class="col-lg-4">
+                <% if (tieneComparador) { %>
+                <div class="card bg-dark border-secondary mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-arrow-left-right me-1"></i> Comparar con ABC</span>
+                        <button type="button" id="btnComparar" class="btn btn-sm btn-outline-info py-0">Comparar</button>
+                    </div>
+                    <div class="card-body p-2 small" id="comparacion">
+                        <p class="text-muted m-1">Lee la oferta en el sitio oficial y la compara con lo guardado acá. Solo lectura: no cambia nada.</p>
+                    </div>
+                </div>
+                <% } %>
+                <div class="card bg-dark border-secondary">
+                    <div class="card-header"><i class="bi bi-clock-history me-1"></i> Historial de cambios</div>
+                    <div class="card-body p-2" id="historial"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="barraGuardar" class="bg-dark border-top border-secondary py-2 mt-4 d-flex justify-content-between align-items-center">
+            <small class="text-muted" id="contadorCambios">Sin cambios</small>
+            <div>
+                <a href="<%= base %>/<%= clave %>" class="btn btn-outline-secondary btn-sm me-2">Volver</a>
+                <button type="button" id="btnGuardar" class="btn btn-warning btn-sm" disabled>
+                    <i class="bi bi-save me-1"></i>Guardar cambios
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../../partials/footer') %>
+    <%- include('../../partials/scripts') %>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    (function () {
+        const BASE = <%- JSON.stringify(base) %>;
+        const CLAVE = <%- JSON.stringify(clave) %>;
+        const ID = <%- JSON.stringify(id) %>;
+        const { campos, valores, opciones, historial } = <%- datosJson %>;
+
+        const leerPath = (obj, path) => path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+        const widgets = []; // { campo, $el, obtener, inicial }
+
+        // ─── Controles por tipo ──────────────────────────────────────────────
+        const aFechaLocal = (iso) => {
+            if (!iso) return '';
+            const d = new Date(iso);
+            if (isNaN(d)) return '';
+            const p = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+        };
+
+        function crearControl(desc, valor) {
+            const base = 'form-control form-control-sm bg-dark border-secondary text-white';
+            let $el, obtener;
+
+            switch (desc.tipo) {
+                case 'booleano': {
+                    $el = $('<div class="form-check form-switch"><input class="form-check-input" type="checkbox"></div>');
+                    const $chk = $el.find('input').prop('checked', valor === true);
+                    obtener = () => $chk.prop('checked');
+                    break;
+                }
+                case 'enum':
+                case 'ref': {
+                    $el = $(`<select class="form-select form-select-sm bg-dark border-secondary text-white"></select>`);
+                    $el.append($('<option value="">').text('(vacío)'));
+                    const lista = desc.tipo === 'enum'
+                        ? desc.opciones.map(o => ({ id: String(o), etiqueta: String(o) }))
+                        : (opciones[desc.ref] || []);
+                    lista.forEach(o => $el.append($('<option>').val(o.id).text(o.etiqueta)));
+                    if (valor != null && valor !== '' && !lista.some(o => o.id === String(valor))) {
+                        $el.append($('<option>').val(String(valor)).text(`(no encontrado) ${valor}`));
+                    }
+                    if (desc.tipo === 'ref' && !opciones[desc.ref]) {
+                        // Modelo referenciado sin registrar: se edita el id a mano.
+                        $el = $(`<input type="text" class="${base} campo-json" placeholder="ObjectId">`);
+                    }
+                    $el.val(valor == null ? '' : String(valor));
+                    obtener = () => $el.val();
+                    break;
+                }
+                case 'numero':
+                    $el = $(`<input type="number" step="any" class="${base}">`).val(valor ?? '');
+                    obtener = () => $el.val();
+                    break;
+                case 'fecha':
+                    $el = $(`<input type="datetime-local" step="1" class="${base}">`).val(aFechaLocal(valor));
+                    obtener = () => ($el.val() ? new Date($el.val()).toISOString() : '');
+                    break;
+                case 'objectId':
+                    $el = $(`<input type="text" class="${base} campo-json" placeholder="ObjectId">`).val(valor ?? '');
+                    obtener = () => $el.val().trim();
+                    break;
+                case 'json': {
+                    const texto = valor == null ? '' : JSON.stringify(valor, null, 2);
+                    const filas = Math.min(Math.max(texto.split('\n').length, 2), 14);
+                    $el = $(`<textarea class="${base} campo-json" rows="${filas}" spellcheck="false" placeholder="null"></textarea>`).val(texto);
+                    $el.on('blur', function () {
+                        const v = $el.val().trim();
+                        let ok = true;
+                        if (v) { try { JSON.parse(v); } catch { ok = false; } }
+                        $el.toggleClass('is-invalid', !ok);
+                    });
+                    obtener = () => $el.val().trim();
+                    break;
+                }
+                default: { // texto
+                    const largo = typeof valor === 'string' && (valor.length > 80 || valor.includes('\n'));
+                    $el = largo
+                        ? $(`<textarea class="${base}" rows="${Math.min(valor.split('\n').length + 1, 10)}"></textarea>`)
+                        : $(`<input type="text" class="${base}">`);
+                    $el.val(valor ?? '');
+                    obtener = () => $el.val();
+                }
+            }
+            return { $el, obtener };
+        }
+
+        function crearLista(campo, valor) {
+            const $cont = $('<div class="d-flex flex-column gap-1"></div>');
+            const $items = $('<div class="d-flex flex-column gap-1"></div>');
+            const items = [];
+
+            const agregar = (v) => {
+                const ctrl = crearControl(campo.item, v);
+                const $fila = $('<div class="d-flex gap-1 align-items-start"></div>');
+                const $quitar = $('<button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0" title="Quitar"><i class="bi bi-x-lg"></i></button>');
+                $fila.append($('<div class="flex-grow-1"></div>').append(ctrl.$el), $quitar);
+                $items.append($fila);
+                const item = { ctrl, $fila };
+                items.push(item);
+                $quitar.on('click', () => { items.splice(items.indexOf(item), 1); $fila.remove(); refrescar(); });
+            };
+
+            (Array.isArray(valor) ? valor : []).forEach(agregar);
+            const $agregar = $('<button type="button" class="btn btn-sm btn-outline-info align-self-start py-0"><i class="bi bi-plus-lg me-1"></i>Agregar</button>');
+            $agregar.on('click', () => { agregar(undefined); refrescar(); });
+            $cont.append($items, $agregar);
+            return { $el: $cont, obtener: () => items.map(i => i.ctrl.obtener()) };
+        }
+
+        // ─── Armado del formulario ───────────────────────────────────────────
+        const grupos = new Map(); // nombre de grupo -> campos
+        campos.forEach(c => {
+            const grupo = c.soloLectura ? '__sistema'
+                : c.extra ? '__extra'
+                : (c.path.includes('.') ? c.path.split('.')[0] : '__general');
+            if (!grupos.has(grupo)) grupos.set(grupo, []);
+            grupos.get(grupo).push(c);
+        });
+        const orden = ['__sistema', '__general', ...[...grupos.keys()].filter(g => !g.startsWith('__')), '__extra'];
+        const titulos = {
+            __sistema: 'Sistema (solo lectura)',
+            __general: 'Campos',
+            __extra: 'Fuera del esquema (guardados en Mongo pero el modelo ya no los declara)'
+        };
+
+        const etiquetaTipo = (c) => c.tipo === 'lista'
+            ? `lista de ${c.item.tipo === 'ref' ? c.item.ref : c.item.tipo}`
+            : (c.tipo === 'ref' ? `ref ${c.ref}` : c.tipo);
+
+        orden.filter(g => grupos.has(g)).forEach((g, i) => {
+            const idCol = `grupo-${i}`;
+            const plegado = g !== '__general';
+            const $card = $(`
+                <div class="card bg-dark border-secondary mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center" role="button"
+                         data-bs-toggle="collapse" data-bs-target="#${idCol}">
+                        <span class="campo-path"></span><i class="bi bi-chevron-expand text-muted"></i>
+                    </div>
+                    <div id="${idCol}" class="collapse ${plegado ? '' : 'show'}"><div class="card-body"></div></div>
+                </div>`);
+            $card.find('.card-header span').text(titulos[g] || g);
+            const $body = $card.find('.card-body');
+
+            grupos.get(g).forEach(campo => {
+                const valor = leerPath(valores, campo.path);
+                const $fila = $('<div class="row mb-2 align-items-start"></div>');
+                const $label = $('<label class="col-md-4 col-form-label col-form-label-sm pt-1"></label>');
+                $label.append($('<span class="campo-path"></span>').text(campo.path));
+                if (campo.requerido) $label.append(' <span class="text-danger">*</span>');
+                $label.append($('<div><span class="badge bg-secondary campo-tipo"></span></div>').find('span').text(etiquetaTipo(campo)).end());
+                const $col = $('<div class="col-md-8"></div>');
+
+                if (campo.soloLectura) {
+                    $col.append($('<div class="form-control-plaintext form-control-sm campo-json text-muted"></div>').text(valor ?? '—'));
+                } else {
+                    const ctrl = campo.tipo === 'lista' ? crearLista(campo, valor) : crearControl(campo, valor);
+                    $col.append(ctrl.$el, $('<div class="invalid-feedback d-block small"></div>'));
+                    widgets.push({ campo, $el: ctrl.$el, $col, obtener: ctrl.obtener, inicial: JSON.stringify(ctrl.obtener()) });
+                }
+                $fila.append($label, $col);
+                $body.append($fila);
+            });
+            $('#formEditor').append($card);
+        });
+
+        // ─── Cambios ─────────────────────────────────────────────────────────
+        const cambiados = () => widgets.filter(w => JSON.stringify(w.obtener()) !== w.inicial);
+
+        function refrescar() {
+            widgets.forEach(w => {
+                const cambio = JSON.stringify(w.obtener()) !== w.inicial;
+                w.$el.find('input, select, textarea').addBack('input, select, textarea').toggleClass('campo-cambiado', cambio);
+            });
+            const n = cambiados().length;
+            $('#contadorCambios').text(n ? `${n} campo(s) modificado(s)` : 'Sin cambios');
+            $('#btnGuardar').prop('disabled', n === 0);
+        }
+        $('#formEditor').on('input change', refrescar);
+
+        window.addEventListener('beforeunload', (e) => {
+            if (cambiados().length) { e.preventDefault(); e.returnValue = ''; }
+        });
+
+        $('#btnGuardar').on('click', async function () {
+            const lista = cambiados();
+            if (!lista.length) return;
+            const confirmacion = await Swal.fire({
+                title: '¿Guardar cambios?',
+                html: 'Se van a modificar en Mongo:<br><code>' + lista.map(w => $('<span>').text(w.campo.path).html()).join('<br>') + '</code>',
+                icon: 'warning', showCancelButton: true,
+                confirmButtonText: 'Guardar', cancelButtonText: 'Cancelar'
+            });
+            if (!confirmacion.isConfirmed) return;
+
+            $('.invalid-feedback').text('');
+            const payload = { valores: Object.fromEntries(lista.map(w => [w.campo.path, w.obtener()])), version: valores.updatedAt };
+            $(this).prop('disabled', true);
+            try {
+                const resp = await fetch(`${BASE}/${CLAVE}/${ID}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                const data = await resp.json().catch(() => ({ error: 'Respuesta inesperada del servidor (¿se cerró la sesión?).' }));
+                if (!resp.ok || !data.ok) {
+                    Object.entries(data.errores || {}).forEach(([path, msj]) => {
+                        const w = widgets.find(x => x.campo.path === path || path.startsWith(x.campo.path + '.'));
+                        if (w) w.$col.find('.invalid-feedback').first().text(msj);
+                    });
+                    Swal.fire('No se guardó', data.error || 'Error desconocido.', 'error');
+                    refrescar();
+                    return;
+                }
+                widgets.forEach(w => { w.inicial = JSON.stringify(w.obtener()); });
+                await Swal.fire('Guardado', data.sinCambios ? 'No había cambios reales.' : `Campos modificados: ${data.cambios.join(', ')}`, 'success');
+                location.reload();
+            } catch (e) {
+                Swal.fire('Error', e.message, 'error');
+                refrescar();
+            }
+        });
+
+        // ─── Comparación con el sitio oficial ────────────────────────────────
+        $('#btnComparar').on('click', async function () {
+            const $c = $('#comparacion').html('<div class="text-muted m-1"><span class="spinner-border spinner-border-sm me-1"></span>Leyendo ABC…</div>');
+            $(this).prop('disabled', true);
+            try {
+                const resp = await fetch(`${BASE}/${CLAVE}/${ID}/comparar`);
+                const data = await resp.json().catch(() => ({ error: 'Respuesta inesperada del servidor.' }));
+                if (!resp.ok || !data.ok) throw new Error(data.error || 'No se pudo comparar.');
+
+                $c.empty();
+                const distintos = data.filas.filter(f => f.estado === 'distinto').length;
+                $c.append($('<div class="m-1 mb-2"></div>').html(distintos
+                    ? `<span class="text-warning fw-bold">${distintos} campo(s) distinto(s)</span> en la oferta ${$('<span>').text(data.idOfertaOficial).html()}`
+                    : `<span class="text-success fw-bold">Mongo y ABC coinciden</span> en la oferta ${$('<span>').text(data.idOfertaOficial).html()}`));
+
+                const $tabla = $('<table class="table table-sm table-dark mb-2" style="font-size:0.75rem;"><thead><tr><th>Campo</th><th>Mongo</th><th>ABC</th></tr></thead><tbody></tbody></table>');
+                data.filas.forEach(f => {
+                    const clase = f.estado === 'distinto' ? 'text-warning' : (f.estado === 'info' ? 'text-info' : 'text-muted');
+                    const $tr = $('<tr></tr>').addClass(clase);
+                    $tr.append($('<td></td>').text(f.etiqueta).attr('title', `Mongo: ${f.origenMongo} · ABC: ${f.campo}`));
+                    $tr.append($('<td class="hist-valor"></td>').text(f.mongo));
+                    $tr.append($('<td class="hist-valor"></td>').text(f.abc));
+                    $tabla.find('tbody').append($tr);
+                });
+                $c.append($tabla);
+                $c.append('<p class="text-muted m-1">El cupo de ABC puede ser hasta un 15% mayor (se suma al publicar); menor que el de Mongo se marca como diferencia.</p>');
+                if (data.alertas?.length) {
+                    const $ul = $('<ul class="text-warning mb-0 ps-3"></ul>');
+                    data.alertas.forEach(a => $ul.append($('<li></li>').text(a)));
+                    $c.append('<div class="fw-bold mt-2 m-1">Avisos sobre la oferta en ABC</div>', $ul);
+                }
+            } catch (e) {
+                $c.html('').append($('<p class="text-danger m-1"></p>').text(e.message));
+            } finally {
+                $(this).prop('disabled', false);
+            }
+        });
+
+        // ─── Historial ───────────────────────────────────────────────────────
+        const corto = (v) => {
+            if (v === undefined || v === null || v === '') return '(vacío)';
+            const s = typeof v === 'string' ? v : JSON.stringify(v);
+            return s.length > 120 ? s.slice(0, 120) + '…' : s;
+        };
+
+        if (!historial.length) {
+            $('#historial').append('<p class="text-muted small m-2">Todavía no hay cambios hechos desde el editor.</p>');
+        }
+        historial.forEach(h => {
+            const $h = $('<div class="border-bottom border-secondary pb-2 mb-2"></div>');
+            const fecha = new Date(h.fecha).toLocaleString('es-AR');
+            $h.append($('<div class="small"></div>')
+                .append($('<strong></strong>').text(fecha))
+                .append(h.accion === 'restauracion' ? ' <span class="badge bg-info text-dark">restauración</span>' : '')
+                .append($('<div class="text-muted"></div>').text(h.usuario || '')));
+            h.cambios.forEach(c => {
+                $h.append($('<div class="mt-1"></div>')
+                    .append($('<div class="campo-path text-warning"></div>').text(c.path))
+                    .append($('<div class="hist-valor text-danger"></div>').text('− ' + corto(c.antes)))
+                    .append($('<div class="hist-valor text-success"></div>').text('+ ' + corto(c.despues))));
+            });
+            const $btn = $('<button type="button" class="btn btn-sm btn-outline-secondary py-0 mt-1"><i class="bi bi-arrow-counterclockwise me-1"></i>Volver a antes de este cambio</button>');
+            $btn.on('click', async () => {
+                const r = await Swal.fire({
+                    title: '¿Restaurar?',
+                    text: `El documento completo vuelve a como estaba antes del cambio del ${fecha}. Se pierden los cambios posteriores (quedan en el historial).`,
+                    icon: 'warning', showCancelButton: true, confirmButtonText: 'Restaurar', cancelButtonText: 'Cancelar'
+                });
+                if (!r.isConfirmed) return;
+                const resp = await fetch(`${BASE}/${CLAVE}/historial/${h.id}/restaurar`, { method: 'POST' });
+                const data = await resp.json().catch(() => ({}));
+                if (!resp.ok || !data.ok) return Swal.fire('No se restauró', data.error || 'Error desconocido.', 'error');
+                location.reload();
+            });
+            $h.append($btn);
+            $('#historial').append($h);
+        });
+    })();
+    </script>
+</body>
+</html>

@@ -56,6 +56,15 @@ const InscriptoLocalSchema = new mongoose.Schema({
     }],
     
 
+    // Impresión del certificado de esta inscripción. Va por inscripción y no por
+    // curso porque en los seminarios los certificados se imprimen en distintos momentos.
+    certificadoImpreso: {
+        impreso: { type: Boolean, default: false },
+        fecha: Date,          // última impresión
+        impresoPor: String,
+        veces: { type: Number, default: 0 }
+    },
+
     observaciones: String,
     creadoPor: String
 }, { timestamps: true });

@@ -87,6 +87,7 @@ const putCurso = async (req, res) => {
             success: true,
             message: mensaje,
             avisoAbc: Boolean(cursoActualizado?.errorAbc),
+            verificacionAbc: cursoActualizado?.verificacionAbc || null,
             curso: cursoActualizado
         });
     } catch (error) {
@@ -108,6 +109,7 @@ const postAprobarCambiosPendientes = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: 'Cambios aprobados y publicados en el sitio oficial.',
+            verificacionAbc: curso?.verificacionAbc || null,
             curso
         });
     } catch (error) {
@@ -713,6 +715,21 @@ const getCalificacionesDocumentosLote = async (req, res) => {
     }
 }
 
+// Marca o desmarca certificados como impresos, por inscripción.
+// body: { items: [{ idOfertaOficial, dni }], impreso: true|false }
+const postMarcarCertificadosImpresos = async (req, res) => {
+    try {
+        const { items, impreso = true } = req.body || {};
+        const resultado = await cursoLocalService.marcarCertificadosImpresos(items, impreso !== false, req.user);
+        return res.status(200).json({ success: true, ...resultado });
+    } catch (error) {
+        const status = error.statusCode || 500;
+        const message = error.message || 'No se pudo actualizar la impresión de los certificados.';
+        console.error('Error en postMarcarCertificadosImpresos:', message);
+        return res.status(status).json({ success: false, error: message });
+    }
+}
+
 const postMarcarImpresionDocumentos = async (req, res) => {
     try {
         const { idOfertaOficial } = req.params;
@@ -754,6 +771,7 @@ const postEditarCursoPendiente = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: 'Curso pendiente actualizado correctamente.',
+            verificacionAbc: curso?.verificacionAbc || null,
             curso
         });
     } catch (error) {
@@ -1056,6 +1074,18 @@ const getCursoById = async (req, res) => {
     }
 };
 
+// Oferta tal como está hoy en ABC (para precargar el período de inscripción al editar).
+const getOfertaAbc = async (req, res) => {
+    try {
+        const resultado = await cursoLocalService.getOfertaAbcDeCurso(req.params.id, req.user);
+        return res.status(200).json({ success: true, ...resultado });
+    } catch (error) {
+        const status = error.statusCode || 502;
+        console.error('Error en getOfertaAbc:', error.message);
+        return res.status(status).json({ success: false, error: error.message });
+    }
+}
+
 const getCursoByIdEdit = async (req, res) => {
     try {
         const cursoLocalId = req.params.id;
@@ -1159,6 +1189,7 @@ module.exports = {
     postGuardarYEnviarCalificacionesCurso,
     postEnviarCalificacionesCurso,
     postMarcarImpresionDocumentos,
+    postMarcarCertificadosImpresos,
     getFlyerCurso,
     getFlyersList,
     deleteCurso,
@@ -1169,6 +1200,7 @@ module.exports = {
     getMisCursos,
     getPorCiieDrupal,
     getCursoByIdEdit,
+    getOfertaAbc,
     getPorCiiePublico,
     getEstadisticasCursos,
     getRegistroCursantesMasivo,

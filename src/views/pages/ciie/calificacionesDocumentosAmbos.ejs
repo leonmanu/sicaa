@@ -33,11 +33,10 @@
                             </small>
                         </div>
                         <div class="d-flex flex-wrap gap-2">
-                            <% if (data.curso?.impresionDocumentos?.certificadosImpresos) { %>
-                                <span class="badge bg-success">Certificados impresos</span>
-                            <% } else { %>
-                                <span class="badge bg-secondary">Certificados pendientes</span>
-                            <% } %>
+                            <% const impresos = data.curso?.certificadosImpresos || 0, totalCerts = data.curso?.certificadosTotal || 0; %>
+                            <span class="badge <%= totalCerts > 0 && impresos === totalCerts ? 'bg-success' : 'bg-secondary' %>">
+                                Certificados impresos: <%= impresos %> de <%= totalCerts %>
+                            </span>
 
                             <% if (data.curso?.impresionDocumentos?.actaImpresa) { %>
                                 <span class="badge bg-success">Acta impresa</span>
@@ -45,7 +44,9 @@
                                 <span class="badge bg-secondary">Acta pendiente</span>
                             <% } %>
 
-                            <button class="btn btn-outline-success btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="certificados">
+                            <%# DNIs de los certificados que se pueden registrar (tienen inscripción en el sistema) %>
+                            <button class="btn btn-outline-success btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="certificados"
+                                    data-dnis='<%= JSON.stringify((data.certificados || []).filter(c => c.tieneInscripcion).map(c => c.dni)) %>'>
                                 <i class="bi bi-printer me-1"></i>Marcar certificados
                             </button>
                             <button class="btn btn-outline-warning btn-sm btn-marcar-impreso" data-curso-id="<%= data.curso?.idOfertaOficial %>" data-tipo="acta">
@@ -146,15 +147,34 @@
     <%- include('../../partials/scripts') %>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        const postJson = async (url, body) => {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'No se pudo guardar el estado.');
+            return result;
+        };
+
+        // Los certificados se registran por inscripción; el acta, por curso.
         async function marcarImpresion(cursoId, tipo) {
             try {
-                const response = await fetch(`/ciie/calificaciones/${cursoId}/documentos/impresion`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tipo })
-                });
-                const result = await response.json();
-                if (!result.success) throw new Error(result.error || 'No se pudo guardar el estado.');
+                if (tipo === 'certificados' || tipo === 'ambos') {
+                    const $btn = $(`.btn-marcar-impreso[data-curso-id="${cursoId}"][data-tipo="certificados"]`);
+                    let dnis = [];
+                    try { dnis = JSON.parse($btn.attr('data-dnis') || '[]'); } catch (e) { dnis = []; }
+                    if (dnis.length) {
+                        await postJson('/ciie/calificaciones/certificados/impresion', {
+                            items: dnis.map(dni => ({ idOfertaOficial: cursoId, dni })),
+                            impreso: true
+                        });
+                    }
+                }
+                if (tipo === 'acta' || tipo === 'ambos') {
+                    await postJson(`/ciie/calificaciones/${cursoId}/documentos/impresion`, { tipo: 'acta' });
+                }
                 await Swal.fire('Listo', 'Estado de impresión actualizado.', 'success');
                 window.location.reload();
             } catch (error) {
@@ -168,7 +188,9 @@
             const confirm = await Swal.fire({
                 icon: 'question',
                 title: 'Confirmar impresión',
-                text: 'Se guardará el estado de impresión del documento.',
+                text: tipo === 'acta'
+                    ? 'Se guardará que el acta está impresa.'
+                    : 'Se registrarán como impresos todos los certificados de este curso. Para elegir uno por uno, usá la vista de certificados.',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, guardar',
                 cancelButtonText: 'Cancelar'

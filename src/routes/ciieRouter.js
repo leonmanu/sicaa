@@ -24,6 +24,7 @@ const {
     postEnviarCalificacionesCurso,
     postGuardarYEnviarCalificacionesCurso,
     postMarcarImpresionDocumentos,
+    postMarcarCertificadosImpresos,
     getCalificaciones,
     getPlanillaAprobadosItinerario,
     getComunicadoItinerario,
@@ -81,6 +82,7 @@ router
     .post('/calificaciones/:idOfertaOficial/enviar', soloCiie, postGuardarYEnviarCalificacionesCurso)
     .post('/calificaciones/:idOfertaOficial/enviar-directo', soloCiie, postEnviarCalificacionesCurso)
     .post('/calificaciones/:idOfertaOficial/documentos/impresion', soloCiie, postMarcarImpresionDocumentos)
+    .post('/calificaciones/certificados/impresion', soloCiie, postMarcarCertificadosImpresos)
 
     .get('/inscriptos/curso/:idOfertaOficial', soloCiie, viewInscripto)
 

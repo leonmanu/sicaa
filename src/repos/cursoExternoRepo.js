@@ -98,7 +98,8 @@ class CursoExternoRepo {
     async getOfertasDelCursoActivo() {
         const { client, qi } = await sesionService.contexto();
         return await client.get(`${URLS.BASE_URL}/propuestas/datosofertas.php`, {
-            params: { qi, sEcho: 1, iDisplayStart: 0, iDisplayLength: 5 }
+            // Todas: ABC las lista de la más vieja a la más nueva.
+            params: { qi, sEcho: 1, iDisplayStart: 0, iDisplayLength: 500 }
         });
     }
 }
