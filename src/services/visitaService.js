@@ -9,8 +9,11 @@ const { fechaDiaArg } = require('./ofertaAbcService');
 
 const SAL = process.env.SESSION_SECRET || 'sal-visitas';
 
-// Buscadores, previsualizadores de enlaces (WhatsApp, Facebook) y herramientas.
-const BOTS = /bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp|telegram|discord|curl|wget|python|axios|node-fetch|headless|lighthouse|monitor|uptime/i;
+// Buscadores, armadores de vistas previas de enlaces y herramientas: no son personas.
+// Las vistas previas se descartan por el nombre exacto de su programa (el de WhatsApp
+// se presenta como "WhatsApp/x.y"), para no descartar a quien abre el link desde el
+// navegador interno de una app (Facebook/Instagram/WhatsApp), que sí se cuenta.
+const BOTS = /bot\b|bot\/|crawl|spider|slurp|facebookexternalhit|facebookcatalog|^WhatsApp\/|TelegramBot|Discordbot|Slackbot|LinkedInBot|SkypeUriPreview|curl|wget|python|axios|node-fetch|headless|lighthouse|uptime/i;
 
 const ipDe = (req) => String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
 
