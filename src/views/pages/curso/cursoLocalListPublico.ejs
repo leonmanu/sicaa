@@ -19,6 +19,10 @@
         .curso-detalle { font-size: 0.85rem; }
         .curso-detalle li { display: flex; align-items: baseline; gap: 0.5rem; padding: 2px 0; }
         .curso-detalle i { width: 1.1em; flex-shrink: 0; }
+        /* Detalle del curso (ej. "Punto de encuentro", "Traer tijera"): destacado con el
+           azul de acento de la página, informativo y no de alerta */
+        .curso-aviso { font-size: 0.82rem; color: #c9d1d9; background: rgba(88, 166, 255, 0.08); border-left: 3px solid #58a6ff; border-radius: 4px; padding: 4px 8px; white-space: pre-line; }
+        .curso-aviso i { color: #58a6ff; }
         #buscador:focus { border-color: #58a6ff; box-shadow: 0 0 0 0.2rem rgba(88,166,255,.15); }
         .filtro-activo { border-color: #58a6ff !important; }
         #contadorResultados { font-size: 0.8rem; }
@@ -235,9 +239,15 @@
                     const hora = horaDictadoDe(c);
                     const formato = formatoDe(c);
                     const fechaInicio = fechaInicioDe(c);
+                    // El título del formulario es el nombre "de fantasía" con el que se difunde;
+                    // si no hay, el nombre oficial del curso base.
+                    const oficial = (c.nombrePropuesta || '').trim();
+                    const titulo = (c.tituloFormulario || '').trim() || oficial;
+                    const ubicacion = (c.ubicacion || '').trim();
+                    const detalle = (c.detalleFlyer || '').trim();
                 %>
                 <div class="col-12 col-md-6 col-lg-4 curso-item"
-                     data-nombre="<%= (c.nombrePropuesta || '').toLowerCase() %>"
+                     data-nombre="<%= [titulo, oficial, detalle].join(' ').toLowerCase() %>"
                      data-formador="<%= (c.formadorAbc || '').toLowerCase() %>"
                      data-area="<%= area.toLowerCase() %>"
                      data-dispositivo="<%= c.dispositivo || '' %>"
@@ -252,14 +262,20 @@
                                 <% if (formato) { %><span class="badge bg-dark border border-secondary text-light"><%= formato %></span><% } %>
                             </div>
 
-                            <h6 class="curso-nombre fw-bold mb-2"><%= c.nombrePropuesta %></h6>
+                            <h6 class="curso-nombre fw-bold mb-2"><%= titulo %></h6>
+
+                            <% if (detalle) { %>
+                                <div class="curso-aviso mb-2"><i class="bi bi-info-circle me-1"></i><span><%= detalle %></span></div>
+                            <% } %>
 
                             <ul class="list-unstyled curso-detalle text-muted mb-3 flex-grow-1">
+                                <% if (ubicacion) { %><li><i class="bi bi-geo-alt"></i><span><a class="link-light" target="_blank" rel="noopener noreferrer"
+                                    href="https://www.google.com/maps/search/?api=1&query=<%= encodeURIComponent(ubicacion) %>"><%= ubicacion %></a></span></li><% } %>
                                 <% if (area) { %><li><i class="bi bi-tag"></i><span><%= area %></span></li><% } %>
                                 <% if (c.formadorAbc) { %><li><i class="bi bi-person"></i><span><%= c.formadorAbc %></span></li><% } %>
                                 <% if (dia) { %><li><i class="bi bi-calendar-event"></i><span><%= dia %><% if (hora) { %> · <%= hora %> hs<% } %></span></li><% } %>
                                 <% if (fechaInicio) { %><li><i class="bi bi-calendar2-check"></i><span>Inicia el <%= fechaInicio %></span></li><% } %>
-                                <% if (c.cantidadHoras) { %><li><i class="bi bi-clock-history"></i><span><%= c.cantidadHoras %> hs. reloj<% if (c.cantidadEncuentros) { %> · <%= c.cantidadEncuentros %> encuentros<% } %></span></li><% } %>
+                                <% if (c.cantidadHoras) { %><li><i class="bi bi-clock-history"></i><span><%= c.cantidadHoras %> hs. reloj<% if (c.cantidadEncuentros) { %> · <%= c.cantidadEncuentros %> <%= c.cantidadEncuentros === 1 ? 'encuentro' : 'encuentros' %><% } %></span></li><% } %>
                                 <% if (c.cupo) { %><li><i class="bi bi-people"></i><span><%= c.cantidadInscriptos || 0 %>/<%= c.cupo %> inscriptos/as</span></li><% } %>
                             </ul>
 
@@ -279,7 +295,7 @@
                                 <button type="button" class="btn btn-outline-light btn-sm"
                                         data-bs-toggle="modal" data-bs-target="#modalFlyer"
                                         data-oferta-id="<%= c.idOfertaOficial %>"
-                                        data-nombre="<%= c.nombrePropuesta %>">
+                                        data-nombre="<%= titulo %>">
                                     <i class="bi bi-image me-1"></i>Ver flyer
                                 </button>
                                 <% } %>
