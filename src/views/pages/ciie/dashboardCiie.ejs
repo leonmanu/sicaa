@@ -3,6 +3,25 @@
 <head>
     <%- include('../../partials/head') %>
     <title>SICAA - Panel de Gestión</title>
+    <style>
+        /* Gráfico de visitas: tokens del panel (siempre oscuro) */
+        .viz-visitas {
+            --series-1: #3987e5;
+            --viz-grid: rgba(255, 255, 255, 0.12);
+            --viz-baseline: rgba(255, 255, 255, 0.35);
+        }
+        .viz-cols { position: relative; display: flex; align-items: flex-end; gap: 2px; height: 140px; border-bottom: 1px solid var(--viz-baseline); }
+        .viz-grid { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--viz-grid); pointer-events: none; }
+        .viz-grid span { position: absolute; right: 0; top: -1.3em; font-size: 0.7rem; color: var(--bs-secondary-color); }
+        .viz-col { flex: 1 1 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; cursor: default; }
+        .viz-bar { width: 100%; max-width: 24px; background: var(--series-1); border-radius: 4px 4px 0 0; min-height: 0; }
+        .viz-col:hover .viz-bar, .viz-col:focus .viz-bar { filter: brightness(1.25); }
+        .viz-col:focus { outline: none; }
+        .viz-col:focus-visible { outline: 1px solid var(--viz-baseline); }
+        .viz-tooltip { position: absolute; z-index: 5; pointer-events: none; background: #11151a; border: 1px solid var(--viz-grid); border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; white-space: nowrap; transform: translate(-50%, -100%); }
+        .viz-tooltip .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--series-1); margin-right: 6px; }
+        .viz-stat { font-size: 2rem; font-weight: 600; line-height: 1; }
+    </style>
 </head>
 <body>
     <%- include('../../partials/navbar') %>
@@ -93,6 +112,70 @@
             </div>
         </div>
 
+        <% if (typeof visitas !== 'undefined' && visitas) { %>
+        <%
+            const maxPersonas = Math.max(1, ...visitas.serie.map(d => d.personas));
+            const fechaCorta = (f) => f.split('-').reverse().slice(0, 2).join('/');
+            const clavePublica = user.referenciaId?.clave;
+        %>
+        <div class="card bg-dark border-secondary mt-5 viz-visitas">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2 mb-3">
+                    <h5 class="mb-0"><i class="bi bi-eye me-2 text-info"></i>Visitas a la página pública de cursos</h5>
+                    <% if (clavePublica) { %>
+                        <a href="/curso/publico/<%= clavePublica %>" target="_blank" rel="noopener" class="small">Ver la página <i class="bi bi-box-arrow-up-right"></i></a>
+                    <% } %>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <% [['Hoy', visitas.hoy], ['Últimos 7 días', visitas.semana], ['Últimos 30 días', visitas.mes]].forEach(([titulo, t]) => { %>
+                        <div class="col-4">
+                            <div class="small text-secondary mb-1"><%= titulo %></div>
+                            <div class="viz-stat"><%= t.personas %></div>
+                            <div class="small text-secondary"><%= t.personas === 1 ? 'persona' : 'personas' %> · <%= t.visitas %> <%= t.visitas === 1 ? 'visita' : 'visitas' %></div>
+                        </div>
+                    <% }) %>
+                </div>
+
+                <div class="small text-secondary mb-2">Personas por día · últimos 30 días</div>
+                <div class="position-relative">
+                    <div class="viz-cols" id="vizVisitas" role="img"
+                         aria-label="Personas por día en los últimos 30 días: <%= visitas.mes.personas %> en total. El detalle está en la tabla.">
+                        <div class="viz-grid" style="bottom: 100%;"><span><%= maxPersonas %></span></div>
+                        <div class="viz-grid" style="bottom: 50%;"><span><%= Math.round(maxPersonas / 2) %></span></div>
+                        <% visitas.serie.forEach(d => { %>
+                            <div class="viz-col" tabindex="0" data-fecha="<%= fechaCorta(d.fecha) %>" data-personas="<%= d.personas %>" data-visitas="<%= d.visitas %>">
+                                <div class="viz-bar" style="height: <%= (d.personas / maxPersonas * 100).toFixed(1) %>%;"></div>
+                            </div>
+                        <% }) %>
+                    </div>
+                    <div class="viz-tooltip d-none" id="vizTooltip"></div>
+                </div>
+                <div class="d-flex justify-content-between small text-secondary mt-1">
+                    <span><%= fechaCorta(visitas.serie[0].fecha) %></span>
+                    <span>hoy</span>
+                </div>
+
+                <details class="mt-3">
+                    <summary class="small text-secondary">Ver como tabla</summary>
+                    <table class="table table-dark table-sm small mt-2 mb-0">
+                        <thead><tr><th>Día</th><th class="text-end">Personas</th><th class="text-end">Visitas</th></tr></thead>
+                        <tbody>
+                            <% visitas.serie.slice().reverse().forEach(d => { %>
+                                <tr><td><%= fechaCorta(d.fecha) %></td><td class="text-end"><%= d.personas %></td><td class="text-end"><%= d.visitas %></td></tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </details>
+
+                <p class="small text-secondary mt-3 mb-0">
+                    Una persona se cuenta una vez por día aunque entre varias veces (por eso, sumando días, alguien que volvió cuenta más de una vez).
+                    No se cuentan buscadores ni otros robots, ni quienes entran con sesión iniciada en SICAA.
+                </p>
+            </div>
+        </div>
+        <% } %>
+
         <div class="mt-5 p-4 bg-secondary bg-opacity-10 rounded-3 border border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
             <div>
                 <h6 class="text-uppercase fw-bold small text-info mb-1">💡 Integración</h6>
@@ -106,5 +189,38 @@
 
     <%- include('../../partials/footer') %>
     <%- include('../../partials/scripts') %>
+    <script>
+        // Tooltip del gráfico de visitas: toda la columna es zona de hover (más grande que la barra).
+        (function () {
+            const cont = document.getElementById('vizVisitas');
+            const tip = document.getElementById('vizTooltip');
+            if (!cont || !tip) return;
+            const mostrar = (col) => {
+                const p = Number(col.dataset.personas), v = Number(col.dataset.visitas);
+                tip.innerHTML = '';
+                const titulo = document.createElement('div');
+                titulo.className = 'fw-bold mb-1';
+                titulo.textContent = col.dataset.fecha;
+                const fila = document.createElement('div');
+                fila.innerHTML = '<span class="swatch"></span>';
+                fila.append(`${p} ${p === 1 ? 'persona' : 'personas'}`);
+                const fila2 = document.createElement('div');
+                fila2.className = 'text-secondary';
+                fila2.textContent = `${v} ${v === 1 ? 'visita' : 'visitas'}`;
+                tip.append(titulo, fila, fila2);
+                const rc = cont.getBoundingClientRect(), r = col.getBoundingClientRect();
+                const x = Math.min(Math.max(r.left - rc.left + r.width / 2, 60), rc.width - 60);
+                tip.style.left = `${x}px`;
+                tip.style.top = `${Math.max(r.top - rc.top + r.height * (1 - p / Math.max(1, ...[...cont.querySelectorAll('.viz-col')].map(c => Number(c.dataset.personas)))) - 6, 0)}px`;
+                tip.classList.remove('d-none');
+            };
+            cont.querySelectorAll('.viz-col').forEach(col => {
+                col.addEventListener('mouseenter', () => mostrar(col));
+                col.addEventListener('focus', () => mostrar(col));
+            });
+            cont.addEventListener('mouseleave', () => tip.classList.add('d-none'));
+            cont.addEventListener('focusout', () => tip.classList.add('d-none'));
+        })();
+    </script>
 </body>
 </html>

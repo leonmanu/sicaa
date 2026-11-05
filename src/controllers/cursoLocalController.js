@@ -5,6 +5,7 @@ const inscriptoExternoService = require('../services/inscriptoExternoService');
 const inscriptoLocalService = require('../services/inscriptoLocalService');
 const acreditacionSeminariosService = require('../services/acreditacionSeminariosService');
 const publicacionService = require('../services/publicacionService');
+const visitaService = require('../services/visitaService');
 
 const vincularCurso = async (req, res) => {
     try {
@@ -827,6 +828,7 @@ const getPorCiiePublico = async (req, res) => {
         if (!ciie) {
             return res.status(404).send('CIIE no encontrado.');
         }
+        visitaService.registrar(req, ciie._id, 'cursos-publico'); // sin await: no demora la página
         const cursosLocales = await cursoLocalService.getCursosPorCiieId(ciie._id);
         res.render('pages/curso/cursoLocalListPublico', {
             cursosLocales,

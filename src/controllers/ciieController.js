@@ -1,14 +1,23 @@
 const usuarioService = require('../services/usuarioService');
 const agenteService = require('../services/agenteService');
+const visitaService = require('../services/visitaService');
 
 const getDashboard = async (req, res) => {
     try {
         // Obtenemos las personas reales de Mongo
         const personasPendientes = await usuarioService.getSolicitudesPorTipo('Persona');
-        
+
+        // Visitas a la página pública de cursos: si falla, el panel se muestra igual sin ese bloque.
+        const ciieId = req.user?.referenciaId?._id || req.user?.referenciaId;
+        const visitas = await visitaService.resumen(ciieId, 'cursos-publico', 30).catch(e => {
+            console.error('No se pudo leer el resumen de visitas:', e.message);
+            return null;
+        });
+
         // Renderizamos el dashboard del CIIE
         res.render('pages/ciie/dashboardCiie', {
             personasPendientes, // Array real de solicitudes
+            visitas,
             user: req.user
         });
     } catch (error) {
