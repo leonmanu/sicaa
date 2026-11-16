@@ -160,6 +160,23 @@ class MetaGraphService {
         }
     }
 
+    // Instagram procesa cada contenedor (imagen o carrusel) de forma asíncrona:
+    // si se llama a media_publish antes de que esté FINISHED, responde
+    // "Media ID is not available". Se consulta status_code hasta que esté listo.
+    async _esperarContenedorInstagram(containerId, accessToken, { intentos = 30, esperaMs = 2000 } = {}) {
+        for (let i = 0; i < intentos; i += 1) {
+            const { data } = await axios.get(`${this._baseUrl()}/${containerId}`, {
+                params: { fields: 'status_code,status', access_token: accessToken }
+            });
+            if (data.status_code === 'FINISHED') return;
+            if (data.status_code === 'ERROR' || data.status_code === 'EXPIRED') {
+                throw new Error(`Instagram no pudo procesar la imagen (${data.status_code}${data.status ? ': ' + data.status : ''}).`);
+            }
+            await new Promise(resolve => setTimeout(resolve, esperaMs));
+        }
+        throw new Error('Instagram tardó demasiado en procesar la imagen. Probá publicar de nuevo en unos minutos.');
+    }
+
     async publicarEnInstagram(conexion, imageUrls, caption) {
         const igUserId = this._exigir(conexion, 'igUserId', 'Tu CIIE no tiene una cuenta de Instagram conectada.');
         const accessToken = this._exigir(conexion, 'token', 'Tu CIIE no tiene conectadas sus redes sociales.');
@@ -169,6 +186,7 @@ class MetaGraphService {
                 const { data: creacion } = await axios.post(`${this._baseUrl()}/${igUserId}/media`, null, {
                     params: { image_url: imageUrls[0], caption, access_token: accessToken }
                 });
+                await this._esperarContenedorInstagram(creacion.id, accessToken);
                 const { data: publicado } = await axios.post(`${this._baseUrl()}/${igUserId}/media_publish`, null, {
                     params: { creation_id: creacion.id, access_token: accessToken }
                 });
@@ -182,6 +200,9 @@ class MetaGraphService {
                 });
                 childrenIds.push(data.id);
             }
+            for (const childId of childrenIds) {
+                await this._esperarContenedorInstagram(childId, accessToken);
+            }
 
             const { data: creacion } = await axios.post(`${this._baseUrl()}/${igUserId}/media`, null, {
                 params: {
@@ -191,6 +212,7 @@ class MetaGraphService {
                     access_token: accessToken
                 }
             });
+            await this._esperarContenedorInstagram(creacion.id, accessToken);
 
             const { data: publicado } = await axios.post(`${this._baseUrl()}/${igUserId}/media_publish`, null, {
                 params: { creation_id: creacion.id, access_token: accessToken }
