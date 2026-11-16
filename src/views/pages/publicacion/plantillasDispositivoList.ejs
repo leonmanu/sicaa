@@ -12,11 +12,15 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
             <div>
                 <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-text me-2 text-info"></i>Plantillas por dispositivo</h2>
-                <p class="text-muted mb-0">Texto reutilizable de "¿Qué son?" y requisitos para cada tipo de curso.</p>
+                <p class="text-muted mb-0">Texto reutilizable de "¿Qué son?" y requisitos para cada tipo de curso. Las define la DFDP y son comunes a todos los CIIE.</p>
             </div>
             <a href="/publicaciones" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver a publicaciones</a>
         </div>
 
+        <% const puedeEditar = user && user.rol === 'admin'; %>
+        <% if (!puedeEditar) { %>
+            <div class="alert alert-secondary small"><i class="bi bi-lock me-1"></i>Solo lectura: las plantillas las mantiene el administrador.</div>
+        <% } else { %>
         <div class="card bg-dark border-secondary mb-4">
             <div class="card-header border-secondary fw-bold">Nueva plantilla</div>
             <div class="card-body">
@@ -47,6 +51,7 @@
                 </form>
             </div>
         </div>
+        <% } %>
 
         <div class="card bg-dark border-secondary">
             <div class="card-body p-0">
@@ -69,7 +74,7 @@
                                     <td><%= p.hashtag %></td>
                                     <td><small class="text-muted"><%= (p.queSonBullets || []).join(' · ') %></small></td>
                                     <td class="text-end pe-4">
-                                        <button class="btn btn-sm btn-outline-danger btn-eliminar-plantilla"><i class="bi bi-trash"></i></button>
+                                        <% if (puedeEditar) { %><button class="btn btn-sm btn-outline-danger btn-eliminar-plantilla"><i class="bi bi-trash"></i></button><% } %>
                                     </td>
                                 </tr>
                             <% }) %>

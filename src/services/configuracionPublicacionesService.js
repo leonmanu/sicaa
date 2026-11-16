@@ -2,14 +2,14 @@ const configuracionPublicacionesRepo = require('../repos/configuracionPublicacio
 
 class ConfiguracionPublicacionesService {
 
-    async get() {
-        return await configuracionPublicacionesRepo.getSingleton();
+    async get(ciieId) {
+        return await configuracionPublicacionesRepo.getPorCiie(ciieId);
     }
 
-    async actualizar(datos) {
+    async actualizar(ciieId, datos) {
         const textoABullets = (texto) => (texto || '').split('\n').map(l => l.trim()).filter(Boolean);
 
-        return await configuracionPublicacionesRepo.actualizar({
+        return await configuracionPublicacionesRepo.actualizar(ciieId, {
             requisitosDefaultBullets: textoABullets(datos.requisitosDefaultBullets),
             cierreFacebook: datos.cierreFacebook || '',
             cierreInstagram: datos.cierreInstagram || '',

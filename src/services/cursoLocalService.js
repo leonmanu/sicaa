@@ -1073,7 +1073,7 @@ class CursoLocalService {
         });
     }
 
-    async actualizarCalificacionesYEnviarCurso(idOfertaOficial, calificaciones = [], usuario = {}) {
+    async actualizarCalificacionesYEnviarCurso(idOfertaOficial, calificaciones = [], usuario = {}, onProgreso) {
         const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
 
         if (!Array.isArray(calificaciones) || calificaciones.length === 0) {
@@ -1090,7 +1090,7 @@ class CursoLocalService {
         };
         await cursoLocalRepo.actualizarEstadoCalificaciones(curso._id, datosPendienteEnvio);
 
-        const resultadoEnvio = await this._enviarCalificacionesCurso(curso);
+        const resultadoEnvio = await this._enviarCalificacionesCurso(curso, onProgreso);
 
         const datosEnviado = {
             estado: 'enviado',
@@ -1105,9 +1105,9 @@ class CursoLocalService {
         };
     }
 
-    async enviarCalificacionesCursoPorOferta(idOfertaOficial, usuario = {}) {
+    async enviarCalificacionesCursoPorOferta(idOfertaOficial, usuario = {}, onProgreso) {
         const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
-        const resultadoEnvio = await this._enviarCalificacionesCurso(curso);
+        const resultadoEnvio = await this._enviarCalificacionesCurso(curso, onProgreso);
 
         const cursoActualizado = await cursoLocalRepo.actualizarEstadoCalificaciones(curso._id, {
             estado: 'enviado',
@@ -1134,7 +1134,11 @@ class CursoLocalService {
             detalles: []
         };
 
-        for (const idOfertaOficial of idOfertasOficiales) {
+        for (const [indice, idOfertaOficial] of idOfertasOficiales.entries()) {
+            // La misma pausa entre un curso y el siguiente del lote.
+            if (indice > 0) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
             try {
                 const curso = await this._getCursoVinculadoDelCiiePorOferta(idOfertaOficial, usuario);
                 const resultadoEnvio = await this._enviarCalificacionesCurso(curso);
@@ -2111,7 +2115,8 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
         return curso;
     }
 
-    async _enviarCalificacionesCurso(curso) {
+    // onProgreso({ actual, total }) se llama antes de empezar (actual = 0) y después de cada nota enviada.
+    async _enviarCalificacionesCurso(curso, onProgreso = () => {}) {
         const inscriptos = await inscriptoLocalRepo.getPorCursoId(curso._id);
         if (!inscriptos || inscriptos.length === 0) {
             const err = new Error('El curso no tiene inscriptos locales para enviar.');
@@ -2133,13 +2138,29 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
             throw err;
         }
 
-        for (const inscripto of pendientes) {
+        onProgreso({ actual: 0, total: pendientes.length });
+
+        for (let i = 0; i < pendientes.length; i += 1) {
+            const inscripto = pendientes[i];
             const nota = this._mapCalificacionAbc(inscripto.calificacion);
-            await inscriptoExternoService.cambiarNota(
-                this._sanitizeString(inscripto.idInscripcionOficial),
-                nota,
-                this._sanitizeString(curso.idCursoOriginal)
-            );
+            try {
+                await inscriptoExternoService.cambiarNota(
+                    this._sanitizeString(inscripto.idInscripcionOficial),
+                    nota,
+                    this._sanitizeString(curso.idCursoOriginal)
+                );
+            } catch (error) {
+                const err = new Error(`Se enviaron ${i} de ${pendientes.length} notas; falló la siguiente: ${error.message}`);
+                err.statusCode = error.statusCode || 502;
+                err.enviados = i;
+                err.total = pendientes.length;
+                throw err;
+            }
+            onProgreso({ actual: i + 1, total: pendientes.length });
+            // Pausa entre notas para no mandarle al sitio oficial una ráfaga de POST seguidos.
+            if (i < pendientes.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
         }
 
         return { enviados: pendientes.length };

@@ -237,6 +237,7 @@
     <%- include('../../partials/footer') %>
     <%- include('../../partials/scripts') %>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/envioCalificaciones.js"></script>
     <script>
         function getCursosSeleccionados() {
             return $('.check-curso:checked').map(function () {
@@ -264,26 +265,32 @@
                 didOpen: () => Swal.showLoading()
             });
 
+            // Bloqueo durante todo el lote, también en las pausas entre un curso y otro.
+            const liberarBloqueo = window.SitioOficial
+                ? SitioOficial.bloquear('Enviando calificaciones al sitio oficial...')
+                : () => {};
+
             for (let i = 0; i < cursoIds.length; i += 1) {
                 const idOfertaOficial = cursoIds[i];
                 const areaActual = getAreaByCursoId(idOfertaOficial);
-                Swal.update({
-                    html: `Procesando ${i + 1}/${cursoIds.length}<br><small>Oferta: ${idOfertaOficial}</small><br><small>Área: ${areaActual}</small>`
-                });
+                const encabezado = `Curso <b>${i + 1}</b> de <b>${cursoIds.length}</b><br><small>Oferta: ${idOfertaOficial} · Área: ${areaActual}</small>`;
+                Swal.update({ html: htmlAvanceCalificaciones({ encabezado }) });
+
+                // Pausa entre cursos para no mandarle al sitio oficial una ráfaga de pedidos.
+                if (i > 0) await new Promise(resolve => setTimeout(resolve, 500));
 
                 try {
-                    const response = await fetch(`/ciie/calificaciones/${idOfertaOficial}/enviar-directo`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    const result = await response.json();
-                    if (!result.success) throw new Error(result.error || 'No se pudo enviar el curso.');
+                    const resultado = await enviarCalificacionesConProgreso(
+                        `/ciie/calificaciones/${idOfertaOficial}/enviar-directo`,
+                        null,
+                        ({ actual, total }) => Swal.update({ html: htmlAvanceCalificaciones({ encabezado, actual, total }) })
+                    );
 
                     resumen.ok += 1;
                     resumen.detalles.push({
                         success: true,
                         idOfertaOficial,
-                        area: result.resultado?.curso?.cargoId?.areaId?.nombre || 'Sin area'
+                        area: resultado?.area || areaActual
                     });
                 } catch (error) {
                     resumen.error += 1;
@@ -296,6 +303,7 @@
                 }
             }
 
+            liberarBloqueo();
             Swal.close();
 
             const fallosPorArea = resumen.detalles

@@ -5,6 +5,7 @@ const passport = require('passport'); // Importamos el módulo
 const flash = require('connect-flash');
 const mongoose = require('mongoose');
 require('dotenv').config();
+require('./config/dnsNode'); // antes de conectar a Atlas (ver el archivo)
 require('./config/passport'); // Ejecuta toda la config de arriba
 
 

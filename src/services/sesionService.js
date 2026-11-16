@@ -10,6 +10,7 @@ class SesionService {
     constructor() {
         this.LOGIN_URL = URLS.LOGIN.LOGIN_CIIE;
         this.sesiones = new Map(); // ciieId -> { client, estaLogueado, config }
+        this.loginsEnCurso = new Map(); // ciieId -> Promise del login que se está haciendo
     }
 
     async _cargarConfig(ciieId) {
@@ -55,12 +56,32 @@ class SesionService {
 
     async asegurarSesion(forzar = false) {
         const ciieId = await contextoCiie.ciieIdActual();
-        const sesion = await this._sesion(ciieId, forzar);
 
-        if (sesion.estaLogueado && !forzar) {
+        // Si otro pedido de la misma institución ya se está logueando, se espera ese login
+        // en vez de lanzar otro: varios logins a la vez comparten el frasco de cookies y se
+        // pisan la sesión PHP entre sí. Desde la línea siguiente hasta el set() no hay
+        // ningún await, así que dos pedidos no pueden pasar este control al mismo tiempo.
+        const enCurso = this.loginsEnCurso.get(ciieId);
+        if (enCurso) return enCurso;
+
+        const actual = this.sesiones.get(ciieId);
+        if (!forzar && actual?.estaLogueado && actual.config) {
             return;
         }
 
+        const login = (async () => {
+            try {
+                const sesion = await this._sesion(ciieId, forzar);
+                await this._login(sesion, forzar);
+            } finally {
+                this.loginsEnCurso.delete(ciieId);
+            }
+        })();
+        this.loginsEnCurso.set(ciieId, login);
+        return login;
+    }
+
+    async _login(sesion, forzar) {
         const { usuario, password, nombre } = sesion.config;
         try {
             if (forzar) console.log(`🔄 Re-autenticando sesión expirada (${nombre})...`);

@@ -618,40 +618,50 @@ const postEnviarCalificacionesLote = async (req, res) => {
     }
 }
 
-const postGuardarYEnviarCalificacionesCurso = async (req, res) => {
-    try {
-        const { idOfertaOficial } = req.params;
-        const { calificaciones } = req.body;
+// Envío de notas con avance en vivo: responde una línea JSON por evento (NDJSON).
+//   {"tipo":"progreso","actual":12,"total":32}
+//   {"tipo":"fin","resultado":{"enviados":32,"area":"..."}}
+//   {"tipo":"error","error":"...","enviados":12,"total":32}
+// Ir escribiendo mientras se envía también evita que un curso numeroso corte el pedido
+// por tiempo de espera, como pasaba cuando la respuesta llegaba recién al final.
+const responderEnvioConProgreso = async (res, nombre, mensajeError, tarea) => {
+    res.writeHead(200, {
+        'Content-Type': 'application/x-ndjson; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    });
+    const enviar = (data) => res.write(`${JSON.stringify(data)}\n`);
 
-        const resultado = await cursoLocalService.actualizarCalificacionesYEnviarCurso(idOfertaOficial, calificaciones, req.user);
-        return res.status(200).json({
-            success: true,
-            message: 'Calificaciones enviadas y curso actualizado.',
-            resultado
+    try {
+        const resultado = await tarea(({ actual, total }) => enviar({ tipo: 'progreso', actual, total }));
+        enviar({
+            tipo: 'fin',
+            resultado: {
+                enviados: resultado.enviados,
+                area: resultado.curso?.cargoId?.areaId?.nombre || null
+            }
         });
     } catch (error) {
-        const status = error.statusCode || 500;
-        const message = error.message || 'No se pudo guardar y enviar las calificaciones.';
-        console.error('Error en postGuardarYEnviarCalificacionesCurso:', message);
-        return res.status(status).json({ success: false, error: message });
+        const message = error.message || mensajeError;
+        console.error(`Error en ${nombre}:`, message);
+        enviar({ tipo: 'error', error: message, enviados: error.enviados, total: error.total });
     }
+    res.end();
 }
 
-const postEnviarCalificacionesCurso = async (req, res) => {
-    try {
-        const { idOfertaOficial } = req.params;
-        const resultado = await cursoLocalService.enviarCalificacionesCursoPorOferta(idOfertaOficial, req.user);
-        return res.status(200).json({
-            success: true,
-            message: 'Curso enviado correctamente.',
-            resultado
-        });
-    } catch (error) {
-        const status = error.statusCode || 500;
-        const message = error.message || 'No se pudo enviar el curso.';
-        console.error('Error en postEnviarCalificacionesCurso:', message);
-        return res.status(status).json({ success: false, error: message });
-    }
+const postGuardarYEnviarCalificacionesCurso = (req, res) => {
+    const { idOfertaOficial } = req.params;
+    const { calificaciones } = req.body;
+    return responderEnvioConProgreso(res, 'postGuardarYEnviarCalificacionesCurso',
+        'No se pudo guardar y enviar las calificaciones.',
+        (onProgreso) => cursoLocalService.actualizarCalificacionesYEnviarCurso(idOfertaOficial, calificaciones, req.user, onProgreso));
+}
+
+const postEnviarCalificacionesCurso = (req, res) => {
+    const { idOfertaOficial } = req.params;
+    return responderEnvioConProgreso(res, 'postEnviarCalificacionesCurso',
+        'No se pudo enviar el curso.',
+        (onProgreso) => cursoLocalService.enviarCalificacionesCursoPorOferta(idOfertaOficial, req.user, onProgreso));
 }
 
 const getCalificacionesDocumentosCurso = async (req, res) => {

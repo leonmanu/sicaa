@@ -78,9 +78,11 @@ class InscriptoExternoService {
         await sesionService.asegurarSesion();
         let response = await inscriptoExternoRepo.actualizarCalificacion(idInscripcion, nota, idCursoBase);
 
-        // ✅ AGREGADO: reintento si la respuesta indica sesión expirada
-        if (!response?.data || typeof response.data === 'string') {
-            console.log('🔄 Re-intentando cambiarNota por posible sesión expirada...');
+        // Reintento solo si ABC devolvió la página de login. Antes se reintentaba ante
+        // cualquier respuesta de texto, y eso podía mandar cada nota dos veces con un login extra.
+        if (typeof response?.data === 'string' && response.data.includes('Inicio de Sesión')) {
+            console.log('🔄 Re-intentando cambiarNota por sesión expirada...');
+            sesionService.invalidarSesion();
             await sesionService.asegurarSesion(true);
             response = await inscriptoExternoRepo.actualizarCalificacion(idInscripcion, nota, idCursoBase);
         }

@@ -31,6 +31,12 @@ class CiieRepo {
         }
     }
 
+    // redes = null borra la conexión.
+    async actualizarRedesSociales(id, redes) {
+        const operacion = redes ? { $set: { redesSociales: redes } } : { $unset: { redesSociales: 1 } };
+        return await Ciie.findByIdAndUpdate(id, operacion, { new: true });
+    }
+
     async getXemail(email) {
         return await Ciie.findOne({ emailInstitucional: email });
     }

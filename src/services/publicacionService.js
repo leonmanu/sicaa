@@ -1,12 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
+const axios = require('axios');
 const publicacionRepo = require('../repos/publicacionRepo');
 const plantillaDispositivoRepo = require('../repos/plantillaDispositivoRepo');
 const configuracionPublicacionesRepo = require('../repos/configuracionPublicacionesRepo');
 const encuentroRepo = require('../repos/encuentroRepo');
 const cursoLocalService = require('./cursoLocalService');
 const metaGraphService = require('./metaGraphService');
+const redesSocialesService = require('./redesSocialesService');
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads', 'flyers');
 const MAX_IMAGENES_POR_PARTE = 10;
@@ -28,10 +30,10 @@ class PublicacionService {
         return (bullets || []).map(b => `${emoji} ${b}`).join('\n');
     }
 
-    async _armarBloqueQueSonYRequisitos(dispositivoTipo) {
+    async _armarBloqueQueSonYRequisitos(dispositivoTipo, ciieId) {
         const [plantilla, configuracion] = await Promise.all([
             dispositivoTipo ? plantillaDispositivoRepo.getPorDispositivo(dispositivoTipo) : null,
-            configuracionPublicacionesRepo.getSingleton()
+            configuracionPublicacionesRepo.getPorCiie(ciieId)
         ]);
 
         const queSonBullets = plantilla?.queSonBullets?.length ? plantilla.queSonBullets : [];
@@ -65,10 +67,10 @@ class PublicacionService {
         return enlace ? `🔗 Inscribite acá:\n${enlace}` : '';
     }
 
-    async _armarCaption({ cursos, red, tipoAgrupacion, dispositivoTipo, parteActual, totalPartes }) {
+    async _armarCaption({ cursos, red, tipoAgrupacion, dispositivoTipo, parteActual, totalPartes, ciieId }) {
         const primerCurso = cursos[0];
         const ciie = primerCurso?.cargoId?.ciieId;
-        const { bloque, hashtags, plantilla, configuracion } = await this._armarBloqueQueSonYRequisitos(dispositivoTipo);
+        const { bloque, hashtags, plantilla, configuracion } = await this._armarBloqueQueSonYRequisitos(dispositivoTipo, ciieId);
 
         const secciones = [];
 
@@ -106,10 +108,10 @@ class PublicacionService {
         return secciones.filter(Boolean).join('\n\n');
     }
 
-    async _armarPublicacionParaGuardar({ cursos, tipoAgrupacion, dispositivoTipo, incluirCaratula, grupoId, parteActual, totalPartes, usuario }) {
+    async _armarPublicacionParaGuardar({ cursos, tipoAgrupacion, dispositivoTipo, incluirCaratula, grupoId, parteActual, totalPartes, usuario, ciieId }) {
         const [captionFacebook, captionInstagram] = await Promise.all([
-            this._armarCaption({ cursos, red: 'facebook', tipoAgrupacion, dispositivoTipo, parteActual, totalPartes }),
-            this._armarCaption({ cursos, red: 'instagram', tipoAgrupacion, dispositivoTipo, parteActual, totalPartes })
+            this._armarCaption({ cursos, red: 'facebook', tipoAgrupacion, dispositivoTipo, parteActual, totalPartes, ciieId }),
+            this._armarCaption({ cursos, red: 'instagram', tipoAgrupacion, dispositivoTipo, parteActual, totalPartes, ciieId })
         ]);
 
         return {
@@ -146,7 +148,8 @@ class PublicacionService {
             grupoId: new mongoose.Types.ObjectId(),
             parteActual: 1,
             totalPartes: 1,
-            usuario
+            usuario,
+            ciieId: usuario.referenciaId
         });
 
         return await publicacionRepo.crear(datos);
@@ -185,7 +188,8 @@ class PublicacionService {
                 grupoId,
                 parteActual: i + 1,
                 totalPartes,
-                usuario
+                usuario,
+                ciieId
             });
             publicaciones.push(await publicacionRepo.crear(datos));
         }
@@ -279,8 +283,32 @@ class PublicacionService {
         return await publicacionRepo.actualizar(id, { imagenes });
     }
 
+    // Meta no recibe el archivo: lo descarga de PUBLIC_BASE_URL. Si la app corre
+    // en otra máquina que la de esa URL (p. ej. local con PUBLIC_BASE_URL de
+    // Render), la imagen queda en este disco y Meta recibe un 404 en HTML, que
+    // reporta como "Missing or invalid image file". Se detecta antes de llamar a Meta.
+    async _verificarImagenAccesible(url) {
+        let respuesta;
+        try {
+            respuesta = await axios.head(url, { timeout: 15000, validateStatus: () => true });
+        } catch (error) {
+            respuesta = null;
+        }
+        const tipo = respuesta?.headers?.['content-type'] || '';
+        if (!respuesta || respuesta.status !== 200 || !tipo.startsWith('image/')) {
+            const err = new Error(
+                `Meta no va a poder descargar la imagen desde ${url} (${respuesta ? 'HTTP ' + respuesta.status : 'sin respuesta'}). ` +
+                'La imagen se guardó en esta máquina, pero PUBLIC_BASE_URL apunta a otra. ' +
+                'Publicá desde la app desplegada (o hacé que PUBLIC_BASE_URL apunte a esta).'
+            );
+            err.statusCode = 409;
+            throw err;
+        }
+    }
+
     async publicar(id, ciieId) {
         const publicacion = await this.getPorId(id, ciieId);
+        const conexion = await redesSocialesService.getConexion(ciieId);
         if (!publicacion.imagenes || publicacion.imagenes.length === 0) {
             const err = new Error('Todavía no se generaron las imágenes de esta publicación.');
             err.statusCode = 409;
@@ -293,6 +321,7 @@ class PublicacionService {
         }
 
         const imageUrls = publicacion.imagenes.slice().sort((a, b) => a.orden - b.orden).map(img => img.url);
+        await this._verificarImagenAccesible(imageUrls[0]);
 
         const facebookActual = publicacion.facebook.toObject ? publicacion.facebook.toObject() : publicacion.facebook;
         const instagramActual = publicacion.instagram.toObject ? publicacion.instagram.toObject() : publicacion.instagram;
@@ -303,7 +332,7 @@ class PublicacionService {
 
         if (facebookActual.seleccionado && facebookActual.estado !== 'publicado') {
             try {
-                const { postId } = await metaGraphService.publicarEnFacebook(imageUrls, facebookActual.caption);
+                const { postId } = await metaGraphService.publicarEnFacebook(conexion, imageUrls, facebookActual.caption);
                 facebook = { ...facebookActual, estado: 'publicado', postId, publicadoEn: new Date(), error: null };
                 resultado.facebook = { ok: true };
             } catch (error) {
@@ -314,7 +343,7 @@ class PublicacionService {
 
         if (instagramActual.seleccionado && instagramActual.estado !== 'publicado') {
             try {
-                const { postId } = await metaGraphService.publicarEnInstagram(imageUrls, instagramActual.caption);
+                const { postId } = await metaGraphService.publicarEnInstagram(conexion, imageUrls, instagramActual.caption);
                 instagram = { ...instagramActual, estado: 'publicado', postId, publicadoEn: new Date(), error: null };
                 resultado.instagram = { ok: true };
             } catch (error) {
@@ -356,7 +385,8 @@ class PublicacionService {
             if (red === 'facebook') {
                 try {
                     const esFoto = (publicacion.imagenes || []).length === 1;
-                    await metaGraphService.editarCaptionFacebook(actual.postId, nuevoCaption, esFoto);
+                    const conexion = await redesSocialesService.getConexion(ciieId);
+                    await metaGraphService.editarCaptionFacebook(conexion, actual.postId, nuevoCaption, esFoto);
                     cambios.facebook = { ...actual, caption: nuevoCaption };
                     avisos.facebookEditado = true;
                 } catch (error) {
@@ -381,7 +411,8 @@ class PublicacionService {
 
         if (publicacion.facebook.postId) {
             try {
-                await metaGraphService.eliminarDeFacebook(publicacion.facebook.postId);
+                const conexion = await redesSocialesService.getConexion(ciieId);
+                await metaGraphService.eliminarDeFacebook(conexion, publicacion.facebook.postId);
             } catch (error) {
                 console.error('No se pudo borrar el post de Facebook:', error.message);
             }

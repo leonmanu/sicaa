@@ -1,7 +1,7 @@
 const publicacionService = require('../services/publicacionService');
 const configuracionPublicacionesService = require('../services/configuracionPublicacionesService');
 const plantillaDispositivoService = require('../services/plantillaDispositivoService');
-const metaGraphService = require('../services/metaGraphService');
+const redesSocialesService = require('../services/redesSocialesService');
 
 class PublicacionController {
 
@@ -72,6 +72,8 @@ class PublicacionController {
     postImagenYPublicar = async (req, res) => {
         try {
             const { imagenesBase64 } = req.body;
+            // Antes de guardar imágenes: si el CIIE no conectó sus redes, cortar acá.
+            await redesSocialesService.getConexion(req.user.referenciaId);
             await publicacionService.guardarImagenes(req.params.id, imagenesBase64, req.user.referenciaId);
             const resultado = await publicacionService.publicar(req.params.id, req.user.referenciaId);
             res.json({ success: true, resultado });
@@ -101,22 +103,15 @@ class PublicacionController {
         }
     }
 
-    // Diagnóstico temporal de solo lectura: confirma, desde ESTE proceso
-    // (el que realmente tiene cargadas las env vars en uso), qué permisos
-    // tiene el token de Meta configurado. No modifica ni publica nada.
-    getDiagnosticoMeta = async (req, res) => {
-        try {
-            const resultado = await metaGraphService.diagnosticar();
-            res.json({ success: true, ...resultado });
-        } catch (error) {
-            res.status(500).json({ success: false, error: error.message });
-        }
-    }
-
+    // Pantalla "Redes sociales del CIIE": conexión con Meta + textos fijos.
     getConfiguracion = async (req, res) => {
         try {
-            const configuracion = await configuracionPublicacionesService.get();
-            res.render('pages/publicacion/configuracionForm', { configuracion, user: req.user });
+            const ciieId = req.user.referenciaId;
+            const [configuracion, redes] = await Promise.all([
+                configuracionPublicacionesService.get(ciieId),
+                redesSocialesService.getEstado(ciieId)
+            ]);
+            res.render('pages/publicacion/configuracionForm', { configuracion, redes, user: req.user });
         } catch (error) {
             console.error('Error en getConfiguracion (publicaciones):', error.message);
             req.flash('error', 'No se pudo cargar la configuración.');
@@ -126,13 +121,42 @@ class PublicacionController {
 
     postConfiguracion = async (req, res) => {
         try {
-            await configuracionPublicacionesService.actualizar(req.body);
-            req.flash('success', 'Configuración guardada correctamente.');
+            await configuracionPublicacionesService.actualizar(req.user.referenciaId, req.body);
+            req.flash('success', 'Textos guardados correctamente.');
         } catch (error) {
             console.error('Error en postConfiguracion (publicaciones):', error.message);
-            req.flash('error', 'No se pudo guardar la configuración.');
+            req.flash('error', 'No se pudieron guardar los textos.');
         }
         res.redirect('/publicaciones/configuracion');
+    }
+
+    postVerificarMeta = async (req, res) => {
+        try {
+            const resultado = await redesSocialesService.verificar(req.user.referenciaId, req.body.token);
+            res.json({ success: true, ...resultado });
+        } catch (error) {
+            res.status(error.statusCode || 500).json({ success: false, error: error.message });
+        }
+    }
+
+    postConexionMeta = async (req, res) => {
+        try {
+            const redes = await redesSocialesService.guardarConexion(req.user.referenciaId, req.body);
+            res.json({ success: true, redes });
+        } catch (error) {
+            console.error('Error en postConexionMeta (publicaciones):', error.message);
+            res.status(error.statusCode || 500).json({ success: false, error: error.message });
+        }
+    }
+
+    postDesconectarMeta = async (req, res) => {
+        try {
+            await redesSocialesService.desconectar(req.user.referenciaId);
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Error en postDesconectarMeta (publicaciones):', error.message);
+            res.status(error.statusCode || 500).json({ success: false, error: error.message });
+        }
     }
 }
 

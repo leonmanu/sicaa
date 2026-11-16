@@ -100,6 +100,7 @@
     <%- include('../../partials/footer') %>
     <%- include('../../partials/scripts') %>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/envioCalificaciones.js"></script>
     <script>
         function buildPayloadCalificaciones() {
             return $('.select-calificacion').map(function () {
@@ -146,22 +147,25 @@
                 const btn = $(this);
                 btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Procesando...');
 
-                try {
-                    const response = await fetch('/ciie/calificaciones/<%= curso.idOfertaOficial %>/enviar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ calificaciones })
-                    });
+                Swal.fire({
+                    title: 'Enviando calificaciones',
+                    html: htmlAvanceCalificaciones({}),
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false
+                });
 
-                    const result = await response.json();
-                    if (!result.success) {
-                        throw new Error(result.error || 'No se pudo guardar y enviar las calificaciones.');
-                    }
+                try {
+                    const resultado = await enviarCalificacionesConProgreso(
+                        '/ciie/calificaciones/<%= curso.idOfertaOficial %>/enviar',
+                        { calificaciones },
+                        (avance) => Swal.update({ html: htmlAvanceCalificaciones(avance) })
+                    );
 
                     await Swal.fire({
                         icon: 'success',
                         title: 'Calificaciones enviadas',
-                        text: `Se enviaron ${result.resultado?.enviados || 0} calificaciones al ABC.`
+                        text: `Se enviaron ${resultado?.enviados || 0} calificaciones al ABC.`
                     });
 
                     window.location.href = '/ciie/calificaciones';

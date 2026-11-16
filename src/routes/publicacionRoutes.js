@@ -12,15 +12,19 @@ const {
     deleteEliminar,
     getConfiguracion,
     postConfiguracion,
-    getDiagnosticoMeta
+    postVerificarMeta,
+    postConexionMeta,
+    postDesconectarMeta
 } = require('../controllers/publicacionController');
 
 router
     // ─── rutas estáticas primero ───
     .get('/', soloCiie, getLista)
-    .get('/diagnostico-meta', soloCiie, getDiagnosticoMeta)
     .get('/configuracion', soloCiie, getConfiguracion)
     .post('/configuracion', soloCiie, postConfiguracion)
+    .post('/configuracion/verificar-meta', soloCiie, postVerificarMeta)
+    .post('/configuracion/conexion-meta', soloCiie, postConexionMeta)
+    .post('/configuracion/desconectar-meta', soloCiie, postDesconectarMeta)
     .post('/agrupada', soloCiie, postCrearAgrupada)
     .post('/', soloCiie, postCrear)
     // ─── rutas con ID ───
