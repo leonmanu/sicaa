@@ -3,6 +3,7 @@ const inscriptoLocalService = require('../services/inscriptoLocalService')
 const cursoLocalService = require('../services/cursoLocalService')
 const encuentroService = require('../services/encuentroService')
 const asistenciaService = require('../services/asistenciaService')
+const QRCode = require('qrcode')
 
 const viewInscripto = async (req, res) => {
     try{
@@ -43,7 +44,21 @@ const viewListaAsistencia = async (req, res) => {
             ? 'pages/cursante/listaAsistenciaExtension'
             : 'pages/cursante/listaAsistencia';
 
+        // QR al enlace de inscripción, para quien se presenta sin figurar en
+        // el sistema. Si falla o no hay enlace, la planilla sale igual sin QR.
+        let qrInscripcion = null;
+        if (cursoLocal.enlaceInscripcion) {
+            try {
+                qrInscripcion = await QRCode.toString(cursoLocal.enlaceInscripcion, {
+                    type: 'svg', margin: 0, errorCorrectionLevel: 'L'
+                });
+            } catch (e) {
+                console.error('No se pudo generar el QR de inscripción:', e.message);
+            }
+        }
+
         res.render(vista, {
+            qrInscripcion,
             inscriptoExterno: [], // El array raw del ABC
             inscriptosLocales,          // Para comparar quién ya tiene pareja
             cursoLocal,                 // Para llenar el <select> del modal

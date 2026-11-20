@@ -311,6 +311,17 @@
             font-weight: 900;
             line-height: 1.1;
             text-transform: uppercase;
+            white-space: nowrap; /* cortes controlados: día / mes */
+        }
+
+        .hora-fila { display: flex; align-items: flex-end; gap: 8px; }
+
+        .fecha-extra {
+            flex: 0 1 auto;
+            min-width: 0;
+            font-size: 10.5px;
+            font-weight: 700;
+            line-height: 1.15;
         }
 
         .hora-badge {
@@ -349,7 +360,7 @@
         /* Ícono calendario flotante */
         .icono-cal {
             position: absolute;
-            top: -16px;
+            top: -26px;
             right: 10px;
             width: 42px;
             height: 42px;
@@ -509,42 +520,34 @@
                         </div>
                         <div class="panel-orange-inner">
 
-                            <div class="fecha-linea" id="ed-fecha" contenteditable="true"><%=
-    (() => {
-        if (!curso.encuentros || curso.encuentros.length === 0) return 'FECHA';
-        const fecha = curso.encuentros[0].fecha;
-        const dateStr = typeof fecha === 'string'
-            ? fecha.split('T')[0]
-            : fecha.toISOString().split('T')[0];
-        const [yyyy, mm, dd] = dateStr.split('-').map(Number);
-        const d = new Date(yyyy, mm - 1, dd); // fecha local, sin UTC
-        const formatter = new Intl.DateTimeFormat('es-AR', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long'
-        });
-        const parts = formatter.formatToParts(d).reduce((acc, part) => {
-            acc[part.type] = part.value;
-            return acc;
-        }, {});
-        return `${parts.weekday.toUpperCase()}, ${parts.day} DE ${parts.month.toUpperCase()}`;
-    })()
-%></div>
+                        <%
+    // Fecha y hora en hora argentina. Si la fecha viene sin hora (solo día), se respeta el día tal cual.
+    const TZ = 'America/Argentina/Buenos_Aires';
+    const encuentros = curso.encuentros || [];
+    let fechaL1 = 'FECHA', fechaL2 = '', horaTxt = '00:00hs';
+    if (encuentros.length) {
+        const raw = encuentros[0].fecha;
+        const d = new Date(raw);
+        const soloDia = (typeof raw === 'string' && !raw.includes('T')) ||
+            (d.getUTCHours() === 0 && d.getUTCMinutes() === 0);
+        const opts = soloDia ? { timeZone: 'UTC' } : { timeZone: TZ };
+        const p = new Intl.DateTimeFormat('es-AR', { ...opts, weekday: 'long', day: 'numeric', month: 'long' })
+            .formatToParts(d).reduce((acc, x) => (acc[x.type] = x.value, acc), {});
+        fechaL1 = `${p.weekday.toUpperCase()} ${p.day}`;
+        fechaL2 = `DE ${p.month.toUpperCase()}`;
+        if (!soloDia) {
+            horaTxt = new Intl.DateTimeFormat('es-AR', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false }).format(d) + 'hs';
+        }
+    }
+%>
+<div class="fecha-linea" id="ed-fecha" contenteditable="true"><%= fechaL1 %><% if (fechaL2) { %><br><%= fechaL2 %><% } %></div>
 
-<div class="hora-badge" id="ed-hora" contenteditable="true"><%=
-    (() => {
-        if (!curso.encuentros || curso.encuentros.length === 0) return '00:00hs';
-        const fecha = curso.encuentros[0].fecha;
-        const d = new Date(fecha);
-        const formatter = new Intl.DateTimeFormat('es-AR', {
-            timeZone: 'America/Argentina/Buenos_Aires',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-        return `${formatter.format(d)}hs`;
-    })()
-%></div>
+<div class="hora-fila">
+    <div class="hora-badge" id="ed-hora" contenteditable="true"><%= horaTxt %></div>
+    <% if (encuentros.length > 1) { %>
+        <span class="fecha-extra" contenteditable="true">1.º de<br><%= encuentros.length %> encuentros</span>
+    <% } %>
+</div>
 
                         </div>
                         <% if (curso.ubicacion) { %>
@@ -741,6 +744,19 @@
             });
         });
     }
+    // La fecha se achica si un renglón no entra ("MIÉRCOLES 30", "DE SEPTIEMBRE")
+function fitFecha() {
+    const el = document.getElementById('ed-fecha');
+    if (!el) return;
+    el.style.fontSize = '';
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    while (el.scrollWidth > el.clientWidth + 1 && size > 12) {
+        size -= 0.5;
+        el.style.fontSize = size + 'px';
+    }
+}
+document.fonts.ready.then(fitFecha);
+document.getElementById('ed-fecha')?.addEventListener('input', fitFecha);
     </script>
 </body>
 </html>
