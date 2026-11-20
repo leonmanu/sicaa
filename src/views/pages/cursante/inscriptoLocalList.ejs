@@ -27,8 +27,17 @@
 
                         <h2 class="h3 mb-3 d-flex align-items-start">
                             <i class="bi bi-journal-bookmark-fill text-warning me-3 mt-1"></i>
+                            <%
+                                // Nombre "de fantasía" (título del formulario) arriba; el oficial chico debajo.
+                                const nombreOficial = (cursoLocal.nombrePropuesta || '').trim();
+                                const nombreFantasia = (cursoLocal.tituloFormulario || '').trim();
+                                const mostrarFantasia = nombreFantasia && nombreFantasia.toLowerCase() !== nombreOficial.toLowerCase();
+                            %>
                             <span class="lh-sm">
-                                <%= cursoLocal.nombrePropuesta %>
+                                <%= mostrarFantasia ? nombreFantasia : nombreOficial %>
+                                <% if (mostrarFantasia && nombreOficial) { %>
+                                    <small class="d-block text-secondary fw-normal fs-6 mt-1"><span class="text-info">Oficial:</span> <%= nombreOficial %></small>
+                                <% } %>
                             </span>
                         </h2>
 

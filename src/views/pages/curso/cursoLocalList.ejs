@@ -196,7 +196,16 @@
                                             </td>
                                         <% } %>
                                         <td>
-                                            <div class="text-wrap" style="max-width: 400px;"><%= c.nombrePropuesta %></div>
+                                            <%
+                                                // Nombre "de fantasía" (título del formulario) arriba; el oficial chico debajo.
+                                                const nombreOficial = (c.nombrePropuesta || '').trim();
+                                                const nombreFantasia = (c.tituloFormulario || '').trim();
+                                                const mostrarFantasia = nombreFantasia && nombreFantasia.toLowerCase() !== nombreOficial.toLowerCase();
+                                            %>
+                                            <div class="text-wrap" style="max-width: 400px;"><%= mostrarFantasia ? nombreFantasia : nombreOficial %></div>
+                                            <% if (mostrarFantasia && nombreOficial) { %>
+                                                <div class="text-wrap text-muted small" style="max-width: 400px;"><span class="text-info">Oficial:</span> <%= nombreOficial %></div>
+                                            <% } %>
                                         </td>
 
                                             <td data-order="<%= c.encuentros && c.encuentros.length > 0 ? new Date(c.encuentros[0].fecha).toISOString() : '' %>">

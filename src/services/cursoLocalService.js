@@ -1543,8 +1543,9 @@ async editarCursoPorId(cursoId, data = {}, usuario = {}) {
     const update = {
         dispositivo:        dispositivoNuevo,
         formadorAbc:        this._sanitizeString(data.formadorAbc) || cursoLocal.formadorAbc,
-        tituloFormulario:   this._sanitizeString(data.tituloFormulario),
-        ubicacion:          this._sanitizeString(data.ubicacion),
+        // Si vienen vacíos es que se borraron: se guardan como '' (no se ignoran).
+        tituloFormulario:   data.tituloFormulario === undefined ? undefined : (this._sanitizeString(data.tituloFormulario) || ''),
+        ubicacion:          data.ubicacion === undefined ? undefined : (this._sanitizeString(data.ubicacion) || ''),
         detalleFlyer:       data.detalleFlyer === undefined ? undefined : (this._sanitizeString(data.detalleFlyer) || ''),
         invitadosFlyer:     data.invitadosFlyer === undefined ? undefined : (this._sanitizeString(data.invitadosFlyer) || ''),
         anio:               anioNuevo,
@@ -1769,7 +1770,8 @@ async rechazarCambiosPendientes(cursoLocalId, usuario = {}) {
         const update = {
             dispositivo: dispositivoNuevo,
             formadorAbc: this._sanitizeString(data.formadorAbc),
-            tituloFormulario: this._sanitizeString(data.tituloFormulario),
+            // Vacío = se borró: se guarda '' en vez de ignorarlo.
+            tituloFormulario: data.tituloFormulario === undefined ? undefined : (this._sanitizeString(data.tituloFormulario) || ''),
             anio: anioNuevo,
             cohorte: this._toNumberOrNull(data.cohorte),
             itinerario: itinerarioFinal,
