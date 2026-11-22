@@ -1,36 +1,23 @@
 const Publicacion = require('../models/Publicacion');
-const CursoLocal = require('../models/CursoLocal');
-
-const populateCursos = {
-    path: 'cursoLocalIds',
-    populate: [
-        { path: 'cargoId', populate: [{ path: 'ciieId' }, { path: 'areaId' }] }
-    ]
-};
 
 class PublicacionRepo {
 
-    async crear(datos) {
-        const publicacion = new Publicacion(datos);
-        return await publicacion.save();
-    }
-
     async getPorId(id) {
         try {
-            return await Publicacion.findById(id).populate(populateCursos);
+            return await Publicacion.findById(id);
         } catch (error) {
+            if (error.name === 'CastError') return null;
             console.error('Error en PublicacionRepo.getPorId:', error.message);
             throw error;
         }
     }
 
-    // Solo las publicaciones de cursos de esta institución (nunca las de otro CIIE).
+    // Solo las publicaciones de esta institución (nunca las de otro CIIE).
     async getTodas(ciieId) {
         try {
-            const cursoIds = await CursoLocal.find({ ciieId }).distinct('_id');
-            return await Publicacion.find({ cursoLocalIds: { $in: cursoIds } })
+            return await Publicacion.find({ ciieId })
                 .sort({ createdAt: -1 })
-                .populate(populateCursos)
+                .populate({ path: 'cursoLocalIds', select: 'tituloFormulario nombrePropuesta dispositivo' })
                 .lean();
         } catch (error) {
             console.error('Error en PublicacionRepo.getTodas:', error.message);
@@ -38,45 +25,30 @@ class PublicacionRepo {
         }
     }
 
-    async getPorGrupoId(grupoId) {
+    // Una individual de esta propuesta que todavía no salió por ninguna red.
+    async getBorradorIndividual(cursoLocalId, ciieId) {
         try {
-            return await Publicacion.find({ grupoId }).sort({ parteActual: 1 }).lean();
+            return await Publicacion.findOne({
+                ciieId,
+                tipo: 'individual',
+                cursoLocalIds: [cursoLocalId],
+                'facebook.estado': { $in: ['pendiente', 'error'] },
+                'instagram.partes': { $not: { $elemMatch: { estado: { $in: ['publicado', 'publicando'] } } } }
+            }).sort({ createdAt: -1 });
         } catch (error) {
-            console.error('Error en PublicacionRepo.getPorGrupoId:', error.message);
+            console.error('Error en PublicacionRepo.getBorradorIndividual:', error.message);
             throw error;
         }
     }
 
-    async getIndividualPorCursoLocalId(cursoLocalId) {
+    // Para el historial en listados de cursos: solo lo necesario.
+    async getConCursos(cursoLocalIds) {
         try {
-            return await Publicacion.findOne({ tipoAgrupacion: 'individual', cursoLocalIds: cursoLocalId }).populate(populateCursos);
-        } catch (error) {
-            console.error('Error en PublicacionRepo.getIndividualPorCursoLocalId:', error.message);
-            throw error;
-        }
-    }
-
-    // Para pintar el estado de publicación (Facebook/Instagram) en listados de
-    // cursos, sin populate pesado: solo lo necesario por curso.
-    async getIndividualesPorCursoLocalIds(cursoLocalIds) {
-        try {
-            return await Publicacion.find({
-                tipoAgrupacion: 'individual',
-                cursoLocalIds: { $in: cursoLocalIds }
-            })
-                .select('cursoLocalIds facebook.estado instagram.estado')
+            return await Publicacion.find({ cursoLocalIds: { $in: cursoLocalIds } })
+                .select('cursoLocalIds facebook.estado facebook.publicadoEn instagram.partes.cursoLocalIds instagram.partes.estado instagram.partes.publicadoEn')
                 .lean();
         } catch (error) {
-            console.error('Error en PublicacionRepo.getIndividualesPorCursoLocalIds:', error.message);
-            throw error;
-        }
-    }
-
-    async actualizar(id, datos) {
-        try {
-            return await Publicacion.findByIdAndUpdate(id, { $set: datos }, { new: true });
-        } catch (error) {
-            console.error('Error en PublicacionRepo.actualizar:', error.message);
+            console.error('Error en PublicacionRepo.getConCursos:', error.message);
             throw error;
         }
     }

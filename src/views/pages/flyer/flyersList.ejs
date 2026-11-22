@@ -211,6 +211,7 @@
                                             <input type="checkbox" class="form-check-input check-curso-publicar"
                                                 data-curso-id="<%= curso._id %>"
                                                 data-dispositivo="<%= curso.dispositivo %>"
+                                                data-publicado="<%= historialPublicacion[String(curso._id)] ? historialPublicacion[String(curso._id)].veces : 0 %>"
                                                 <%= curso.estado === 'vinculado' ? '' : 'disabled' %>
                                                 title="<%= curso.estado === 'vinculado' ? 'Seleccionar para publicar' : 'Solo se puede publicar un curso ya vinculado con el sitio oficial' %>">
                                         </div>
@@ -252,12 +253,14 @@
                                                 <% } %>
                                             </p>
 
-                                            <% const estadoPub = estadosPublicacion[String(curso._id)] || {}; %>
+                                            <% const historial = historialPublicacion[String(curso._id)]; %>
                                             <p class="mb-2">
-                                                <i class="bi bi-facebook <%= estadoPub.facebook === 'publicado' ? 'text-primary' : 'text-secondary opacity-50' %>" title="Facebook: <%= estadoPub.facebook === 'publicado' ? 'publicado' : 'pendiente' %>"></i>
-                                                <i class="bi bi-instagram ms-2 <%= estadoPub.instagram === 'publicado' ? '' : 'text-secondary opacity-50' %>" style="<%= estadoPub.instagram === 'publicado' ? 'color:#C13584;' : '' %>" title="Instagram: <%= estadoPub.instagram === 'publicado' ? 'publicado' : 'pendiente' %>"></i>
-                                                <% if (estadoPub.facebook === 'publicado' || estadoPub.instagram === 'publicado') { %>
-                                                    <span class="badge bg-success ms-1">Publicado</span>
+                                                <% if (historial) { %>
+                                                    <span class="badge bg-success" title="Se puede volver a publicar como refuerzo">
+                                                        <i class="bi bi-megaphone me-1"></i>Publicado <%= historial.veces %> <%= historial.veces === 1 ? 'vez' : 'veces' %><%= historial.ultima ? ' · último ' + new Date(historial.ultima).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit' }) : '' %>
+                                                    </span>
+                                                <% } else { %>
+                                                    <span class="badge bg-secondary opacity-75">Sin publicar en redes</span>
                                                 <% } %>
                                             </p>
 
@@ -273,9 +276,9 @@
                                                     <i class="bi bi-download"></i> Descargar
                                                 </button>
                                                 <% if (curso.estado === 'vinculado') { %>
-                                                    <a href="/curso/flyer/<%= curso.idOfertaOficial %>?publicar=1" class="btn btn-sm btn-outline-info">
+                                                    <button type="button" class="btn btn-sm btn-outline-info btn-publicar-uno" data-curso-id="<%= curso._id %>">
                                                         <i class="bi bi-megaphone"></i> Publicar
-                                                    </a>
+                                                    </button>
                                                 <% } %>
                                             </div>
                                         </div>
@@ -471,54 +474,54 @@
             }, 4000);
         });
 
-        // Publicar seleccionados en redes sociales
+        // ─── Publicar en redes ───
+        // Una propuesta → publicación individual; varias → carrusel con carátula oficial
+        // (en Instagram se reparte solo en partes de hasta 9 flyers).
+        async function crearPublicacion(cursoLocalIds) {
+            const response = await fetch('/publicaciones', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cursoLocalIds })
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'No se pudo crear la publicación.');
+            window.location.href = `/publicaciones/${result.publicacion._id}/preview`;
+        }
+
+        document.querySelectorAll('.btn-publicar-uno').forEach(btn => btn.addEventListener('click', async function () {
+            this.disabled = true;
+            try {
+                await crearPublicacion([this.dataset.cursoId]);
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+                this.disabled = false;
+            }
+        }));
+
         document.getElementById('btnPublicarSeleccionados').addEventListener('click', async function () {
             const seleccionados = Array.from(document.querySelectorAll('.check-curso-publicar:checked'));
             if (seleccionados.length === 0) {
-                Swal.fire('Atención', 'Seleccioná al menos un curso vinculado para publicar.', 'warning');
+                Swal.fire('Atención', 'Seleccioná al menos una propuesta vinculada para publicar.', 'warning');
                 return;
             }
 
-            const dispositivos = [...new Set(seleccionados.map(chk => chk.dataset.dispositivo))];
-            const dispositivoSugerido = dispositivos.length === 1 ? dispositivos[0] : '';
-
-            const { value: formValues, isConfirmed } = await Swal.fire({
-                title: `Publicar ${seleccionados.length} curso(s) en redes`,
-                html: `
-                    <div class="text-start">
-                        <label class="form-label small text-muted">Tipo de dispositivo (define la plantilla de texto)</label>
-                        <input id="swalDispositivo" class="form-control mb-3" value="${dispositivoSugerido}" placeholder="Ej: Seminario">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="swalCaratula" checked>
-                            <label class="form-check-label" for="swalCaratula">Incluir carátula</label>
-                        </div>
-                    </div>`,
+            const yaPublicados = seleccionados.filter(chk => Number(chk.dataset.publicado) > 0).length;
+            const { isConfirmed } = await Swal.fire({
+                title: seleccionados.length === 1 ? 'Publicar 1 propuesta' : `Armar carrusel con ${seleccionados.length} propuestas`,
+                html: [
+                    seleccionados.length > 1 ? 'Lleva la carátula oficial. En Facebook sale todo en un post; en Instagram, de a 9 flyers por post.' : '',
+                    yaPublicados ? `<br><span class="text-warning">${yaPublicados} ya se publicaron antes: se vuelven a publicar como refuerzo.</span>` : '',
+                    '<br>Todavía no se publica nada: primero vas a ver la vista previa.'
+                ].join(''),
+                icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Crear publicación',
-                cancelButtonText: 'Cancelar',
-                preConfirm: () => ({
-                    dispositivoTipo: document.getElementById('swalDispositivo').value.trim(),
-                    incluirCaratula: document.getElementById('swalCaratula').checked
-                })
+                confirmButtonText: 'Armar',
+                cancelButtonText: 'Cancelar'
             });
-
             if (!isConfirmed) return;
 
             try {
-                const response = await fetch('/publicaciones/agrupada', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        cursoLocalIds: seleccionados.map(chk => chk.dataset.cursoId),
-                        dispositivoTipo: formValues.dispositivoTipo,
-                        incluirCaratula: formValues.incluirCaratula,
-                        tipoAgrupacion: dispositivos.length === 1 ? 'itinerario' : 'dispositivo'
-                    })
-                });
-                const result = await response.json();
-                if (!result.success) throw new Error(result.error || 'No se pudo crear la publicación.');
-
-                window.location.href = `/publicaciones/${result.publicaciones[0]._id}/preview`;
+                await crearPublicacion(seleccionados.map(chk => chk.dataset.cursoId));
             } catch (error) {
                 Swal.fire('Error', error.message, 'error');
             }

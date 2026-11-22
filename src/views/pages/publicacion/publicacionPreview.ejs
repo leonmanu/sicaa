@@ -1,295 +1,398 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="dark">
 <head>
     <%- include('../../partials/head') %>
-    <title>Publicar en redes</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+    <title>SICAA - Publicar en redes</title>
+    <%- include('../../partials/caratulaPublicacionEstilos') %>
     <style>
-        :root {
-            --teal:       #00ADC5;
-            --orange:     #F47920;
-            --orange-lt:  #FBAA5A;
-            --sky:        #B8DFF0;
-            --cream:      #F0EBE3;
-            --white:      #FFFFFF;
-            --text-dark:  #1A4A5A;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #1a1a2e; font-family: 'Nunito', sans-serif; min-height: 100vh; }
-
-        .page-layout {
-            display: flex;
-            gap: 2rem;
-            align-items: flex-start;
-            padding: 2rem;
-            max-width: 1250px;
-            margin: 0 auto;
-        }
-
-        .slides-scroller {
-            display: flex;
-            gap: 1.5rem;
-            overflow-x: auto;
-            padding-bottom: 1rem;
-            max-width: 700px;
-        }
-
-        .flyer {
-            width: 540px;
-            height: 675px;
-            position: relative;
-            overflow: hidden;
-            flex-shrink: 0;
-            box-shadow: 0 12px 32px rgba(0,0,0,0.55);
-            background: var(--cream);
-            font-family: 'Roboto', sans-serif;
-        }
-
-        .flyer-bg {
-            position: absolute; inset: 0; background-color: var(--cream);
-            background-image:
-                radial-gradient(ellipse 120% 80% at 70% 60%, rgba(200,185,168,0.35) 0%, transparent 70%),
-                repeating-linear-gradient(-30deg, transparent 0px, transparent 18px, rgba(180,165,145,0.09) 18px, rgba(180,165,145,0.09) 19px);
-            z-index: 0;
-        }
-        .badge-ciie { position: absolute; top: -20px; right: -25px; background: var(--sky); color: var(--text-dark); border-radius: 10px; padding: 7px 18px; font-size: 12px; font-weight: 700; z-index: 10; white-space: nowrap; }
-        .badge-ciie strong { font-size: 14px; font-weight: 900; }
-        .panel-teal { position: absolute; top: 100px; left: 35px; width: 316px; min-height: 440px; background: var(--teal); border-radius: 24px; padding: 20px; z-index: 2; display: flex; flex-direction: column; }
-        .panel-back { position: relative; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 420px; min-height: 570px; background: var(--white); border-radius: 15px; z-index: 2; }
-        .badge-dispositivo { position: absolute; top: -18px; left: 16px; background: var(--orange-lt); color: white; border-radius: 12px; padding: 10px 16px; font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap; box-shadow: 0 4px 12px rgba(244,121,32,0.4); }
-        .curso-subtitulo { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.82); letter-spacing: 1.5px; text-transform: uppercase; margin: 6px 0; }
-        .curso-titulo { font-size: 22px; font-weight: 900; color: white; line-height: 1.15; margin-bottom: 16px; height: 200px; overflow: hidden; word-break: break-word; }
-        .pill-modalidad { display: inline-block; position: relative; left: -20px; background: var(--orange); color: white; padding: 7px 18px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 50px; width: 230px; }
-        .info-box { background: var(--sky); position: relative; left: -20px; padding: 10px; font-size: 10.5px; color: var(--text-dark); width: 230px; }
-        .info-box strong { font-weight: 900; }
-        .panel-detalle { position: absolute; top: 65px; right: 35px; width: 206px; background: var(--sky); color: var(--text-dark); border-radius: 12px; padding: 8px 12px; font-size: 11px; font-weight: 600; z-index: 3; display: flex; align-items: flex-start; gap: 6px; }
-        .panel-orange { position: absolute; bottom: 200px; right: 35px; width: 206px; background: var(--orange); border-radius: 20px; z-index: 3; color: white; }
-        .panel-orange-inner { padding: 22px 18px 14px 18px; }
-        .fecha-linea { font-size: 22px; font-weight: 900; line-height: 1.1; text-transform: uppercase; }
-        .hora-badge { display: inline-block; background: var(--orange-lt); border-radius: 7px; padding: 5px 12px; font-size: 20px; font-weight: 900; margin-top: 10px; }
-        .distrito-strip { background: var(--orange-lt); padding: 9px 18px; font-size: 11.5px; font-weight: 700; text-align: center; color: white; margin-top: 12px; }
-        .icono-cal { position: absolute; top: -16px; right: 10px; width: 42px; height: 42px; background: var(--teal); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
-        .icono-cal svg { width: 24px; height: 24px; }
-        .slide-caption { font-size: 0.75rem; color: #aaa; text-align: center; margin-top: 6px; }
-
-        .caratula-titulo { font-size: 26px; font-weight: 900; color: white; text-align: center; text-transform: uppercase; }
-        .caratula-sub { font-size: 14px; font-weight: 700; color: white; text-align: center; margin-top: 12px; }
-
-        .edit-panel { width: 380px; flex-shrink: 0; }
+        body { background: #1a1a2e; }
+        .tira { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; }
+        .mini { width: 162px; height: 203px; overflow: hidden; flex-shrink: 0; border-radius: 4px; background: #2b2b40; position: relative; }
+        .mini > .escala { transform: scale(0.3); transform-origin: top left; width: 540px; height: 675px; }
+        .mini iframe { width: 540px; height: 675px; border: 0; pointer-events: none; }
+        .mini-pie { font-size: 0.7rem; color: #aaa; width: 162px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .envio-card { border-left: 4px solid #6c757d; }
+        .envio-card.publicado { border-left-color: #198754; }
+        .envio-card.error { border-left-color: #dc3545; }
+        .envio-card.publicando { border-left-color: #ffc107; }
+        #zonaCaptura { position: fixed; left: -10000px; top: 0; }
+        .contador { font-size: 0.75rem; }
     </style>
 </head>
 <body>
     <%- include('../../partials/navbar') %>
+    <%- include('../../partials/msj') %>
 
-    <div class="container-fluid py-3">
-        <div class="row mb-3 px-3">
-            <div class="col">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-1">
-                        <li class="breadcrumb-item"><a href="/publicaciones" class="text-decoration-none">Publicaciones</a></li>
-                        <li class="breadcrumb-item active">Generar y publicar</li>
-                    </ol>
-                </nav>
-                <h4 class="fw-bold mb-0 text-white">
-                    <i class="bi bi-megaphone me-2 text-primary"></i>Publicar en redes sociales
-                    <% if (publicacion.totalPartes > 1) { %>
-                        <span class="badge bg-info text-dark">Parte <%= publicacion.parteActual %> de <%= publicacion.totalPartes %></span>
-                    <% } %>
-                </h4>
+<%
+    const pub = publicacion;
+    const esCarrusel = pub.tipo === 'carrusel';
+    const cursosDe = ids => ids.map(id => cursosPorId.get(String(id))).filter(Boolean);
+    const todos = cursosDe(pub.cursoLocalIds);
+    const nombreCurso = c => c.tituloFormulario || c.nombrePropuesta || 'Sin nombre';
+    const etiquetaEstado = { pendiente: 'Sin publicar', publicando: 'Publicando…', publicado: 'Publicado', error: 'Error' };
+    const colorEstado = { pendiente: 'secondary', publicando: 'warning text-dark', publicado: 'success', error: 'danger' };
+    const fechaHora = f => f ? new Date(f).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    const algoPublicado = pub.facebook.estado === 'publicado' || pub.instagram.partes.some(p => p.estado === 'publicado');
+
+    // Datos para el script: qué imágenes lleva cada destino.
+    const destinos = {
+        facebook: {
+            ofertas: todos.map(c => c.idOfertaOficial),
+            caratula: esCarrusel ? { meses: pub.caratula.meses } : null
+        }
+    };
+    pub.instagram.partes.forEach((parte, i) => {
+        destinos['ig-' + i] = {
+            ofertas: cursosDe(parte.cursoLocalIds).map(c => c.idOfertaOficial),
+            caratula: esCarrusel ? { meses: parte.caratula.meses } : null
+        };
+    });
+    const datosScript = JSON.stringify({ id: String(pub._id), tipo: pub.tipo, destinos }).replace(/</g, '\\u003c');
+%>
+
+<%# Bloque reutilizable: una tarjeta de envío (Facebook o una parte de Instagram) %>
+<% function tarjetaEnvio({ destino, red, titulo, envio, cursos, caratula, campoTitulo }) { %>
+    <div class="card bg-dark border-secondary mb-4 envio-card <%= envio.estado %>" data-destino="<%= destino %>">
+        <div class="card-header border-secondary d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="fw-bold">
+                <i class="bi bi-<%= red %> me-1"></i><%= titulo %>
+                <span class="text-muted small fw-normal ms-2"><%= (caratula ? 1 : 0) + cursos.length %> imagen(es)</span>
+            </div>
+            <div>
+                <span class="badge bg-<%= colorEstado[envio.estado] %>"><%= etiquetaEstado[envio.estado] %></span>
+                <% if (envio.publicadoEn) { %><span class="small text-muted ms-1"><%= fechaHora(envio.publicadoEn) %></span><% } %>
+                <% if (red === 'facebook' && envio.postId) { %>
+                    <a href="https://www.facebook.com/<%= envio.postId %>" target="_blank" rel="noopener" class="small ms-2">Ver post</a>
+                <% } %>
             </div>
         </div>
+        <div class="card-body">
+            <% if (envio.estado === 'error' && envio.error) { %>
+                <div class="alert alert-danger py-2 small"><%= envio.error %></div>
+            <% } %>
 
-        <div class="page-layout">
-            <div class="slides-scroller" id="slidesScroller">
-                <% let indiceSlide = 0; %>
-                <% if (publicacion.incluirCaratula) { %>
+            <% if (caratula) { %>
+                <div class="mb-2" style="max-width: 420px;">
+                    <label class="form-label small text-muted mb-1">Título de la carátula</label>
+                    <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary input-titulo"
+                        data-destino="<%= destino %>" data-campo="<%= campoTitulo %>" value="<%= caratula.titulo %>"
+                        <%= envio.estado === 'publicado' ? 'disabled' : '' %>>
+                </div>
+            <% } %>
+
+            <div class="tira mb-3">
+                <% if (caratula) { %>
                     <div>
-        <div class="flyer" id="slide-<%= indiceSlide %>">
-                            <div class="flyer-bg"></div>
-                            <div class="panel-teal" style="top: 130px; display:flex; align-items:center; justify-content:center; min-height:410px;">
-                                <div>
-                                    <div class="caratula-titulo">
-                                        <%= (plantilla?.nombrePlural || publicacion.dispositivoTipo || 'CURSOS').toUpperCase() %>
-                                        <% if (publicacion.totalPartes > 1) { %><br>Parte <%= publicacion.parteActual %><% } %>
-                                    </div>
-                                    <% if (publicacion.tipoAgrupacion === 'itinerario' && cursos[0]?.itinerario) { %>
-                                        <div class="caratula-sub"><%= cursos[0].itinerario %>° Itinerario <%= cursos[0].anio || '' %></div>
-                                    <% } %>
-                                    <div class="caratula-sub"><%= cursos.length %> propuesta<%= cursos.length === 1 ? '' : 's' %></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="slide-caption">Carátula</div>
+                        <div class="mini"><div class="escala">
+                            <%- include('../../partials/caratulaPublicacion', { titulo: caratula.titulo, meses: caratula.meses, lugar: caratulaFija.lugar, ciieCorto: caratulaFija.ciieCorto, modalidad: caratulaFija.modalidad, idCaratula: 'mini-caratula-' + destino }) %>
+                        </div></div>
+                        <div class="mini-pie">Carátula · <%= caratula.meses %></div>
                     </div>
-                    <% indiceSlide++; %>
                 <% } %>
-
                 <% cursos.forEach(curso => { %>
                     <div>
-                        <div class="flyer" id="slide-<%= indiceSlide %>">
-                            <div class="flyer-bg"></div>
-                            <div class="panel-back">
-                                <div class="badge-ciie">
-                                    CIIE <strong><%= (curso.cargoId?.ciieId?.nombre || '').replace(/ciie\s*/i, '').toUpperCase() %></strong>
-                                </div>
-                                <img src="/img/logo-pba.svg" alt="" style="position:absolute; bottom:15px; right:10px; height:50px;">
-                            </div>
-                            <div class="panel-teal">
-                                <div class="badge-dispositivo"><i class="bi bi-puzzle"></i> <%= curso.dispositivo || '' %></div>
-                                <div class="curso-subtitulo">Experiencia CIIE:</div>
-                                <div class="curso-titulo"><%= (curso.tituloFormulario || curso.nombrePropuesta || '').toUpperCase() %></div>
-                                <div class="pill-modalidad"><%= (curso.publicacionDrupal?.formatoDictado || 'Presencial').replace(/\s*\(\d+\)/, '').toUpperCase() %></div>
-                                <div class="info-box">
-                                    <div><strong>Formador/a:</strong> <%= (curso.formadorAbc || 'A DESIGNAR').split(';').map(n => n.trim()).filter(Boolean).join(' ; ') %></div>
-                                    <div style="margin-top:8px;"><strong>Destinatarios:</strong> <%= curso.publicacionDrupal?.nivel || 'Todos' %></div>
-                                </div>
-                            </div>
-                            <% if (curso.detalleFlyer) { %>
-                                <div class="panel-detalle">
-                                    <i class="bi bi-asterisk"></i><span style="white-space: pre-line;"><%= curso.detalleFlyer %></span>
-                                </div>
-                            <% } %>
-                            <div class="panel-orange">
-                                <div style="position:relative;"><div class="icono-cal"><i class="bi bi-calendar3"></i></div></div>
-                                <div class="panel-orange-inner">
-                                    <div class="fecha-linea"><%=
-                                        (() => {
-                                            if (!curso.encuentros || curso.encuentros.length === 0) return 'FECHA';
-                                            const fecha = curso.encuentros[0].fecha;
-                                            const dateStr = typeof fecha === 'string' ? fecha.split('T')[0] : fecha.toISOString().split('T')[0];
-                                            const [yyyy, mm, dd] = dateStr.split('-').map(Number);
-                                            const d = new Date(yyyy, mm - 1, dd);
-                                            const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
-                                            const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-                                            return `${dias[d.getDay()]}, ${d.getDate()} DE ${meses[d.getMonth()]}`;
-                                        })()
-                                    %></div>
-                                    <div class="hora-badge"><%=
-                                        (() => {
-                                            if (!curso.encuentros || curso.encuentros.length === 0) return '00:00hs';
-                                            const d = new Date(curso.encuentros[0].fecha);
-                                            const formatter = new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false });
-                                            return `${formatter.format(d)}hs`;
-                                        })()
-                                    %></div>
-                                </div>
-                                <div class="distrito-strip"><%= curso.cargoId?.ciieId?.distrito || '' %>, Bs.As</div>
-                            </div>
-                        </div>
-                        <div class="slide-caption"><%= (curso.tituloFormulario || curso.nombrePropuesta || '').slice(0, 30) %></div>
+                        <div class="mini"><div class="escala">
+                            <iframe loading="lazy" src="/curso/flyer/<%= curso.idOfertaOficial %>?bare=true" title="<%= nombreCurso(curso) %>"></iframe>
+                        </div></div>
+                        <div class="mini-pie" title="<%= nombreCurso(curso) %>"><%= nombreCurso(curso) %></div>
                     </div>
-                    <% indiceSlide++; %>
                 <% }) %>
             </div>
 
-            <div class="edit-panel">
-                <div class="card bg-dark border-secondary">
-                    <div class="card-header border-secondary">
-                        <h6 class="mb-0 fw-bold text-white"><i class="bi bi-share me-2"></i>Publicar</h6>
-                        <small class="text-muted"><%= cursos.length %> imagen(es) en esta publicación. Revisá el texto de cada red antes de publicar.</small>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="chkFacebook"
-                                <%= publicacion.facebook.seleccionado ? 'checked' : '' %>
-                                <%= publicacion.facebook.estado === 'publicado' ? 'disabled' : '' %>>
-                            <label class="form-check-label" for="chkFacebook">Facebook <span class="text-muted small">(<%= publicacion.facebook.estado %>)</span></label>
-                        </div>
-                        <textarea id="captionFacebook" class="form-control bg-dark text-white border-secondary mb-3" rows="8"><%= publicacion.facebook.caption %></textarea>
-
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="chkInstagram"
-                                <%= publicacion.instagram.seleccionado ? 'checked' : '' %>
-                                <%= publicacion.instagram.estado === 'publicado' ? 'disabled' : '' %>>
-                            <label class="form-check-label" for="chkInstagram">Instagram <span class="text-muted small">(<%= publicacion.instagram.estado %>)</span></label>
-                        </div>
-                        <textarea id="captionInstagram" class="form-control bg-dark text-white border-secondary mb-3" rows="8"><%= publicacion.instagram.caption %></textarea>
-
-                        <div class="d-grid">
-                            <button class="btn btn-success fw-bold" id="btnPublicar">
-                                <i class="bi bi-send me-2"></i>Generar imágenes y publicar ahora
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div class="d-flex justify-content-between align-items-end mb-1">
+                <label class="form-label small text-muted mb-0">Texto</label>
+                <span class="small">
+                    <% if (envio.captionEditado && envio.estado !== 'publicado') { %>
+                        <span class="text-warning me-2">editado a mano</span>
+                        <a href="#" class="link-info btn-regenerar" data-destino="<%= destino %>">volver al texto automático</a>
+                    <% } else if (envio.estado !== 'publicado') { %>
+                        <span class="text-muted">se actualiza solo con los datos de las propuestas</span>
+                    <% } %>
+                </span>
             </div>
+            <textarea class="form-control bg-dark text-white border-secondary mb-1 input-caption" rows="9"
+                data-destino="<%= destino %>" data-red="<%= red %>"><%= envio.caption %></textarea>
+            <% if (red === 'instagram') { %>
+                <div class="contador text-muted text-end mb-2" data-contador="<%= destino %>"></div>
+            <% } %>
+
+            <% if (envio.estado !== 'publicado') { %>
+                <button class="btn btn-success fw-bold btn-publicar" data-destino="<%= destino %>" <%= envio.estado === 'publicando' ? 'disabled' : '' %>>
+                    <i class="bi bi-send me-1"></i>Publicar en <%= red === 'facebook' ? 'Facebook' : 'Instagram' %>
+                </button>
+            <% } else if (red === 'instagram') { %>
+                <div class="small text-muted">Instagram no permite editar un post ya publicado: los cambios de texto quedan solo acá.</div>
+            <% } else { %>
+                <div class="small text-muted">Si cambiás el texto y guardás, se actualiza también el post en Facebook.</div>
+            <% } %>
         </div>
     </div>
+<% } %>
+
+    <div class="container py-4" style="max-width: 1100px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="/publicaciones" class="text-decoration-none">Publicaciones</a></li>
+                <li class="breadcrumb-item active"><%= esCarrusel ? 'Carrusel' : 'Individual' %></li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+            <div>
+                <h4 class="fw-bold mb-1 text-white">
+                    <i class="bi bi-megaphone me-2 text-info"></i>
+                    <%= esCarrusel ? `Carrusel de ${todos.length} propuestas` : nombreCurso(todos[0] || {}) %>
+                </h4>
+                <div class="small text-muted">
+                    Creada el <%= fechaHora(pub.createdAt) %>
+                    <% if (esCarrusel && pub.instagram.partes.length > 1) { %>
+                        · En Instagram va en <%= pub.instagram.partes.length %> partes (máximo 9 flyers + carátula por post). Publicalas de a una, cuando quieras.
+                    <% } %>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-light btn-sm" id="btnGuardarTextos"><i class="bi bi-check-lg me-1"></i>Guardar textos</button>
+                <% if (algoPublicado) { %>
+                    <button class="btn btn-outline-info btn-sm" id="btnDuplicar" title="Crea una publicación nueva con las mismas propuestas">
+                        <i class="bi bi-arrow-repeat me-1"></i>Publicar de nuevo (refuerzo)
+                    </button>
+                <% } %>
+            </div>
+        </div>
+
+        <%
+            tarjetaEnvio({
+                destino: 'facebook', red: 'facebook', titulo: 'Facebook',
+                envio: pub.facebook, cursos: todos,
+                caratula: esCarrusel ? pub.caratula : null, campoTitulo: 'facebook'
+            });
+            pub.instagram.partes.forEach((parte, i) => {
+                const total = pub.instagram.partes.length;
+                tarjetaEnvio({
+                    destino: 'ig-' + i, red: 'instagram',
+                    titulo: total > 1 ? `Instagram — parte ${i + 1} de ${total}` : 'Instagram',
+                    envio: parte, cursos: cursosDe(parte.cursoLocalIds),
+                    caratula: esCarrusel ? parte.caratula : null, campoTitulo: 'parte-' + i
+                });
+            });
+        %>
+    </div>
+
+    <%# Carátula a tamaño real, fuera de pantalla: es la que se captura %>
+    <% if (esCarrusel) { %>
+        <div id="zonaCaptura">
+            <%- include('../../partials/caratulaPublicacion', { titulo: '', meses: '', lugar: caratulaFija.lugar, ciieCorto: caratulaFija.ciieCorto, modalidad: caratulaFija.modalidad, idCaratula: 'caratulaCaptura' }) %>
+        </div>
+    <% } %>
 
     <%- include('../../partials/scripts') %>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script>
-        const publicacionId = '<%= publicacion._id %>';
-        const totalSlides = <%= indiceSlide %>;
+    (function () {
+        const PUB = <%- datosScript %>;
+        const cacheFlyers = new Map(); // idOfertaOficial -> dataURL (para no recapturar entre Facebook y partes de IG)
 
-        async function generarImagenes() {
-            const imagenes = [];
-            for (let i = 0; i < totalSlides; i += 1) {
-                const el = document.getElementById(`slide-${i}`);
-                const canvas = await html2canvas(el, {
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#F0EBE3'
-                });
-                imagenes.push(canvas.toDataURL('image/png'));
-            }
-            return imagenes;
+        async function pedir(url, metodo, body) {
+            const response = await fetch(url, {
+                method: metodo,
+                headers: { 'Content-Type': 'application/json' },
+                body: body ? JSON.stringify(body) : undefined
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) throw new Error(data.error || 'Error inesperado.');
+            return data;
         }
 
-        document.getElementById('btnPublicar').addEventListener('click', async function () {
-            const btn = this;
-            const facebookSeleccionado = document.getElementById('chkFacebook').checked;
-            const instagramSeleccionado = document.getElementById('chkInstagram').checked;
+        // ─── Textos ───
+        function recolectarTextos() {
+            const datos = { facebook: {}, caratula: {}, partes: [] };
+            document.querySelectorAll('.input-caption').forEach(el => {
+                const destino = el.dataset.destino;
+                if (destino === 'facebook') datos.facebook.caption = el.value;
+                else datos.partes[Number(destino.slice(3))] = { ...(datos.partes[Number(destino.slice(3))] || {}), caption: el.value };
+            });
+            document.querySelectorAll('.input-titulo:not(:disabled)').forEach(el => {
+                if (el.dataset.campo === 'facebook') datos.caratula.titulo = el.value;
+                else {
+                    const i = Number(el.dataset.campo.replace('parte-', ''));
+                    datos.partes[i] = { ...(datos.partes[i] || {}), tituloCaratula: el.value };
+                }
+            });
+            for (let i = 0; i < datos.partes.length; i += 1) if (!datos.partes[i]) datos.partes[i] = {};
+            return datos;
+        }
 
-            if (!facebookSeleccionado && !instagramSeleccionado) {
-                Swal.fire('Atención', 'Tildá al menos una red social para publicar.', 'warning');
-                return;
-            }
+        async function guardarTextos() {
+            const { avisos } = await pedir(`/publicaciones/${PUB.id}`, 'PUT', recolectarTextos());
+            return avisos || {};
+        }
 
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Publicando...';
-
+        document.getElementById('btnGuardarTextos').addEventListener('click', async function () {
+            this.disabled = true;
             try {
-                await fetch(`/publicaciones/${publicacionId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        facebook: { seleccionado: facebookSeleccionado, caption: document.getElementById('captionFacebook').value },
-                        instagram: { seleccionado: instagramSeleccionado, caption: document.getElementById('captionInstagram').value }
-                    })
-                });
-
-                const imagenesBase64 = await generarImagenes();
-
-                const response = await fetch(`/publicaciones/${publicacionId}/publicar`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ imagenesBase64 })
-                });
-                const result = await response.json();
-                if (!result.success) throw new Error(result.error || 'No se pudo publicar.');
-
-                const { facebook, instagram } = result.resultado;
-                const lineas = [];
-                if (facebook) lineas.push(facebook.ok ? '✅ Facebook: publicado' : `❌ Facebook: ${facebook.error}`);
-                if (instagram) lineas.push(instagram.ok ? '✅ Instagram: publicado' : `❌ Instagram: ${instagram.error}`);
-
-                await Swal.fire({
-                    icon: (facebook?.ok !== false && instagram?.ok !== false) ? 'success' : 'warning',
-                    title: 'Resultado de la publicación',
-                    html: lineas.join('<br>') || 'No había redes seleccionadas.'
-                });
-
-                window.location.href = '/publicaciones';
+                const avisos = await guardarTextos();
+                const lineas = ['Textos guardados.'];
+                if (avisos.facebookEditado) lineas.push('El post de Facebook se actualizó.');
+                if (avisos.facebookError) lineas.push('No se pudo actualizar el post de Facebook: ' + avisos.facebookError);
+                if (avisos.instagramSoloLocal) lineas.push('Instagram no permite editar posts publicados: el cambio quedó solo acá.');
+                await Swal.fire({ icon: avisos.facebookError ? 'warning' : 'success', html: lineas.join('<br>') });
+                location.reload();
             } catch (error) {
                 Swal.fire('Error', error.message, 'error');
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-send me-2"></i>Generar imágenes y publicar ahora';
+                this.disabled = false;
             }
         });
+
+        document.querySelectorAll('.btn-regenerar').forEach(link => link.addEventListener('click', async function (e) {
+            e.preventDefault();
+            const destino = this.dataset.destino;
+            const body = destino === 'facebook' ? { facebook: { regenerar: true } } : { partes: [] };
+            if (destino !== 'facebook') {
+                const i = Number(destino.slice(3));
+                for (let j = 0; j <= i; j += 1) body.partes[j] = j === i ? { regenerar: true } : {};
+            }
+            try {
+                await pedir(`/publicaciones/${PUB.id}`, 'PUT', body);
+                location.reload();
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            }
+        }));
+
+        // Contador de caracteres (Instagram corta en 2200)
+        document.querySelectorAll('.input-caption[data-red="instagram"]').forEach(el => {
+            const contador = document.querySelector(`[data-contador="${el.dataset.destino}"]`);
+            const actualizar = () => {
+                contador.textContent = `${el.value.length} / 2200`;
+                contador.classList.toggle('text-danger', el.value.length > 2200);
+            };
+            el.addEventListener('input', actualizar);
+            actualizar();
+        });
+
+        // Título de carátula: refleja en la miniatura mientras se escribe
+        document.querySelectorAll('.input-titulo').forEach(el => el.addEventListener('input', function () {
+            const mini = document.querySelector(`#mini-caratula-${this.dataset.destino} [data-cp="titulo"]`);
+            if (mini) mini.textContent = this.value;
+        }));
+
+        // ─── Captura de imágenes ───
+        function ajustarTitulo(el) {
+            let tamanio = 28;
+            el.style.fontSize = tamanio + 'px';
+            while (el.scrollHeight > el.clientHeight + 1 && tamanio > 16) {
+                tamanio -= 1;
+                el.style.fontSize = tamanio + 'px';
+            }
+        }
+        document.querySelectorAll('.cp-titulo').forEach(ajustarTitulo);
+
+        async function capturarCaratula(titulo, meses) {
+            const el = document.getElementById('caratulaCaptura');
+            el.querySelector('[data-cp="titulo"]').textContent = titulo;
+            el.querySelector('[data-cp="meses"]').textContent = meses;
+            ajustarTitulo(el.querySelector('[data-cp="titulo"]'));
+            if (document.fonts && document.fonts.ready) await document.fonts.ready;
+            const canvas = await html2canvas(el, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#EEF0F3' });
+            return canvas.toDataURL('image/jpeg', 0.92);
+        }
+
+        // Carga el flyer real en un iframe oculto y usa su propia captura (window.capturarFlyer).
+        function capturarFlyer(ofertaId) {
+            if (cacheFlyers.has(ofertaId)) return Promise.resolve(cacheFlyers.get(ofertaId));
+            return new Promise((resolve, reject) => {
+                const iframe = document.createElement('iframe');
+                Object.assign(iframe.style, { position: 'fixed', left: '-10000px', top: '0', width: '540px', height: '675px', border: '0' });
+                iframe.src = `/curso/flyer/${ofertaId}?bare=true`;
+                const limpiar = () => iframe.remove();
+                const timeout = setTimeout(() => { limpiar(); reject(new Error(`El flyer ${ofertaId} tardó demasiado en cargar.`)); }, 25000);
+                iframe.onload = () => setTimeout(async () => {
+                    try {
+                        const capturar = iframe.contentWindow && iframe.contentWindow.capturarFlyer;
+                        if (!capturar) throw new Error(`El flyer ${ofertaId} no se pudo capturar.`);
+                        const canvas = await capturar();
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                        cacheFlyers.set(ofertaId, dataUrl);
+                        clearTimeout(timeout);
+                        limpiar();
+                        resolve(dataUrl);
+                    } catch (error) {
+                        clearTimeout(timeout);
+                        limpiar();
+                        reject(error);
+                    }
+                }, 800);
+                document.body.appendChild(iframe);
+            });
+        }
+
+        function tituloActual(destino) {
+            const input = document.querySelector(`.input-titulo[data-destino="${destino}"]`);
+            return input ? input.value : '';
+        }
+
+        async function publicarDestino(destino, avisar) {
+            const datos = PUB.destinos[destino];
+            const total = (datos.caratula ? 1 : 0) + datos.ofertas.length;
+            const imagenes = [];
+
+            if (datos.caratula) {
+                avisar(`Generando carátula…`);
+                imagenes.push(await capturarCaratula(tituloActual(destino), datos.caratula.meses));
+            }
+            for (const ofertaId of datos.ofertas) {
+                avisar(`Generando imagen ${imagenes.length + 1} de ${total}…`);
+                imagenes.push(await capturarFlyer(ofertaId));
+            }
+            for (let orden = 0; orden < imagenes.length; orden += 1) {
+                avisar(`Subiendo imagen ${orden + 1} de ${total}…`);
+                await pedir(`/publicaciones/${PUB.id}/imagenes`, 'POST', { destino, orden, imagenBase64: imagenes[orden] });
+            }
+            avisar(destino === 'facebook' ? 'Publicando en Facebook…' : 'Publicando en Instagram (puede tardar un poco)…');
+            const { resultado } = await pedir(`/publicaciones/${PUB.id}/publicar`, 'POST', { destino, cantidad: imagenes.length });
+            return resultado;
+        }
+
+        document.querySelectorAll('.btn-publicar').forEach(btn => btn.addEventListener('click', async function () {
+            const destino = this.dataset.destino;
+            const textoOriginal = this.innerHTML;
+            const avisar = texto => { this.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${texto}`; };
+            document.querySelectorAll('.btn-publicar, #btnGuardarTextos').forEach(b => { b.disabled = true; });
+            try {
+                avisar('Guardando textos…');
+                await guardarTextos();
+                const resultado = await publicarDestino(destino, avisar);
+                await Swal.fire(resultado.ok
+                    ? { icon: 'success', title: 'Publicado' }
+                    : { icon: 'error', title: 'No se pudo publicar', text: resultado.error });
+                location.reload();
+            } catch (error) {
+                await Swal.fire('Error', error.message, 'error');
+                this.innerHTML = textoOriginal;
+                document.querySelectorAll('.btn-publicar, #btnGuardarTextos').forEach(b => { b.disabled = false; });
+            }
+        }));
+
+        const btnDuplicar = document.getElementById('btnDuplicar');
+        if (btnDuplicar) btnDuplicar.addEventListener('click', async function () {
+            const confirmacion = await Swal.fire({
+                icon: 'question',
+                title: '¿Publicar de nuevo?',
+                text: 'Se crea una publicación nueva con las mismas propuestas, con los datos y textos actualizados. Esta queda en el historial.',
+                showCancelButton: true,
+                confirmButtonText: 'Crear refuerzo',
+                cancelButtonText: 'Cancelar'
+            });
+            if (!confirmacion.isConfirmed) return;
+            try {
+                const { publicacion } = await pedir(`/publicaciones/${PUB.id}/duplicar`, 'POST');
+                location.href = `/publicaciones/${publicacion._id}/preview`;
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            }
+        });
+    })();
     </script>
 </body>
 </html>

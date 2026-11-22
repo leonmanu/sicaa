@@ -1,0 +1,42 @@
+<%#
+  Carátula oficial de carrusel (diseño DFDP adaptado a 4:5: 540×675, se captura a 1080×1350).
+  Locals: titulo, meses, lugar, ciieCorto, modalidad, idCaratula (opcional)
+  Los estilos están en caratulaPublicacionEstilos.ejs (incluir una vez por página).
+%>
+<div class="cp-caratula"<% if (locals.idCaratula) { %> id="<%= idCaratula %>"<% } %>>
+    <div class="cp-marco"></div>
+    <div class="cp-foto"><div class="cp-velo"></div></div>
+
+    <div class="cp-badge">CIIE <strong data-cp="ciie"><%= ciieCorto %></strong></div>
+
+    <div class="cp-panel">
+        <div class="cp-titulo" data-cp="titulo"><%= titulo %></div>
+    </div>
+
+    <div class="cp-globo">
+        <div class="cp-globo-fuerte" data-cp="modalidad"><%= modalidad %></div>
+        <div class="cp-globo-suave">GRATUITA, DE CALIDAD Y CON<br>PUNTAJE DOCENTE</div>
+        <div class="cp-globo-pico"></div>
+    </div>
+
+    <div class="cp-fecha">
+        <svg class="cp-fecha-icono" viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="8" width="36" height="32" rx="5"/>
+            <line x1="4" y1="17" x2="40" y2="17"/>
+            <line x1="13" y1="4" x2="13" y2="11"/>
+            <line x1="31" y1="4" x2="31" y2="11"/>
+            <circle cx="12" cy="24" r="1.2" fill="#fff"/><circle cx="19" cy="24" r="1.2" fill="#fff"/><circle cx="26" cy="24" r="1.2" fill="#fff"/>
+            <circle cx="12" cy="31" r="1.2" fill="#fff"/><circle cx="19" cy="31" r="1.2" fill="#fff"/>
+            <circle cx="36" cy="37" r="8" fill="#1BB3C9"/>
+            <polyline points="36,33 36,37 39,39"/>
+        </svg>
+        <div class="cp-fecha-texto">
+            <span data-cp="meses"><%= meses %></span><br>
+            <span data-cp="lugar"><%= lugar %></span>
+        </div>
+    </div>
+
+    <div class="cp-pie">
+        <img src="/img/logo-pba2.png" alt="Dirección General de Cultura y Educación — Gobierno de la Provincia de Buenos Aires">
+    </div>
+</div>

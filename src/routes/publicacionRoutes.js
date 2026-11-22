@@ -4,10 +4,11 @@ const { soloCiie } = require('../middleware/auth');
 
 const {
     postCrear,
-    postCrearAgrupada,
+    postDuplicar,
     getLista,
     getPreview,
-    postImagenYPublicar,
+    postImagen,
+    postPublicar,
     putActualizar,
     deleteEliminar,
     getConfiguracion,
@@ -25,11 +26,12 @@ router
     .post('/configuracion/verificar-meta', soloCiie, postVerificarMeta)
     .post('/configuracion/conexion-meta', soloCiie, postConexionMeta)
     .post('/configuracion/desconectar-meta', soloCiie, postDesconectarMeta)
-    .post('/agrupada', soloCiie, postCrearAgrupada)
     .post('/', soloCiie, postCrear)
     // ─── rutas con ID ───
     .get('/:id/preview', soloCiie, getPreview)
-    .post('/:id/publicar', soloCiie, postImagenYPublicar)
+    .post('/:id/imagenes', soloCiie, postImagen)
+    .post('/:id/publicar', soloCiie, postPublicar)
+    .post('/:id/duplicar', soloCiie, postDuplicar)
     .put('/:id', soloCiie, putActualizar)
     .delete('/:id', soloCiie, deleteEliminar);
 

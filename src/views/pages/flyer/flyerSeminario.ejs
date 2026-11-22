@@ -634,30 +634,40 @@ document.getElementById('cargo-titulo').addEventListener('input', function () {
             curso.itinerario ?? ''
         ].map(v => String(v).trim().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_')).filter(Boolean).join('-') + '.png'
     ) %>;
+    // Captura del flyer (1080×1350). La usa el botón de descarga y también la
+    // pantalla de publicación en redes, que carga este flyer en un iframe
+    // (?bare=true) y llama a window.capturarFlyer() para armar el carrusel.
+    window.capturarFlyer = async function () {
+        const editables = document.querySelectorAll('[contenteditable="true"]');
+        editables.forEach(el => el.setAttribute('contenteditable', 'false'));
+        try {
+            if (document.fonts && document.fonts.ready) await document.fonts.ready;
+            return await html2canvas(document.getElementById('flyer'), {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#00ADC5'
+            });
+        } finally {
+            editables.forEach(el => el.setAttribute('contenteditable', 'true'));
+        }
+    };
+
     const btnDescargar = document.getElementById('btnDescargar');
-    if (btnDescargar) btnDescargar.addEventListener('click', function () {
+    if (btnDescargar) btnDescargar.addEventListener('click', async function () {
         const btn = this;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando...';
-
-        const editables = document.querySelectorAll('[contenteditable="true"]');
-        editables.forEach(el => el.setAttribute('contenteditable', 'false'));
-
-        html2canvas(document.getElementById('flyer'), {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#00ADC5'
-        }).then(function (canvas) {
+        try {
+            const canvas = await window.capturarFlyer();
             const link = document.createElement('a');
             link.download = nombreArchivoFlyer;
             link.href = canvas.toDataURL('image/png');
             link.click();
-
-            editables.forEach(el => el.setAttribute('contenteditable', 'true'));
+        } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-download me-2"></i>Descargar PNG (1080×1350)';
-        });
+        }
     });
 
     // Copiar enlace

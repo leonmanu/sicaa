@@ -1018,13 +1018,13 @@ const getFlyersList = async (req, res) => {
         }, null);
 
         // Estado de publicación en redes (Facebook/Instagram) por curso, para pintar los íconos.
-        const estadosPublicacion = cursos.length > 0
-            ? await publicacionService.getEstadosPorCursoLocalIds(cursos.map(c => c._id))
+        const historialPublicacion = cursos.length > 0
+            ? await publicacionService.getHistorialPorCursoLocalIds(cursos.map(c => c._id))
             : {};
 
         res.render('pages/flyer/flyersList', {
             cursos,
-            estadosPublicacion,
+            historialPublicacion,
             filtros,
             seleccion,
             itinerariosDisponibles,

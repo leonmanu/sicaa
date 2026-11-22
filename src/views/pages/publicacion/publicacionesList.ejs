@@ -8,17 +8,24 @@
     <%- include('../../partials/navbar') %>
     <%- include('../../partials/msj') %>
 
+<%
+    const nombreCurso = c => c ? (c.tituloFormulario || c.nombrePropuesta || 'Sin nombre') : '(propuesta eliminada)';
+    const fecha = f => f ? new Date(f).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    const etiqueta = { pendiente: 'Sin publicar', publicando: 'Publicando…', publicado: 'Publicado', error: 'Error' };
+    const color = { pendiente: 'secondary', publicando: 'warning text-dark', publicado: 'success', error: 'danger' };
+%>
+
     <div class="container py-5">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
             <div>
                 <h2 class="fw-bold mb-1">
                     <i class="bi bi-megaphone me-2 text-info"></i>Publicaciones en redes sociales
                 </h2>
-                <p class="text-muted mb-0">Cursos en cola para publicar (o ya publicados) en Facebook e Instagram.</p>
+                <p class="text-muted mb-0">Lo que se armó para Facebook e Instagram, publicado o pendiente. Para armar una nueva, elegí las propuestas en Flyers.</p>
             </div>
             <div class="d-flex gap-2">
                 <a href="/curso/flyers" class="btn btn-outline-info btn-sm">
-                    <i class="bi bi-collection me-1"></i>Armar publicación agrupada
+                    <i class="bi bi-collection me-1"></i>Armar publicación
                 </a>
                 <a href="/plantillas-dispositivo" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-file-earmark-text me-1"></i>Plantillas por dispositivo
@@ -32,93 +39,63 @@
         <div class="card bg-dark border-secondary shadow-sm">
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table id="tablaPublicaciones" class="table table-dark table-hover align-middle mb-0">
+                    <table class="table table-dark table-hover align-middle mb-0">
                         <thead class="small text-uppercase text-muted">
                             <tr>
-                                <th>Cursos</th>
+                                <th>Propuestas</th>
                                 <th>Tipo</th>
-                                <th>Creado</th>
-                                <th>Imagen</th>
-                                <th class="text-center">Facebook</th>
-                                <th class="text-center">Instagram</th>
+                                <th>Creada</th>
+                                <th>Facebook</th>
+                                <th>Instagram</th>
                                 <th class="text-end pe-4">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <% if (publicaciones && publicaciones.length > 0) { %>
-                                <% publicaciones.forEach(pub => { %>
-                                    <% const cursos = pub.cursoLocalIds || []; %>
-                                    <% const primeraImagen = (pub.imagenes || []).find(img => img.orden === 0) || (pub.imagenes || [])[0]; %>
-                                    <tr data-publicacion-id="<%= pub._id %>">
-                                        <td>
-                                            <% if (cursos.length === 1) { %>
-                                                <div class="fw-semibold"><%= cursos[0].tituloFormulario || cursos[0].nombrePropuesta || 'Sin nombre' %></div>
-                                                <small class="text-muted"><%= cursos[0].formadorAbc || '' %></small>
-                                            <% } else { %>
-                                                <div class="fw-semibold"><%= cursos.length %> cursos agrupados</div>
-                                                <small class="text-muted"><%= cursos.map(c => c.tituloFormulario || c.nombrePropuesta).filter(Boolean).slice(0, 3).join(', ') %><%= cursos.length > 3 ? '…' : '' %></small>
-                                            <% } %>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-secondary"><%= pub.tipoAgrupacion %></span>
-                                            <% if (pub.totalPartes > 1) { %>
-                                                <span class="badge bg-info text-dark">Parte <%= pub.parteActual %> de <%= pub.totalPartes %></span>
-                                            <% } %>
-                                        </td>
-                                        <td>
-                                            <small class="text-muted"><%= new Date(pub.createdAt).toLocaleDateString('es-AR') %></small>
-                                        </td>
-                                        <td>
-                                            <% if (primeraImagen) { %>
-                                                <img src="<%= primeraImagen.url %>" alt="flyer" style="width:48px;height:60px;object-fit:cover;border-radius:4px;">
-                                            <% } else { %>
-                                                <span class="badge bg-secondary">Sin generar</span>
-                                            <% } %>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="form-check form-switch d-flex justify-content-center">
-                                                <input type="checkbox" role="switch"
-                                                    class="form-check-input check-red" data-red="facebook"
-                                                    <%= pub.facebook.seleccionado ? 'checked' : '' %>
-                                                    <%= pub.facebook.estado === 'publicado' ? 'disabled' : '' %>>
-                                            </div>
-                                            <span class="badge mt-1 bg-<%=
-                                                pub.facebook.estado === 'publicado' ? 'success' :
-                                                pub.facebook.estado === 'error' ? 'danger' : 'secondary'
-                                            %>"><%= pub.facebook.estado %></span>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="form-check form-switch d-flex justify-content-center">
-                                                <input type="checkbox" role="switch"
-                                                    class="form-check-input check-red" data-red="instagram"
-                                                    <%= pub.instagram.seleccionado ? 'checked' : '' %>
-                                                    <%= pub.instagram.estado === 'publicado' ? 'disabled' : '' %>>
-                                            </div>
-                                            <span class="badge mt-1 bg-<%=
-                                                pub.instagram.estado === 'publicado' ? 'success' :
-                                                pub.instagram.estado === 'error' ? 'danger' : 'secondary'
-                                            %>"><%= pub.instagram.estado %></span>
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            <div class="btn-group btn-group-sm">
-                                                <a href="/publicaciones/<%= pub._id %>/preview" class="btn btn-outline-info">
-                                                    <i class="bi bi-image me-1"></i>Generar / publicar
-                                                </a>
-                                                <button class="btn btn-outline-warning btn-editar-caption" data-red="facebook" data-caption="<%= (pub.facebook.caption || '').replace(/"/g, '&quot;') %>" title="Editar texto de Facebook">
-                                                    <i class="bi bi-facebook"></i>
-                                                </button>
-                                                <button class="btn btn-outline-warning btn-editar-caption" data-red="instagram" data-caption="<%= (pub.instagram.caption || '').replace(/"/g, '&quot;') %>" title="Editar texto de Instagram">
-                                                    <i class="bi bi-instagram"></i>
-                                                </button>
-                                                <button class="btn btn-outline-danger btn-eliminar-publicacion"
-                                                    data-instagram-publicado="<%= pub.instagram.estado === 'publicado' %>">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <% }); %>
+                            <% if (!publicaciones || publicaciones.length === 0) { %>
+                                <tr><td colspan="6" class="text-center text-muted py-4">Todavía no hay publicaciones.</td></tr>
                             <% } %>
+                            <% (publicaciones || []).forEach(pub => { %>
+                                <%
+                                    const cursos = pub.cursoLocalIds || [];
+                                    const partes = (pub.instagram && pub.instagram.partes) || [];
+                                    const partesPublicadas = partes.filter(p => p.estado === 'publicado').length;
+                                    const partesConError = partes.filter(p => p.estado === 'error').length;
+                                    const igPublicado = partesPublicadas > 0;
+                                %>
+                                <tr data-publicacion-id="<%= pub._id %>">
+                                    <td style="max-width: 360px;">
+                                        <% if (cursos.length === 1) { %>
+                                            <%= nombreCurso(cursos[0]) %>
+                                        <% } else { %>
+                                            <strong><%= cursos.length %> propuestas</strong>
+                                            <div class="small text-muted text-truncate"><%= cursos.slice(0, 3).map(nombreCurso).join(' · ') %><%= cursos.length > 3 ? ' …' : '' %></div>
+                                        <% } %>
+                                    </td>
+                                    <td><span class="badge bg-<%= pub.tipo === 'carrusel' ? 'info text-dark' : 'secondary' %>"><%= pub.tipo === 'carrusel' ? 'Carrusel' : 'Individual' %></span></td>
+                                    <td class="small text-muted"><%= fecha(pub.createdAt) %></td>
+                                    <td><span class="badge bg-<%= color[pub.facebook?.estado] || 'secondary' %>"><%= etiqueta[pub.facebook?.estado] || 'Sin publicar' %></span></td>
+                                    <td>
+                                        <% if (partes.length > 1) { %>
+                                            <span class="badge bg-<%= partesPublicadas === partes.length ? 'success' : (partesConError ? 'danger' : (partesPublicadas ? 'warning text-dark' : 'secondary')) %>">
+                                                <%= partesPublicadas %> de <%= partes.length %> partes
+                                            </span>
+                                        <% } else if (partes.length === 1) { %>
+                                            <span class="badge bg-<%= color[partes[0].estado] %>"><%= etiqueta[partes[0].estado] %></span>
+                                        <% } %>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/publicaciones/<%= pub._id %>/preview" class="btn btn-outline-info" title="Abrir">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger btn-eliminar-publicacion" title="Eliminar"
+                                                data-instagram-publicado="<%= igPublicado %>">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }) %>
                         </tbody>
                     </table>
                 </div>
@@ -129,76 +106,6 @@
     <%- include('../../partials/scripts') %>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        $('#tablaPublicaciones').DataTable({
-            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-AR.json' },
-            order: [[2, 'desc']]
-        });
-
-        $(document).on('change', '.check-red', async function () {
-            const fila = $(this).closest('tr');
-            const id = fila.data('publicacion-id');
-            const red = $(this).data('red');
-            const seleccionado = this.checked;
-
-            try {
-                const response = await fetch(`/publicaciones/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ [red]: { seleccionado } })
-                });
-                const result = await response.json();
-                if (!result.success) throw new Error(result.error || 'No se pudo guardar el cambio.');
-            } catch (error) {
-                Swal.fire('Error', error.message, 'error');
-                this.checked = !seleccionado;
-            }
-        });
-
-        $(document).on('click', '.btn-editar-caption', async function () {
-            const fila = $(this).closest('tr');
-            const id = fila.data('publicacion-id');
-            const red = $(this).data('red');
-            const captionActual = $(this).data('caption');
-
-            const { value: caption, isConfirmed } = await Swal.fire({
-                title: `Editar texto de ${red === 'facebook' ? 'Facebook' : 'Instagram'}`,
-                input: 'textarea',
-                inputValue: captionActual,
-                inputAttributes: { style: 'height: 220px;' },
-                showCancelButton: true,
-                confirmButtonText: 'Guardar',
-                cancelButtonText: 'Cancelar'
-            });
-
-            if (!isConfirmed) return;
-
-            try {
-                const response = await fetch(`/publicaciones/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ [red]: { caption } })
-                });
-                const result = await response.json();
-                if (!result.success) throw new Error(result.error || 'No se pudo guardar el texto.');
-
-                const avisos = result.avisos || {};
-                if (avisos.facebookError) {
-                    Swal.fire('No se pudo editar en Facebook', avisos.facebookError, 'error');
-                    return;
-                }
-                if (avisos.facebookEditado) {
-                    Swal.fire({ icon: 'success', title: 'Editado en Facebook', text: 'El post ya publicado se actualizó de verdad en Facebook.', timer: 2000, showConfirmButton: false });
-                } else if (avisos.instagramSoloLocal) {
-                    Swal.fire({ icon: 'warning', title: 'Guardado solo acá', text: 'Instagram no permite editar un post ya publicado: el texto se actualizó en tu sitio, pero el post real en Instagram sigue con el texto original.' });
-                } else {
-                    Swal.fire({ icon: 'success', title: 'Guardado', timer: 1200, showConfirmButton: false });
-                }
-                $(this).data('caption', caption);
-            } catch (error) {
-                Swal.fire('Error', error.message, 'error');
-            }
-        });
-
         $(document).on('click', '.btn-eliminar-publicacion', async function () {
             const fila = $(this).closest('tr');
             const id = fila.data('publicacion-id');
@@ -208,7 +115,7 @@
                 icon: 'warning',
                 title: '¿Eliminar esta publicación?',
                 html: instagramPublicado
-                    ? 'Se va a borrar el registro de tu sitio.<br><strong>El post de Instagram ya publicado NO se borra automáticamente</strong> (la API de Meta no lo permite): tenés que borrarlo a mano desde la app.'
+                    ? 'Se va a borrar el registro de tu sitio.<br><strong>Los posts de Instagram ya publicados NO se borran automáticamente</strong> (la API de Meta no lo permite): tenés que borrarlos a mano desde la app.'
                     : 'Se va a borrar el registro y, si ya se publicó en Facebook, también ese post.',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, eliminar',

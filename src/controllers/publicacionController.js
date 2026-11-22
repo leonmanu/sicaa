@@ -5,36 +5,27 @@ const redesSocialesService = require('../services/redesSocialesService');
 
 class PublicacionController {
 
+    // Body: { cursoLocalIds: [...] } (o { cursoLocalId } por compatibilidad).
+    // Una propuesta → individual; varias → carrusel con carátula.
     postCrear = async (req, res) => {
         try {
-            const { cursoLocalId } = req.body;
-            if (!cursoLocalId) {
-                return res.status(400).json({ success: false, error: 'Falta el curso a publicar.' });
-            }
-            const publicacion = await publicacionService.crearIndividual(cursoLocalId, req.user);
-            res.json({ success: true, publicacion });
+            const ids = Array.isArray(req.body.cursoLocalIds)
+                ? req.body.cursoLocalIds
+                : (req.body.cursoLocalId ? [req.body.cursoLocalId] : []);
+            const publicacion = await publicacionService.crear(ids, req.user);
+            res.json({ success: true, publicacion: { _id: publicacion._id } });
         } catch (error) {
             console.error('Error en postCrear (publicaciones):', error.message);
             res.status(error.statusCode || 500).json({ success: false, error: error.message });
         }
     }
 
-    postCrearAgrupada = async (req, res) => {
+    postDuplicar = async (req, res) => {
         try {
-            const { cursoLocalIds, dispositivoTipo, incluirCaratula, tipoAgrupacion } = req.body;
-            if (!Array.isArray(cursoLocalIds) || cursoLocalIds.length === 0) {
-                return res.status(400).json({ success: false, error: 'No se seleccionó ningún curso.' });
-            }
-            const publicaciones = await publicacionService.crearAgrupada({
-                cursoLocalIds,
-                dispositivoTipo,
-                incluirCaratula: !!incluirCaratula,
-                tipoAgrupacion,
-                ciieId: req.user.referenciaId
-            }, req.user);
-            res.json({ success: true, publicaciones });
+            const publicacion = await publicacionService.duplicar(req.params.id, req.user);
+            res.json({ success: true, publicacion: { _id: publicacion._id } });
         } catch (error) {
-            console.error('Error en postCrearAgrupada (publicaciones):', error.message);
+            console.error('Error en postDuplicar (publicaciones):', error.message);
             res.status(error.statusCode || 500).json({ success: false, error: error.message });
         }
     }
@@ -52,14 +43,10 @@ class PublicacionController {
 
     getPreview = async (req, res) => {
         try {
-            const publicacion = await publicacionService.getPorId(req.params.id, req.user.referenciaId);
-            const plantilla = publicacion.dispositivoTipo
-                ? await plantillaDispositivoService.getPorDispositivo(publicacion.dispositivoTipo)
-                : null;
+            const datos = await publicacionService.getParaPantalla(req.params.id, req.user.referenciaId);
             res.render('pages/publicacion/publicacionPreview', {
-                publicacion,
-                cursos: publicacion.cursoLocalIds,
-                plantilla,
+                ...datos,
+                categoria: dispositivo => publicacionService.categoria(dispositivo),
                 user: req.user
             });
         } catch (error) {
@@ -69,24 +56,30 @@ class PublicacionController {
         }
     }
 
-    postImagenYPublicar = async (req, res) => {
+    postImagen = async (req, res) => {
         try {
-            const { imagenesBase64 } = req.body;
-            // Antes de guardar imágenes: si el CIIE no conectó sus redes, cortar acá.
-            await redesSocialesService.getConexion(req.user.referenciaId);
-            await publicacionService.guardarImagenes(req.params.id, imagenesBase64, req.user.referenciaId);
-            const resultado = await publicacionService.publicar(req.params.id, req.user.referenciaId);
+            await publicacionService.subirImagen(req.params.id, req.body, req.user.referenciaId);
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Error en postImagen (publicaciones):', error.message);
+            res.status(error.statusCode || 500).json({ success: false, error: error.message });
+        }
+    }
+
+    postPublicar = async (req, res) => {
+        try {
+            const resultado = await publicacionService.publicar(req.params.id, req.body, req.user.referenciaId);
             res.json({ success: true, resultado });
         } catch (error) {
-            console.error('Error en postImagenYPublicar (publicaciones):', error.message);
+            console.error('Error en postPublicar (publicaciones):', error.message);
             res.status(error.statusCode || 500).json({ success: false, error: error.message });
         }
     }
 
     putActualizar = async (req, res) => {
         try {
-            const { publicacion, avisos } = await publicacionService.actualizar(req.params.id, req.body, req.user.referenciaId);
-            res.json({ success: true, publicacion, avisos });
+            const { avisos } = await publicacionService.actualizar(req.params.id, req.body, req.user.referenciaId);
+            res.json({ success: true, avisos });
         } catch (error) {
             console.error('Error en putActualizar (publicaciones):', error.message);
             res.status(error.statusCode || 500).json({ success: false, error: error.message });
