@@ -275,7 +275,21 @@ class PublicacionService {
             const detalle = sinFlyer.map(c => `${c.tituloFormulario || c.nombrePropuesta} (${c.dispositivo || 'sin dispositivo'})`).join(', ');
             throw error(`Estas propuestas todavía no tienen diseño de flyer, sacalas de la selección: ${detalle}.`, 400);
         }
+        this._rechazarYaEmpezados(cursos);
         return cursos;
+    }
+
+    // No se difunde una propuesta cuyo primer encuentro ya pasó.
+    _rechazarYaEmpezados(cursos) {
+        const ahora = Date.now();
+        const empezados = cursos.filter(c => {
+            const inicio = this._fechaInicio(c);
+            return inicio && inicio.getTime() < ahora;
+        });
+        if (empezados.length) {
+            const nombres = empezados.map(c => c.tituloFormulario || c.nombrePropuesta).join(', ');
+            throw error(`Estas propuestas ya empezaron y no se pueden publicar, sacalas de la selección: ${nombres}.`, 400);
+        }
     }
 
     async crear(cursoLocalIds, usuario) {
@@ -533,10 +547,13 @@ class PublicacionService {
 
     async publicar(id, { destino, cantidad }, ciieId) {
         const publicacion = await this._getPropia(id, ciieId);
-        const { envio, red } = this._resolverDestino(publicacion, destino);
+        const { envio, red, parte } = this._resolverDestino(publicacion, destino);
         const conexion = await redesSocialesService.getConexion(ciieId);
 
         if (envio.estado === 'publicado') throw error('Esto ya está publicado. Para reforzar, creá una nueva publicación.', 409);
+        // Una publicación armada hace días puede haber quedado con propuestas que ya arrancaron.
+        const idsDestino = (parte ? parte.cursoLocalIds : publicacion.cursoLocalIds).map(String);
+        this._rechazarYaEmpezados(await cursoLocalService.getVariosPorIds(idsDestino, ciieId));
         if (!process.env.PUBLIC_BASE_URL) {
             throw error('Falta configurar PUBLIC_BASE_URL: Instagram/Facebook necesitan una URL pública para descargar las imágenes.', 409);
         }

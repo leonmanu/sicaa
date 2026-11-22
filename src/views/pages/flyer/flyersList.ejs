@@ -40,6 +40,12 @@
         .btn-download {
             margin-right: 5px;
         }
+        /* Miniatura real del flyer: la página del flyer (540×675) en un iframe a escala */
+        .flyer-thumb { display: block; width: 120px; height: 150px; overflow: hidden; border: 1px solid #ddd; border-radius: 4px; background: #f0f0f0; position: relative; }
+        .flyer-thumb-escala { width: 540px; height: 675px; transform: scale(0.2222); transform-origin: top left; }
+        .flyer-thumb iframe { width: 540px; height: 675px; border: 0; pointer-events: none; }
+        .flyer-pasado { filter: grayscale(1); opacity: 0.75; }
+        .flyer-thumb-vacia { display: flex; align-items: center; justify-content: center; }
 
         /* Portada: banner de presentación, sin controles, solo el itinerario
            y la fecha de inscripción más vieja entre los cursos del itinerario. */
@@ -204,6 +210,14 @@
                 <div class="row" id="flyersContainer">
                     <% if (cursos && cursos.length > 0) { %>
                         <% cursos.forEach(curso => { %>
+                            <%
+                                const yaPaso = !!(curso.encuentros?.[0]?.fecha && new Date(curso.encuentros[0].fecha).getTime() < Date.now());
+                                const sePuedePublicar = curso.estado === 'vinculado' && !yaPaso;
+                                const motivoNoPublicar = yaPaso ? 'Ya empezó: no se puede publicar' : 'Solo se puede publicar un curso ya vinculado con el sitio oficial';
+                                const nombreOficial = (curso.nombrePropuesta || '').trim();
+                                const nombreFantasia = (curso.tituloFormulario || '').trim();
+                                const mostrarFantasia = nombreFantasia && nombreFantasia.toLowerCase() !== nombreOficial.toLowerCase();
+                            %>
                             <div class="col-lg-4 col-md-6 mb-4">
                                 <div class="flyer-preview">
                                     <div class="d-flex">
@@ -212,19 +226,30 @@
                                                 data-curso-id="<%= curso._id %>"
                                                 data-dispositivo="<%= curso.dispositivo %>"
                                                 data-publicado="<%= historialPublicacion[String(curso._id)] ? historialPublicacion[String(curso._id)].veces : 0 %>"
-                                                <%= curso.estado === 'vinculado' ? '' : 'disabled' %>
-                                                title="<%= curso.estado === 'vinculado' ? 'Seleccionar para publicar' : 'Solo se puede publicar un curso ya vinculado con el sitio oficial' %>">
+                                                <%= sePuedePublicar ? '' : 'disabled' %>
+                                                title="<%= sePuedePublicar ? 'Seleccionar para publicar' : motivoNoPublicar %>">
                                         </div>
                                         <!-- Miniatura del flyer -->
                                         <div class="me-3">
-                                            <div style="width: 120px; height: 150px; background: #f0f0f0; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
-                                                <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
-                                            </div>
+                                            <% if (curso.idOfertaOficial && curso.estado !== 'pendiente') { %>
+                                                <a class="flyer-thumb<%= yaPaso ? ' flyer-pasado' : '' %>" title="<%= yaPaso ? 'Ya empezó · ver flyer' : 'Ver flyer' %>" href="/curso/flyer/<%= curso.idOfertaOficial %>" target="_blank">
+                                                    <div class="flyer-thumb-escala">
+                                                        <iframe loading="lazy" src="/curso/flyer/<%= curso.idOfertaOficial %>?bare=true" title="Flyer de <%= curso.nombrePropuesta || 'la propuesta' %>" tabindex="-1"></iframe>
+                                                    </div>
+                                                </a>
+                                            <% } else { %>
+                                                <div class="flyer-thumb flyer-thumb-vacia" title="El flyer aparece cuando la propuesta se vincula con el sitio oficial">
+                                                    <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
+                                                </div>
+                                            <% } %>
                                         </div>
 
                                         <!-- Información del curso -->
                                         <div class="flex-grow-1 curso-info">
-                                            <h6 class="mb-1"><%= curso.nombrePropuesta || 'Sin nombre' %></h6>
+                                            <h6 class="mb-1"><%= (mostrarFantasia ? nombreFantasia : nombreOficial) || 'Sin nombre' %></h6>
+                                            <% if (mostrarFantasia && nombreOficial) { %>
+                                                <div class="text-muted small mb-1"><span class="text-info">Oficial:</span> <%= nombreOficial %></div>
+                                            <% } %>
                                             <p class="mb-1 text-muted small">
                                                 <strong>Dispositivo:</strong> <%= curso.dispositivo %><br>
                                                 <strong>Área:</strong> <%= curso.cargoId?.areaId?.nombre || 'Sin área' %><br>
@@ -275,7 +300,7 @@
                                                         data-oferta-id="<%= curso.idOfertaOficial %>">
                                                     <i class="bi bi-download"></i> Descargar
                                                 </button>
-                                                <% if (curso.estado === 'vinculado') { %>
+                                                <% if (sePuedePublicar) { %>
                                                     <button type="button" class="btn btn-sm btn-outline-info btn-publicar-uno" data-curso-id="<%= curso._id %>">
                                                         <i class="bi bi-megaphone"></i> Publicar
                                                     </button>

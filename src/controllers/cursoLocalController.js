@@ -1001,12 +1001,27 @@ const getFlyersList = async (req, res) => {
             dispositivo: req.query.dispositivo || ''
         };
 
+        // Orden como en la página pública: primero los que arrancan más pronto;
+        // después los que ya empezaron (el más reciente primero) y al final los sin fecha.
+        const ahora = Date.now();
+        const inicioDe = c => {
+            const f = c.encuentros?.[0]?.fecha ? new Date(c.encuentros[0].fecha).getTime() : NaN;
+            return Number.isFinite(f) ? f : null;
+        };
+        const grupoDe = f => (f === null ? 2 : f >= ahora ? 0 : 1);
         const cursos = cursosDelItinerario.filter(curso =>
             (!filtros.areaNombre || curso.cargoId?.areaId?.nombre === filtros.areaNombre) &&
             (!filtros.estado || curso.estado === filtros.estado) &&
             (!filtros.nivel || curso.cargoId?.areaId?.nivel === filtros.nivel) &&
             (!filtros.dispositivo || curso.dispositivo === filtros.dispositivo)
-        );
+        ).sort((a, b) => {
+            const fa = inicioDe(a), fb = inicioDe(b);
+            const ga = grupoDe(fa), gb = grupoDe(fb);
+            if (ga !== gb) return ga - gb;
+            if (ga === 0) return fa - fb;
+            if (ga === 1) return fb - fa;
+            return 0;
+        });
 
         // Fecha de inscripción más vieja entre TODOS los cursos del itinerario
         // (sin importar los filtros de estado/nivel/dispositivo/área), para la portada.
