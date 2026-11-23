@@ -36,6 +36,8 @@ app.use((req, res, next) => {
         info: req.flash('info')
     };
     res.locals.usuario = req.user || null; // Aprovechamos para pasar el usuario
+    // PRUEBA 2026-11 (tabla de cursos compacta): ?tabla=anterior muestra la versión de antes.
+    res.locals.tablaCursosAnterior = req.query.tabla === 'anterior';
     next();
 });
 // Institución (CIIE) del request: define con qué credenciales y `qi` se habla con el sitio oficial

@@ -1,0 +1,285 @@
+<%#
+  PRUEBA 2026-11 — tabla de cursos compacta (/curso/ciie y la vista de un cargo).
+  - Filtros en una barra arriba (no en el encabezado de la tabla).
+  - 5–6 columnas angostas; "Creado" se oculta en el celular.
+  - En el celular cada curso es una tarjeta (.tabla-tarjetas, en /css/sicaa.css).
+  - Acción principal a la vista + el resto en el menú ⋮.
+  La versión anterior está en tablaCursosAnterior.ejs (se ve con ?tabla=anterior).
+  parte: "html" | "js"
+%>
+<% if (parte === 'html') { %>
+<%
+    const esCiie = usuario && usuario.tipo === 'institucion';
+    const ETIQUETAS_DISPOSITIVO = {
+        'Taller en Servicio': 'Taller en servicio',
+        'Taller Fuera de Servicio': 'Taller',
+        'Extensión CIIE': 'Extensión',
+        'MADP + Ateneo': 'MADP + Ateneo'
+    };
+    const COLORES_DISPOSITIVO = {
+        'Taller en Servicio': '#f47920', 'Taller Fuera de Servicio': '#5c6bc0',
+        'Seminario': '#00adc5', 'Seminario Distancia': '#0a8fa0',
+        'Extensión CIIE': '#8e6fce', 'MADP + Ateneo': '#c2185b',
+        'Ateneo Distancia': '#ad1457', 'Curso Distancia': '#2e7d32'
+    };
+    const ESTADOS = {
+        pendiente:              { etiqueta: 'Pendiente',        clase: 'bg-warning text-dark', orden: 0 },
+        modificacion_pendiente: { etiqueta: 'Modif. pendiente', clase: 'bg-info text-dark',    orden: 1 },
+        eliminacion_pendiente:  { etiqueta: 'Baja pendiente',   clase: 'bg-danger',            orden: 2 },
+        vinculado:              { etiqueta: 'Vinculado',        clase: 'bg-success',           orden: 3 },
+        dormido:                { etiqueta: 'Dormido',          clase: 'bg-secondary',         orden: 4 }
+    };
+    const fechaCorta = f => new Date(f).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
+    const porResolver = (cursosLocales || []).filter(c => ['pendiente', 'modificacion_pendiente', 'eliminacion_pendiente'].includes(c.estado)).length;
+%>
+<style>
+    /* La página usa más ancho en pantallas grandes (antes quedaban ~120 px vacíos por lado). */
+    @media (min-width: 1200px) { body > .container.py-5 { max-width: min(1600px, 96vw); } }
+    #tablaCursosCargo th, #tablaCursosCargo td { vertical-align: middle; }
+    #tablaCursosCargo .col-angosta { width: 1%; white-space: nowrap; }
+    #tablaCursosCargo .badge-dispositivo { color: #fff; font-weight: 600; }
+    #tablaCursosCargo .nombre-oficial { font-size: 0.8rem; }
+    .barra-filtros .form-select, .barra-filtros .form-control { min-width: 0; }
+    /* En pantallas grandes, dispositivo + estado en una sola línea. */
+    @media (min-width: 1200px) { #tablaCursosCargo .etiquetas-estado { flex-wrap: nowrap !important; } }
+    /* Entre celular y pantalla grande, "Cursantes" queda solo con el ícono para no robarle ancho a la propuesta. */
+    @media (min-width: 768px) and (max-width: 1399.98px) { #tablaCursosCargo .texto-cursantes { display: none; } }
+    @media (max-width: 767.98px) {
+        /* La página fijaba min-width: 760px en el celular (por eso había que deslizar). */
+        #tablaCursosCargo { min-width: 0 !important; }
+        #tablaCursosCargo td.celda-titulo { display: block; }
+        #tablaCursosCargo td.celda-acciones { justify-content: flex-start; padding-top: 0.5rem !important; }
+        #tablaCursosCargo td.celda-acciones .acciones-curso { width: 100%; }
+        #tablaCursosCargo td.celda-acciones .acciones-curso > .btn:first-child { flex: 1; }
+    }
+</style>
+
+<div class="row mb-3 align-items-end g-3">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="/usuario/mis-cargos" class="text-decoration-none">Mis Cargos</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Gestión de Cursos</li>
+            </ol>
+        </nav>
+        <% if (locals.esVistaInstitucional) { %>
+            <h2 class="titulo-pagina fw-bold mb-1">
+                <i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>Cursos del CIIE
+            </h2>
+            <span class="badge bg-secondary"><%= locals.ciieClave || '' %> <%= usuario?.referenciaId?.nombre || '' %></span>
+        <% } else { %>
+            <% const ocupante = cargo?.ocupante?.usuarioId?.referenciaId; %>
+            <h2 class="titulo-pagina fw-bold mb-1">
+                <i class="bi bi-journal-bookmark-fill me-2 text-primary"></i><%= cargo?.areaId?.nombre || 'Área General' %>
+                <% if (ocupante?.apellido) { %><span class="titulo-oficial"><%= ocupante.apellido %>, <%= ocupante.nombre %></span><% } %>
+            </h2>
+            <span class="badge bg-secondary me-1"><%= locals.ciieClave || '' %> <%= cargo?.ciieId?.nombre || '' %></span>
+            <% if (cargo?.clave) { %><span class="badge border border-info text-info">Cargo <%= cargo.clave %></span><% } %>
+        <% } %>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <button id="btnAltaCurso" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalSeleccionarBase">
+            <i class="bi bi-plus-circle me-1"></i> Alta de curso
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 bg-dark text-white">
+    <div class="card-body p-2 p-md-3">
+        <!-- Filtros: una sola barra, arriba de la tabla -->
+        <div class="row g-2 mb-2 barra-filtros">
+            <div class="col-12 col-lg-4">
+                <input type="search" id="filtroTexto" class="form-control form-control-sm" placeholder="Buscar propuesta, formador o área…">
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <select id="filtroIti" class="form-select form-select-sm" aria-label="Itinerario"><option value="">Itinerario: todos</option></select>
+            </div>
+            <% if (esCiie) { %>
+            <div class="col-6 col-md-3 col-lg-2">
+                <select id="filtroArea" class="form-select form-select-sm" aria-label="Área"><option value="">Área: todas</option></select>
+            </div>
+            <% } %>
+            <div class="col-6 col-md-3 col-lg-2">
+                <select id="filtroDispositivo" class="form-select form-select-sm" aria-label="Dispositivo"><option value="">Dispositivo: todos</option></select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <select id="filtroEstado" class="form-select form-select-sm" aria-label="Estado">
+                    <option value="">Estado: todos</option>
+                    <% if (porResolver) { %><option value="por-resolver">Por resolver (<%= porResolver %>)</option><% } %>
+                    <% Object.entries(ESTADOS).forEach(([clave, e]) => { %><option value="<%= clave %>"><%= e.etiqueta %></option><% }) %>
+                </select>
+            </div>
+        </div>
+        <div class="small text-muted mb-2 px-1">
+            <%= (cursosLocales || []).length %> cursos<% if (porResolver) { %> · <span class="text-warning"><%= porResolver %> por resolver</span><% } %>
+        </div>
+
+        <div class="table-responsive">
+            <table id="tablaCursosCargo" class="table table-dark table-hover align-middle mb-0 tabla-tarjetas">
+                <thead class="bg-black text-muted small text-uppercase">
+                    <tr>
+                        <th class="col-propuesta">Propuesta</th>
+                        <% if (esCiie) { %><th class="col-area">Área · formador</th><% } %>
+                        <th class="col-inicio col-angosta">Inicio</th>
+                        <th class="col-estado col-angosta">Estado</th>
+                        <th class="col-creado col-angosta d-none d-md-table-cell">Creado</th>
+                        <th class="col-angosta text-end pe-3">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <% if (cursosLocales && cursosLocales.length > 0) { %>
+                    <% cursosLocales.forEach(c => {
+                        const nombreOficial = (c.nombrePropuesta || '').trim();
+                        const nombreFantasia = (c.tituloFormulario || '').trim();
+                        const mostrarFantasia = nombreFantasia && nombreFantasia.toLowerCase() !== nombreOficial.toLowerCase();
+                        const estado = ESTADOS[c.estado] || { etiqueta: c.estado || '-', clase: 'bg-light text-dark', orden: 99 };
+                        const iti = `${c.anio || ''} · I${c.itinerario || 0}`;
+                        const inicio = c.encuentros && c.encuentros.length > 0 && c.encuentros[0].fecha ? new Date(c.encuentros[0].fecha) : null;
+                        const areaCorta = c.cargoId?.areaId?.nombreCorto || 'Área General';
+                        const invitados = (c.cargosInvitados || []).map(ci => (ci && ci.areaId && ci.areaId.nombre) ? ci.areaId.nombre : (ci && ci.clave) ? ci.clave : (typeof ci === 'string' ? ci : (ci?._id || ''))).filter(Boolean);
+                        const noDisponible = c.estado === 'vinculado' && String(c.disponible || '').toUpperCase() !== 'S';
+                        const vinculado = c.estado === 'vinculado';
+                    %>
+                    <tr data-iti="<%= iti %>" data-area="<%= areaCorta %>" data-dispositivo="<%= c.dispositivo || '' %>" data-estado="<%= c.estado || '' %>">
+                        <td class="celda-titulo">
+                            <div class="fw-semibold"><%= (mostrarFantasia ? nombreFantasia : nombreOficial) || 'Sin nombre' %></div>
+                            <% if (mostrarFantasia && nombreOficial) { %>
+                                <div class="text-muted nombre-oficial"><span class="text-info">Oficial:</span> <%= nombreOficial %></div>
+                            <% } %>
+                        </td>
+                        <% if (esCiie) { %>
+                        <td data-label="Área">
+                            <div>
+                                <b title="Cargo <%= c.cargoId?.clave || '' %>"><%= areaCorta %></b>
+                                <small class="d-block text-muted">
+                                    <%= c.formadorAbc %>
+                                    <% if (invitados.length) { %><span class="badge text-bg-secondary ms-1" title="Invitados: <%= invitados.join(', ') %>">+<%= invitados.length %></span><% } %>
+                                </small>
+                            </div>
+                        </td>
+                        <% } %>
+                        <td data-label="Inicio" class="col-angosta" data-order="<%= inicio ? inicio.toISOString() : '' %>">
+                            <div>
+                                <div><%= inicio ? fechaCorta(inicio) : '—' %></div>
+                                <small class="text-info"><%= iti %></small>
+                            </div>
+                        </td>
+                        <td data-label="Estado" class="col-angosta" data-order="<%= estado.orden %>">
+                            <div class="d-flex flex-wrap align-items-center gap-1 etiquetas-estado">
+                                <span class="badge badge-dispositivo" style="background-color: <%= COLORES_DISPOSITIVO[c.dispositivo] || '#6c757d' %>;" title="<%= c.dispositivo %>"><%= ETIQUETAS_DISPOSITIVO[c.dispositivo] || c.dispositivo || '—' %></span>
+                                <span class="badge rounded-pill <%= estado.clase %>"><%= estado.etiqueta %></span>
+                                <% if (c.cierreAdministrativo?.cerrado) { %>
+                                    <i class="bi bi-lock-fill text-success" title="Cierre administrativo: cerrado<%= c.cierreAdministrativo?.fecha ? ' el ' + new Date(c.cierreAdministrativo.fecha).toLocaleDateString('es-AR') : '' %>"></i>
+                                <% } %>
+                                <% if (noDisponible) { %>
+                                    <span class="badge bg-secondary" title="Vinculado pero no disponible en el sitio oficial">No disponible</span>
+                                <% } %>
+                            </div>
+                        </td>
+                        <td data-label="Creado" class="col-angosta d-none d-md-table-cell" data-order="<%= c.createdAt ? new Date(c.createdAt).toISOString() : '' %>">
+                            <small class="text-muted"><%= c.createdAt ? new Date(c.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-' %></small>
+                        </td>
+                        <td class="col-angosta text-end pe-3 celda-acciones">
+                            <div class="d-flex gap-1 justify-content-end acciones-curso">
+                                <%# Acción principal, a la vista %>
+                                <% if (vinculado) { %>
+                                    <a class="btn btn-sm btn-success" href="/inscripto/curso/<%= c.idOfertaOficial %>/asistencia" title="Tomar asistencia y calificar"><i class="bi bi-calendar-check me-1"></i>Gestionar</a>
+                                    <a class="btn btn-sm btn-outline-primary" href="/inscripto/curso/<%= c.idOfertaOficial %>" title="Cursantes: datos, sincronizar con ABC, mails"><i class="bi bi-people-fill"></i><span class="texto-cursantes ms-1">Cursantes</span></a>
+                                <% } else if (esCiie && c.estado === 'pendiente') { %>
+                                    <button class="btn btn-sm btn-outline-primary btn-vincular-oficial" data-curso-clave="<%= c.clave %>"><i class="bi bi-link-45deg me-1"></i>Vincular</button>
+                                <% } else if (esCiie && c.estado === 'modificacion_pendiente' && c.propuestaEdicion) { %>
+                                    <button class="btn btn-sm btn-outline-info btn-aprobar-cambios"
+                                            data-id="<%= c._id %>"
+                                            data-propuesta='<%= JSON.stringify(c.propuestaEdicion.update || {}) %>'
+                                            data-propuesto-por="<%= c.propuestaEdicion.propuestoPor || '' %>"
+                                            data-tiene-fechas="<%= (c.propuestaEdicion.fechasEncuentros && c.propuestaEdicion.fechasEncuentros.length > 0) ? '1' : '0' %>"
+                                            data-periodo='<%= JSON.stringify(c.propuestaEdicion.periodoInscripcion || null) %>'>
+                                        <i class="bi bi-check2-circle me-1"></i>Revisar
+                                    </button>
+                                <% } else { %>
+                                    <button class="btn btn-sm btn-outline-success btn-editar-pendiente" data-id="<%= c._id %>"><i class="bi bi-pencil me-1"></i>Editar</button>
+                                <% } %>
+
+                                <%# El resto, en el menú. popper "fixed": el menú no queda cortado por la caja de la tabla %>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                            data-bs-popper-config='{"strategy":"fixed"}' aria-label="Más acciones">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                                        <% if (vinculado) { %>
+                                            <% if (c.enlaceInscripcion) { %>
+                                            <li><button class="dropdown-item text-white btn-copiar-enlace" data-link="<%= c.enlaceInscripcion %>"><i class="bi bi-link-45deg me-2 text-info"></i>Copiar enlace</button></li>
+                                            <% } %>
+                                            <li><a class="dropdown-item text-white" href="/curso/flyer/<%= c.idOfertaOficial %>" target="_blank"><i class="bi bi-image me-2 text-warning"></i>Ver flyer</a></li>
+                                            <li><hr class="dropdown-divider border-secondary"></li>
+                                        <% } %>
+                                        <% if (vinculado || (esCiie && (c.estado === 'pendiente' || (c.estado === 'modificacion_pendiente' && c.propuestaEdicion)))) { %>
+                                            <li><button class="dropdown-item text-success btn-editar-pendiente" data-id="<%= c._id %>"><i class="bi bi-pencil me-2"></i>Editar</button></li>
+                                        <% } %>
+                                        <li><button class="dropdown-item text-danger btn-eliminar-pendiente" data-id="<%= c._id %>"><i class="bi bi-trash me-2"></i>Eliminar</button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <% }); %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="<%= esCiie ? 6 : 5 %>" class="text-center py-5">
+                            <p class="text-muted mb-0">No hay cursos vinculados a este cargo.</p>
+                        </td>
+                    </tr>
+                <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<% } else { %>
+        // ─── DataTable (PRUEBA 2026-11: filtros en barra superior) ────────────────
+        $(document).on('click', '.btn-copiar-enlace', function () {
+            copyToClipboard($(this).data('link'));
+        });
+
+        if ($('#tablaCursosCargo tbody tr td[colspan]').length === 0) {
+            const table = $('#tablaCursosCargo');
+            const indice = sel => table.find('thead th').index(table.find('thead th' + sel));
+            const POR_RESOLVER = ['pendiente', 'modificacion_pendiente', 'eliminacion_pendiente'];
+
+            // Opciones de los filtros a partir de las filas
+            const filas = table.find('tbody tr');
+            const valores = attr => [...new Set(filas.map((_, tr) => $(tr).attr(attr)).get().filter(Boolean))];
+            const escapeHtml = text => $('<div>').text(text).html();
+            const llenar = (sel, lista) => lista.forEach(v => $(sel).append(`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`));
+            llenar('#filtroIti', valores('data-iti').sort().reverse());
+            llenar('#filtroArea', valores('data-area').sort((a, b) => a.localeCompare(b, 'es')));
+            llenar('#filtroDispositivo', valores('data-dispositivo').sort((a, b) => a.localeCompare(b, 'es')));
+
+            $.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex) {
+                if (settings.nTable.id !== 'tablaCursosCargo') return true;
+                const tr = $(settings.aoData[dataIndex].nTr);
+                const iti = $('#filtroIti').val(), area = $('#filtroArea').val(),
+                      disp = $('#filtroDispositivo').val(), est = $('#filtroEstado').val();
+                if (iti && tr.attr('data-iti') !== iti) return false;
+                if (area && tr.attr('data-area') !== area) return false;
+                if (disp && tr.attr('data-dispositivo') !== disp) return false;
+                if (est === 'por-resolver') return POR_RESOLVER.includes(tr.attr('data-estado'));
+                if (est && tr.attr('data-estado') !== est) return false;
+                return true;
+            });
+
+            const api = table.DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                // Sin el buscador propio de DataTables: se usa el de la barra de filtros.
+                dom: "rt<'d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 px-1'lip>",
+                order: [[indice('.col-estado'), 'asc'], [indice('.col-creado'), 'desc'], [indice('.col-inicio'), 'desc']],
+                columnDefs: [{ targets: -1, orderable: false }],
+                autoWidth: false
+            });
+
+            $('#filtroTexto').on('input', function () { api.search(this.value).draw(); });
+            $('#filtroIti, #filtroArea, #filtroDispositivo, #filtroEstado').on('change', () => api.draw());
+        }
+
+<% } %>

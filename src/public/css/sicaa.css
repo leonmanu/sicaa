@@ -1,0 +1,75 @@
+/* ==========================================================================
+   SICAA — estilos comunes a todas las pantallas (se carga desde partials/head).
+   Va acá lo que se repite entre vistas; cada vista deja solo lo propio.
+   ========================================================================== */
+
+/* Encabezado de página: nombre de fantasía arriba, oficial chico abajo. */
+.titulo-pagina { font-size: clamp(1.15rem, 4.5vw, 1.75rem); line-height: 1.2; overflow-wrap: anywhere; }
+.titulo-pagina .titulo-oficial { font-size: 0.85rem; font-weight: 400; color: var(--bs-secondary-color); margin-top: 0.25rem; display: block; }
+
+/* Barra de acciones: en el celular los botones se acomodan en grilla en vez de salirse. */
+.barra-acciones { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+@media (max-width: 575.98px) {
+    .barra-acciones { display: grid; grid-template-columns: 1fr 1fr; }
+    .barra-acciones > .btn, .barra-acciones > a.btn { width: 100%; padding-left: 0.5rem; padding-right: 0.5rem; }
+    .barra-acciones > .ancho-completo { grid-column: 1 / -1; }
+}
+
+/* Textos largos sin espacios (emails, URLs) cortan en vez de desbordar. */
+.cortar-texto { overflow-wrap: anywhere; word-break: break-word; }
+
+/* --------------------------------------------------------------------------
+   .tabla-tarjetas: en el celular cada fila de la tabla se muestra como una
+   tarjeta apilada. Cada <td> lleva data-label con el nombre de su columna.
+   Una celda con .celda-titulo va arriba en grande y sin etiqueta.
+   -------------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+    .tabla-tarjetas thead { display: none; }
+    .tabla-tarjetas, .tabla-tarjetas tbody, .tabla-tarjetas tr, .tabla-tarjetas td { display: block; width: 100% !important; }
+    .tabla-tarjetas tr {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--bs-body-bg);
+    }
+    .tabla-tarjetas td {
+        border: 0 !important;
+        padding: 0.25rem 0 !important;
+        text-align: left !important;
+        display: flex;
+        gap: 0.75rem;
+        align-items: baseline;
+        overflow-wrap: anywhere;
+    }
+    .tabla-tarjetas td[data-label]::before {
+        content: attr(data-label);
+        flex: 0 0 6.5rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--bs-secondary-color);
+    }
+    .tabla-tarjetas td.celda-titulo { font-size: 1.05rem; padding-bottom: 0.4rem !important; }
+    .tabla-tarjetas td.celda-titulo::before { content: none; }
+    .tabla-tarjetas td.celda-acciones { justify-content: flex-end; }
+    .tabla-tarjetas td.celda-acciones::before { content: none; }
+    .tabla-tarjetas td > * { min-width: 0; }
+    /* Filas vacías de DataTables ("no hay datos") */
+    .tabla-tarjetas td.dataTables_empty { display: block; text-align: center !important; }
+    .tabla-tarjetas td.dataTables_empty::before { content: none; }
+}
+
+/* Controles de DataTables (mostrar/buscar/paginar) apilados y a lo ancho en el celular. */
+@media (max-width: 767.98px) {
+    /* La grilla de DataTables usa márgenes negativos de .row: dentro de un
+       contenedor sin padding se sale unos píxeles de la pantalla. */
+    .dataTables_wrapper > .row { margin-left: 0; margin-right: 0; }
+    .dataTables_wrapper > .row > [class*="col-"] { padding-left: 0.25rem; padding-right: 0.25rem; }
+    .dataTables_wrapper .dataTables_filter label { display: block; }
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter { text-align: left !important; margin-bottom: 0.5rem; }
+    .dataTables_wrapper .dataTables_filter input { width: 100% !important; margin-left: 0 !important; margin-top: 0.25rem; display: block !important; }
+    .dataTables_wrapper .dataTables_filter label { width: 100%; }
+    .dataTables_wrapper .dataTables_paginate { margin-top: 0.5rem; }
+    .dataTables_wrapper .dataTables_paginate .pagination { justify-content: center !important; flex-wrap: wrap; }
+}

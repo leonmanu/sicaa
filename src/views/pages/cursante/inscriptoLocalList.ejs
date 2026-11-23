@@ -25,8 +25,8 @@
                             </ol>
                         </nav>
 
-                        <h2 class="h3 mb-3 d-flex align-items-start">
-                            <i class="bi bi-journal-bookmark-fill text-warning me-3 mt-1"></i>
+                        <h2 class="titulo-pagina mb-3 d-flex align-items-start">
+                            <i class="bi bi-journal-bookmark-fill text-warning me-2 me-sm-3"></i>
                             <%
                                 // Nombre "de fantasía" (título del formulario) arriba; el oficial chico debajo.
                                 const nombreOficial = (cursoLocal.nombrePropuesta || '').trim();
@@ -36,7 +36,7 @@
                             <span class="lh-sm">
                                 <%= mostrarFantasia ? nombreFantasia : nombreOficial %>
                                 <% if (mostrarFantasia && nombreOficial) { %>
-                                    <small class="d-block text-secondary fw-normal fs-6 mt-1"><span class="text-info">Oficial:</span> <%= nombreOficial %></small>
+                                    <small class="titulo-oficial"><span class="text-info">Oficial:</span> <%= nombreOficial %></small>
                                 <% } %>
                             </span>
                         </h2>
@@ -57,13 +57,13 @@
                                     </span>
                         </div>
 
-                        <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div class="d-flex flex-wrap align-items-center column-gap-3 row-gap-1">
                             <div class="text-info small">
                                 <i class="bi bi-briefcase me-1"></i>
                                 <strong>Cargo:</strong>
                                 <%= cursoLocal.cargoId.areaId.nombre %>
                             </div>
-                            <div class="text-light small border-start ps-3 border-secondary">
+                            <div class="text-light small">
                                 <i class="bi bi-person-badge me-1"></i>
                                 <strong>Formador:</strong>
                                 <%= cursoLocal.formadorAbc %>
@@ -74,42 +74,38 @@
 
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 p-3 bg-dark border border-secondary rounded-3 shadow-sm">
 
-    <div class="d-flex gap-2 align-items-center bg-black bg-opacity-25 p-2 rounded-2 border border-secondary border-opacity-25">
-        <span class="small text-muted me-2 ms-1"><i class="bi bi-copy me-1"></i>Copiar Mails:</span>
-        <button id="btnCopiarEmailsPrincipales" class="btn btn-sm btn-outline-primary" title="Emails @abc.gob.ar">
-            @abc
-        </button>
-        <button id="btnCopiarEmailsAlternativos" class="btn btn-sm btn-outline-light" title="Emails Personales">
-            @alt.
-        </button>
-    </div>
+                    <div class="barra-acciones flex-grow-1">
+                        <a href="/inscripto/curso/<%= cursoLocal.idOfertaOficial %>/asistencia"
+                           class="btn btn-success fw-bold ancho-completo"
+                           title="Gestionar encuentros y asistencia">
+                            <i class="bi bi-calendar-check-fill me-2"></i>Tomar asistencia
+                        </a>
+                        <button id="btnConsultarAbc" class="btn btn-warning fw-bold">
+                            <i class="bi bi-cloud-download-fill me-1"></i>Sincronizar ABC
+                        </button>
+                        <button id="btnAbrirAgregarCursante" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalAgregarCursante">
+                            <i class="bi bi-person-plus-fill me-1"></i>Agregar cursante
+                        </button>
+                        <a href="/inscripto/curso/<%= cursoLocal.idOfertaOficial %>/listaAsistencia" target="_blank"
+                            class="btn btn-outline-danger" title="Abrir planilla para imprimir">
+                            <i class="bi bi-printer-fill me-1"></i>Lista impresa
+                        </a>
+                        <a href="/inscripto/curso/<%= cursoLocal.idOfertaOficial %>/registro" target="_blank"
+                            class="btn btn-outline-secondary" title="Registro con datos de contacto, para imprimir">
+                            <i class="bi bi-card-list me-1"></i>Registro
+                        </a>
+                    </div>
 
-    <div class="d-flex gap-2">
-        <a href="/inscripto/curso/<%= cursoLocal.idOfertaOficial %>/asistencia" 
-           class="btn btn-success px-3 fw-bold" 
-           title="Gestionar encuentros y asistencia">
-            <i class="bi bi-calendar-check-fill me-2"></i>Tomar Asistencia
-        </a>
-
-        <a href="/inscripto/curso/<%= cursoLocal.idOfertaOficial %>/listaAsistencia" target="_blank"
-            class="btn btn-outline-danger px-3" title="Abrir planilla para imprimir">
-            <i class="bi bi-printer-fill me-2"></i>Lista Impresa
-        </a>
-
-        <a href="/inscripto/curso/<%= cursoLocal.idOfertaOficial %>/registro" target="_blank"
-            class="btn btn-outline-secondary px-3" title="Registro con datos de contacto, para imprimir">
-            <i class="bi bi-card-list me-2"></i>Registro de Cursantes
-        </a>
-
-        <button id="btnConsultarAbc" class="btn btn-warning fw-bold px-3">
-            <i class="bi bi-cloud-download-fill me-2"></i>Sincronizar con ABC
-        </button>
-
-        <button id="btnAbrirAgregarCursante" class="btn btn-outline-info px-3" data-bs-toggle="modal" data-bs-target="#modalAgregarCursante">
-            <i class="bi bi-person-plus-fill me-2"></i>Agregar Cursante
-        </button>
-    </div>
-</div>
+                    <div class="d-flex gap-2 align-items-center bg-black bg-opacity-25 p-2 rounded-2 border border-secondary border-opacity-25">
+                        <span class="small text-muted me-1 ms-1"><i class="bi bi-copy me-1"></i>Copiar mails:</span>
+                        <button id="btnCopiarEmailsPrincipales" class="btn btn-sm btn-outline-primary" title="Emails @abc.gob.ar">
+                            @abc
+                        </button>
+                        <button id="btnCopiarEmailsAlternativos" class="btn btn-sm btn-outline-light" title="Emails Personales">
+                            @alt.
+                        </button>
+                    </div>
+                </div>
 
                 <div id="seccionPendientes" class="card border-warning bg-dark mb-4 d-none">
                     <div
@@ -137,7 +133,7 @@
                 <div class="card shadow-sm border-0 bg-dark text-white">
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table id="tablaInscriptos" class="table table-dark table-hover align-middle mb-0">
+                            <table id="tablaInscriptos" class="table table-dark table-hover align-middle mb-0 tabla-tarjetas">
                                 <thead class="bg-black text-muted small text-uppercase">
                                     <tr>
                                         <th>Apellido y Nombre</th>
@@ -152,13 +148,14 @@
                                     <% if (inscriptoLocal && inscriptoLocal.length> 0) { %>
                                         <% inscriptoLocal.forEach(il=> { %>
                                             <tr>
-                                                <td class="fw-bold">
+                                                <td class="fw-bold celda-titulo">
                                                     <%= il.apellido %>, <%= il.nombres %>
                                                 </td>
-                                                <td>
+                                                <td data-label="DNI">
                                                     <%= il.dni %>
                                                 </td>
-                                                <td>
+                                                <td data-label="Emails" class="cortar-texto">
+                                                    <div>
                                                     <div class="small">
                                                         <span class="email-principal text-info">
                                                             <%= il.emailAlternativo %>
@@ -169,20 +166,21 @@
                                                             <%= il.email %>
                                                         </span>
                                                     </div>
+                                                    </div>
                                                 </td>
-                                                <td><small class="text-muted">
+                                                <td data-label="Teléfono"><small class="text-muted">
                                                         <%= il.telefono %>
                                                     </small></td>
-                                                <td>
+                                                <td data-label="Calificación">
                                                     <span
                                                         class="badge <%= il.calificacion === 'Aprobó' ? 'bg-success' : 'bg-secondary' %>">
                                                         <%= il.calificacion %>
                                                     </span>
                                                 </td>
-                                                <td class="text-center pe-4">
+                                                <td class="text-center pe-4 celda-acciones">
                                                     <a href="/agente/cursante/editar/<%= il._id %>"
-                                                        class="btn btn-sm btn-outline-light">
-                                                        <i class="bi bi-pencil"></i>
+                                                        class="btn btn-sm btn-outline-light" title="Editar cursante">
+                                                        <i class="bi bi-pencil"></i><span class="d-md-none ms-1">Editar</span>
                                                     </a>
                                                 </td>
                                             </tr>
@@ -392,7 +390,7 @@
                                     confirmButtonColor: '#dc3545'
                                 });
                             }).always(() => {
-                                btn.prop('disabled', false).html('<i class="bi bi-cloud-download me-1"></i> Consultar ABC');
+                                btn.prop('disabled', false).html('<i class="bi bi-cloud-download-fill me-1"></i>Sincronizar ABC');
                             });
                         });
 
